@@ -1,3 +1,18 @@
+/*
+ * Copyright 2023 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.kotlin;
 
 import lombok.EqualsAndHashCode;
@@ -6,12 +21,11 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.java.RenameVariable;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.NameTree;
-import org.openrewrite.java.tree.TypeTree;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.kotlin.marker.Modifier;
+import org.openrewrite.kotlin.tree.K;
 
 import java.util.List;
 
@@ -19,17 +33,17 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class ChangeTypeAlias extends Recipe {
 
-    @Option(displayName = "Old fully-qualified alias name",
-            description = "Fully-qualified class name of the alias type.",
-            example = "org.junit.Assume")
+    @Option(displayName = "Old alias name",
+            description = "Name of the alias type.",
+            example = "OldAlias")
     String aliasName;
 
-    @Option(displayName = "New fully-qualified alias name",
-            description = "Fully-qualified class name of the alias type.",
-            example = "org.junit.Assume")
+    @Option(displayName = "New alias name",
+            description = "Name of the alias type.",
+            example = "NewAlias")
     String newName;
 
-    @Option(displayName = "Aliased type name",
+    @Option(displayName = "Target fully qualified type",
             description = "Fully-qualified class name of the aliased type.",
             example = "org.junit.Assume")
     String fullyQualifiedAliasedType;
@@ -48,42 +62,33 @@ public class ChangeTypeAlias extends Recipe {
     protected TreeVisitor<?, ExecutionContext> getVisitor() {
         return new KotlinIsoVisitor<ExecutionContext>() {
             @Override
+            public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext executionContext) {
+                K.CompilationUnit c = super.visitCompilationUnit(cu, executionContext);
+                J.VariableDeclarations.NamedVariable variable = getCursor().pollMessage("RENAME_VARIABLE");
+                if (variable != null) {
+                    c = (K.CompilationUnit) new RenameVariable<>(variable, newName).visit(c, executionContext, getCursor());
+                    assert c != null;
+                }
+                return c;
+            }
+
+            @Override
             public J visitVariableDeclarations(J.VariableDeclarations multiVariable, ExecutionContext executionContext) {
                 if (isTypeAlias(multiVariable.getLeadingAnnotations()) && TypeUtils.isOfClassType(multiVariable.getType(), fullyQualifiedAliasedType)) {
                     return super.visitVariableDeclarations(multiVariable, executionContext);
-                } else if (isAliasedTypeExpression(multiVariable.getTypeExpression())) {
-                    TypeTree typeExpression = multiVariable.getTypeExpression();
-                    if (typeExpression instanceof J.Identifier) {
-                        return multiVariable.withTypeExpression(((J.Identifier) typeExpression).withSimpleName(newName));
-                    } else if (typeExpression instanceof J.ParameterizedType) {
-                        NameTree clazz = ((J.ParameterizedType) typeExpression).getClazz();
-                        if (clazz instanceof J.Identifier) {
-                            return multiVariable.withTypeExpression(((J.ParameterizedType) typeExpression).withClazz(((J.Identifier) clazz).withSimpleName(newName)));
-                        } else if (clazz instanceof J.FieldAccess) {
-                            return multiVariable.withTypeExpression(((J.ParameterizedType) typeExpression).withClazz(((J.FieldAccess) clazz).withName(((J.FieldAccess) clazz).getName().withSimpleName(newName))));
-                        }
-                    }
                 }
                 return multiVariable;
             }
 
             @Override
             public J visitVariable(J.VariableDeclarations.NamedVariable variable, ExecutionContext executionContext) {
-                return variable.withName(variable.getName().withSimpleName(newName));
+                getCursor().putMessageOnFirstEnclosing(K.CompilationUnit.class, "RENAME_VARIABLE", variable);
+                return variable;
             }
 
             private boolean isTypeAlias(List<J.Annotation> annotationList) {
                 return annotationList.stream()
                         .anyMatch(a -> "typealias".equals(a.getSimpleName()) && a.getMarkers().findFirst(Modifier.class).isPresent());
-            }
-
-            private boolean isAliasedTypeExpression(@Nullable J typeExpression) {
-                if (typeExpression instanceof J.Identifier) {
-                    return ((J.Identifier) typeExpression).getSimpleName().equals(aliasName) && TypeUtils.isOfClassType(((J.Identifier) typeExpression).getType(), fullyQualifiedAliasedType);
-                } else if (typeExpression instanceof J.ParameterizedType) {
-                    return isAliasedTypeExpression(((J.ParameterizedType) typeExpression).getClazz());
-                }
-                return false;
             }
         };
     }
