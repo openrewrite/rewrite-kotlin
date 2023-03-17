@@ -3080,6 +3080,15 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         }
         J.Identifier name = createIdentifier(valueName, typeMapping.type(typeAlias.getExpandedTypeRef()), null);
 
+        TypeTree typeExpression = new J.Identifier(
+                randomId(),
+                EMPTY,
+                Markers.EMPTY,
+                "",
+                typeMapping.type(typeAlias.getExpandedTypeRef()),
+                null
+        );
+
         // Dimensions do not exist in Kotlin, and array is declared based on the type. I.E., IntArray
         List<JLeftPadded<Space>> dimensionsAfterName = emptyList();
 
@@ -3104,7 +3113,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                 markers,
                 annotations,
                 emptyList(),
-                null,
+                typeExpression,
                 null,
                 null,
                 vars);
