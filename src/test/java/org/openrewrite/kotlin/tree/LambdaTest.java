@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.tree;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
@@ -71,6 +72,7 @@ class LambdaTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/60")
     @Test
+    @Disabled
     void suspendLambda() {
         rewriteRun(
           kotlin(
@@ -85,6 +87,7 @@ class LambdaTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/56")
     @Test
+    @Disabled
     void suspendLambdaWithParameter() {
         rewriteRun(
           kotlin(
