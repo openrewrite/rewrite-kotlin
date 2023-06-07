@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.Issue;
 import org.openrewrite.java.AddImport;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -65,21 +66,13 @@ public class AddImportTest implements RewriteTest {
     }
 
     @Test
-    void addStaticImport() {
+    void addInlineImport() {
         rewriteRun(
-          spec -> spec.recipe(toRecipe(() -> new AddImport<>("a.b.Target", "method", false))),
+          spec -> spec.recipe(toRecipe(() -> new AddImport<>("a.b.method", null, false))),
           kotlin(
             """
               package a.b
               class Original
-              """
-          ),
-          kotlin(
-            """
-              package a.b
-              class Target {
-                  inline fun method() {}
-              }
               """
           ),
           kotlin(
@@ -92,12 +85,29 @@ public class AddImportTest implements RewriteTest {
               """,
             """
               import a.b.Original
-              
               import a.b.method
               
               class A {
                   val type : Original = Original()
               }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/114")
+    @Test
+    void addJavaStaticImport() {
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new AddImport<>("org.junit.jupiter.api.Assertions", "assertFalse", false))),
+          kotlin(
+            """
+              class Foo
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertFalse
+              
+              class Foo
               """
           )
         );
