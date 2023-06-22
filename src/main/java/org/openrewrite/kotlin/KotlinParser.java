@@ -34,7 +34,6 @@ import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles;
 import org.jetbrains.kotlin.cli.jvm.compiler.JvmPackagePartProvider;
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment;
 import org.jetbrains.kotlin.cli.jvm.compiler.VfsBasedProjectEnvironment;
-import org.jetbrains.kotlin.cli.jvm.compiler.pipeline.ModuleCompilerAnalyzedOutput;
 import org.jetbrains.kotlin.cli.jvm.compiler.pipeline.ModuleCompilerEnvironment;
 import org.jetbrains.kotlin.cli.jvm.compiler.pipeline.ModuleCompilerInput;
 import org.jetbrains.kotlin.com.intellij.openapi.Disposable;
@@ -51,6 +50,7 @@ import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory;
 import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector;
 import org.jetbrains.kotlin.fir.FirSession;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
+import org.jetbrains.kotlin.fir.pipeline.FirResult;
 import org.jetbrains.kotlin.idea.KotlinFileType;
 import org.jetbrains.kotlin.modules.Module;
 import org.jetbrains.kotlin.modules.TargetId;
@@ -293,7 +293,7 @@ public class KotlinParser implements Parser {
         BaseDiagnosticsCollector diagnosticsReporter = DiagnosticReporterFactory.INSTANCE.createReporter(false);
         ModuleCompilerEnvironment compilerEnvironment = new ModuleCompilerEnvironment(projectEnvironment, diagnosticsReporter);
         CommonCompilerPerformanceManager performanceManager = compilerConfiguration.get(PERF_MANAGER);
-        ModuleCompilerAnalyzedOutput output = compileModuleToAnalyzedFir(
+        FirResult output = compileModuleToAnalyzedFir(
                 compilerInput,
                 compilerEnvironment,
                 emptyList(),
@@ -308,7 +308,7 @@ public class KotlinParser implements Parser {
             // Defer the exception until the Source that caused the compilation error is parsed to create a PlainText for the input.
         }
 
-        List<FirFile> firFiles = output.getFir();
+        List<FirFile> firFiles = output.component1().getFir();
         assert firFiles.size() == inputs.size();
 
         List<CompiledKotlinSource> cus = new ArrayList<>();
@@ -318,7 +318,7 @@ public class KotlinParser implements Parser {
             cus.add(new CompiledKotlinSource(input, firFile));
         }
 
-        sessionToCus.put(output.getSession(), cus);
+        sessionToCus.put(output.component1().getSession(), cus);
 
         return sessionToCus;
     }

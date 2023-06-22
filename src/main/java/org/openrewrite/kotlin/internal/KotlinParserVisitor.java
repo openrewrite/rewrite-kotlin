@@ -88,8 +88,6 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
     @Nullable
     private FirFile currentFile;
 
-    private static final Pattern whitespaceSuffixPattern = Pattern.compile("\\s*[^\\s]+(\\s*)");
-
     public KotlinParserVisitor(Path sourcePath, @Nullable FileAttributes fileAttributes, EncodingDetectingInputStream source, JavaTypeCache typeCache, FirSession firSession, ExecutionContext ctx) {
         this.sourcePath = sourcePath;
         this.fileAttributes = fileAttributes;
@@ -1115,7 +1113,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                 FirBasedSymbol<?> symbol = ((FirResolvedNamedReference) namedReference).getResolvedSymbol();
                 if (symbol instanceof FirNamedFunctionSymbol) {
                     FirNamedFunctionSymbol namedFunctionSymbol = (FirNamedFunctionSymbol) symbol;
-                    ConeClassLikeLookupTag lookupTag = ClassMembersKt.containingClass(namedFunctionSymbol);
+                    ConeClassLikeLookupTag lookupTag = ClassMembersKt.containingClassLookupTag(namedFunctionSymbol);
                     if (lookupTag != null) {
                         owner = LookupTagUtilsKt.toFirRegularClassSymbol(lookupTag, firSession);
                     }
@@ -1438,7 +1436,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
             annotation = convertToAnnotation(mapModifier(EMPTY, emptyList()));
         }
 
-        List<JRightPadded<J>> paramExprs = new ArrayList<>(functionTypeRef.getValueParameters().size());
+        List<JRightPadded<J>> paramExprs = new ArrayList<>(functionTypeRef.getParameters().size());
         JRightPadded<NameTree> receiver = null;
         if (functionTypeRef.getReceiverTypeRef() != null) {
             NameTree receiverName = (NameTree) visitElement(functionTypeRef.getReceiverTypeRef(), ctx);
@@ -1452,10 +1450,10 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         skip("(");
 
         JavaType closureType = typeMapping.type(functionTypeRef);
-        if (!functionTypeRef.getValueParameters().isEmpty()) {
-            List<FirValueParameter> parameters = functionTypeRef.getValueParameters();
+        if (!functionTypeRef.getParameters().isEmpty()) {
+            List<FirFunctionTypeParameter> parameters = functionTypeRef.getParameters();
             for (int i = 0; i < parameters.size(); i++) {
-                FirValueParameter p = parameters.get(i);
+                FirFunctionTypeParameter p = parameters.get(i);
                 J expr = visitElement(p, ctx);
 
                 JRightPadded<J> param = JRightPadded.build(expr);
@@ -1466,7 +1464,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         }
 
         J.Lambda.Parameters params = new J.Lambda.Parameters(randomId(), EMPTY, Markers.EMPTY, parenthesized, paramExprs);
-        if (parenthesized && functionTypeRef.getValueParameters().isEmpty()) {
+        if (parenthesized && functionTypeRef.getParameters().isEmpty()) {
             params = params.getPadding().withParams(singletonList(JRightPadded
                     .build((J) new J.Empty(randomId(), EMPTY, Markers.EMPTY))
                     .withAfter(sourceBefore(")"))));
@@ -1483,7 +1481,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
             body = ((J.Block) body).withEnd(sourceBefore("}"));
         }
 
-        if (functionTypeRef.getValueParameters().isEmpty()) {
+        if (functionTypeRef.getParameters().isEmpty()) {
             body = body.withMarkers(body.getMarkers().removeByType(OmitBraces.class));
         }
 
@@ -1618,9 +1616,9 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         List<J.Annotation> annotations = mapModifiers(mapAnnotations, property.getName().asString());
 
         J.VariableDeclarations receiver = null;
-        if (property.getReceiverTypeRef() != null) {
+        if (property.getReceiverParameter() != null) {
             // Generates a VariableDeclaration to represent the receiver similar to how it is done in the Kotlin compiler.
-            TypeTree receiverName = (TypeTree) visitElement(property.getReceiverTypeRef(), ctx);
+            TypeTree receiverName = (TypeTree) visitElement(property.getReceiverParameter(), ctx);
             markers = markers.addIfAbsent(new ReceiverType(randomId()));
             J.VariableDeclarations.NamedVariable receiverVar = new J.VariableDeclarations.NamedVariable(
                     randomId(),
@@ -2135,12 +2133,12 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                         convertAll(simpleFunction.getTypeParameters(), commaDelim, t -> sourceBefore(">"), ctx));
 
         JRightPadded<J.VariableDeclarations.NamedVariable> infixReceiver = null;
-        if (simpleFunction.getReceiverTypeRef() != null) {
+        if (simpleFunction.getReceiverParameter() != null) {
             // Infix functions are de-sugared during the backend phase of the compiler.
             // The de-sugaring process moves the infix receiver to the first position of the method declaration.
             // The infix receiver is added as to the `J.MethodInvocation` parameters, and marked to distinguish the parameter.
             markers = markers.addIfAbsent(new ReceiverType(randomId()));
-            Expression receiver = (Expression) visitElement(simpleFunction.getReceiverTypeRef(), ctx);
+            Expression receiver = (Expression) visitElement(simpleFunction.getReceiverParameter(), ctx);
             infixReceiver = JRightPadded.build(new J.VariableDeclarations.NamedVariable(
                             randomId(),
                             EMPTY,
@@ -2168,7 +2166,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                 JContainer.build(before, convertAll(simpleFunction.getValueParameters(), commaDelim, t -> sourceBefore(")"), ctx, true), Markers.EMPTY) :
                 JContainer.build(before, singletonList(padRight(new J.Empty(randomId(), sourceBefore(")"), Markers.EMPTY), EMPTY)), Markers.EMPTY);
 
-        if (simpleFunction.getReceiverTypeRef() != null) {
+        if (simpleFunction.getReceiverParameter() != null) {
             // Insert the infix receiver to the list of parameters.
             J.VariableDeclarations implicitParam = new J.VariableDeclarations(
                     randomId(),
@@ -3023,12 +3021,12 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         List<J.Annotation> annotations = mapModifiers(constructor.getAnnotations(), "constructor");
 
         JRightPadded<J.VariableDeclarations.NamedVariable> infixReceiver = null;
-        if (constructor.getReceiverTypeRef() != null) {
+        if (constructor.getReceiverParameter() != null) {
             // Infix functions are de-sugared during the backend phase of the compiler.
             // The de-sugaring process moves the infix receiver to the first position of the method declaration.
             // The infix receiver is added as to the `J.MethodInvocation` parameters, and marked to distinguish the parameter.
             markers = markers.addIfAbsent(new ReceiverType(randomId()));
-            Expression receiver = (Expression) visitElement(constructor.getReceiverTypeRef(), ctx);
+            Expression receiver = (Expression) visitElement(constructor.getReceiverParameter(), ctx);
             infixReceiver = JRightPadded.build(new J.VariableDeclarations.NamedVariable(
                             randomId(),
                             EMPTY,
@@ -3050,7 +3048,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                 JContainer.build(before, convertAll(constructor.getValueParameters(), commaDelim, t -> sourceBefore(")"), ctx, true), Markers.EMPTY) :
                 JContainer.build(before, singletonList(padRight(new J.Empty(randomId(), sourceBefore(")"), Markers.EMPTY), EMPTY)), Markers.EMPTY);
 
-        if (constructor.getReceiverTypeRef() != null) {
+        if (constructor.getReceiverParameter() != null) {
             // Insert the infix receiver to the list of parameters.
             J.VariableDeclarations implicitParam = new J.VariableDeclarations(
                     randomId(),
@@ -3911,7 +3909,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         if (resolvedSymbol instanceof FirVariableSymbol) {
             FirVariableSymbol<?> propertySymbol = (FirVariableSymbol<?>) resolvedSymbol;
             JavaType.FullyQualified owner = null;
-            ConeClassLikeLookupTag lookupTag = ClassMembersKt.containingClass(propertySymbol);
+            ConeClassLikeLookupTag lookupTag = ClassMembersKt.containingClassLookupTag(propertySymbol);
             if (lookupTag != null) {
                 owner = (JavaType.FullyQualified) typeMapping.type(LookupTagUtilsKt.toFirRegularClassSymbol(lookupTag, firSession).getFir());
             }

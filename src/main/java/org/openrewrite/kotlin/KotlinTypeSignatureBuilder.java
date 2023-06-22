@@ -520,9 +520,9 @@ public class KotlinTypeSignatureBuilder implements JavaTypeSignatureBuilder {
         } else if (functionCall.getCalleeReference() instanceof FirResolvedNamedReference) {
             if (((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
                 FirNamedFunctionSymbol resolvedSymbol = (FirNamedFunctionSymbol) ((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol();
-                if (ClassMembersKt.containingClass(resolvedSymbol) != null) {
+                if (ClassMembersKt.containingClassLookupTag(resolvedSymbol) != null) {
                     //noinspection DataFlowIssue
-                    owner = signature(LookupTagUtilsKt.toFirRegularClassSymbol(ClassMembersKt.containingClass(resolvedSymbol), firSession), ownerSymbol);
+                    owner = signature(LookupTagUtilsKt.toFirRegularClassSymbol(ClassMembersKt.containingClassLookupTag(resolvedSymbol), firSession), ownerSymbol);
                 } else if (resolvedSymbol.getOrigin() == FirDeclarationOrigin.Library.INSTANCE) {
                     if (resolvedSymbol.getFir().getContainerSource() instanceof JvmPackagePartSource) {
                         JvmPackagePartSource source = (JvmPackagePartSource) resolvedSymbol.getFir().getContainerSource();
@@ -564,7 +564,7 @@ public class KotlinTypeSignatureBuilder implements JavaTypeSignatureBuilder {
     public String methodDeclarationSignature(FirFunctionSymbol<? extends FirFunction> symbol) {
         String s = symbol instanceof FirConstructorSymbol ? classSignature(symbol.getResolvedReturnTypeRef()) :
                 symbol.getDispatchReceiverType() != null ? classSignature(symbol.getDispatchReceiverType()) :
-                        classSignature(ClassMembersKt.containingClass(symbol));
+                        classSignature(ClassMembersKt.containingClassLookupTag(symbol));
 
         if (symbol instanceof FirConstructorSymbol) {
             s += "{name=<constructor>,return=" + s;

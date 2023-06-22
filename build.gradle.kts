@@ -10,7 +10,7 @@ val latest = if (project.hasProperty("releasing")) {
     "latest.integration"
 }
 
-val kotlinVersion = "1.8.0"
+val kotlinVersion = "1.8.22"
 
 dependencies {
     annotationProcessor("org.projectlombok:lombok:latest.release")

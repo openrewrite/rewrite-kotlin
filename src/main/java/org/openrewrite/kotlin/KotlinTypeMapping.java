@@ -689,8 +689,8 @@ public class KotlinTypeMapping implements JavaTypeMapping<Object> {
         if (functionCall.getCalleeReference() instanceof FirResolvedNamedReference) {
             if (((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
                 FirNamedFunctionSymbol resolvedSymbol = (FirNamedFunctionSymbol) ((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol();
-                if (ClassMembersKt.containingClass(resolvedSymbol) != null) {
-                    ConeClassLikeLookupTag lookupTag = ClassMembersKt.containingClass(resolvedSymbol);
+                if (ClassMembersKt.containingClassLookupTag(resolvedSymbol) != null) {
+                    ConeClassLikeLookupTag lookupTag = ClassMembersKt.containingClassLookupTag(resolvedSymbol);
                     if (lookupTag != null) {
                         FirRegularClassSymbol classSymbol = LookupTagUtilsKt.toFirRegularClassSymbol(lookupTag, firSession);
                         if (classSymbol != null) {
