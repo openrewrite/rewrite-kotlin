@@ -63,6 +63,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.kotlin.internal.KotlinParserVisitor;
+import org.openrewrite.kotlin.psi.PsiTree;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.tree.ParseError;
@@ -165,6 +166,7 @@ public class KotlinParser implements Parser {
         return compilerCus.stream()
                 .map(compiled -> {
                     try {
+                        PsiTree psiTree = new PsiTree(compiled.getInput().getSource(ctx).readFully());
                         KotlinParserVisitor mappingVisitor = new KotlinParserVisitor(
                                 compiled.getInput().getRelativePath(relativeTo),
                                 compiled.getInput().getFileAttributes(),
@@ -172,6 +174,7 @@ public class KotlinParser implements Parser {
                                 styles,
                                 typeCache,
                                 firSession,
+                                psiTree,
                                 ctx
                         );
 

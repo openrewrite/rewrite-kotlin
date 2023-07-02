@@ -52,6 +52,8 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.KotlinTypeMapping;
 import org.openrewrite.kotlin.marker.*;
+import org.openrewrite.kotlin.psi.PsiTree;
+import org.openrewrite.kotlin.psi.PsiTreePrinter;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.style.NamedStyles;
@@ -84,6 +86,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
     private final KotlinTypeMapping typeMapping;
     private final ExecutionContext ctx;
     private final FirSession firSession;
+    private final PsiTree psiTree;
     private int cursor;
 
     // Associate top-level function and property declarations to the file.
@@ -92,20 +95,29 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
     private static final Pattern whitespaceSuffixPattern = Pattern.compile("\\s*[^\\s]+(\\s*)");
 
-    public KotlinParserVisitor(Path sourcePath, @Nullable FileAttributes fileAttributes, EncodingDetectingInputStream source, List<NamedStyles> styles, JavaTypeCache typeCache, FirSession firSession, ExecutionContext ctx) {
+    public KotlinParserVisitor(Path sourcePath,
+                               @Nullable FileAttributes fileAttributes,
+                               EncodingDetectingInputStream source,
+                               List<NamedStyles> styles,
+                               JavaTypeCache typeCache,
+                               FirSession firSession,
+                               PsiTree psiTree,
+                               ExecutionContext ctx) {
         this.sourcePath = sourcePath;
         this.fileAttributes = fileAttributes;
         this.source = source.readFully();
         this.charset = source.getCharset();
         this.charsetBomMarked = source.isCharsetBomMarked();
         this.styles = styles;
-        this.typeMapping = new KotlinTypeMapping(typeCache, firSession);
+        this.psiTree = psiTree;
         this.ctx = ctx;
         this.firSession = firSession;
+        this.typeMapping = new KotlinTypeMapping(typeCache, firSession);
     }
 
     @Override
     public J visitFile(FirFile file, ExecutionContext ctx) {
+        psiTree.parseFirElementSource(file.getSource());
         currentFile = file;
 
         List<J.Annotation> annotations = mapAnnotations(file.getAnnotations());
@@ -586,6 +598,8 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
      *                       but should not be added as statements to the J.ForLoop#body.
      */
     private J visitBlock(FirBlock block, Set<FirElement> skipStatements, ExecutionContext ctx) {
+        psiTree.parseFirElementSource(block.getSource());
+
         int saveCursor = cursor;
         Space prefix = whitespace();
         OmitBraces omitBraces = null;
@@ -1590,6 +1604,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
     @Override
     public J visitProperty(FirProperty property, ExecutionContext ctx) {
+        psiTree.parseFirElementSource(property.getSource());
         Space prefix = whitespace();
         Markers markers = Markers.EMPTY;
 
@@ -2116,6 +2131,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
     @Override
     public J visitSimpleFunction(FirSimpleFunction simpleFunction, ExecutionContext ctx) {
+        psiTree.parseFirElementSource(simpleFunction.getSource());
         Space prefix = whitespace();
         Markers markers = Markers.EMPTY;
         List<J> modifiers = emptyList();
@@ -2456,6 +2472,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
     @Override
     public J visitTypeParameter(FirTypeParameter typeParameter, ExecutionContext ctx) {
+
         if (!typeParameter.getAnnotations().isEmpty()) {
             throw new IllegalStateException("Implement me.");
         }
@@ -2618,6 +2635,8 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
     // Merge visitValueParameter and visitProperty
     @Override
     public J visitValueParameter(FirValueParameter valueParameter, ExecutionContext ctx) {
+        psiTree.parseFirElementSource(valueParameter.getSource());
+
         Space prefix = whitespace();
 
         List<J> modifiers = emptyList();
@@ -2793,6 +2812,9 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
     @Override
     public J visitWhenBranch(FirWhenBranch whenBranch, ExecutionContext ctx) {
+        psiTree.parseFirElementSource(whenBranch.getSource());
+        System.out.println(PsiTreePrinter.printPsiTree(psiTree));
+
         Space prefix = whitespace();
         if (source.substring(cursor).startsWith("if")) {
             skip("if");
@@ -2826,6 +2848,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
     @Override
     public J visitWhenExpression(FirWhenExpression whenExpression, ExecutionContext ctx) {
+        psiTree.parseFirElementSource(whenExpression.getSource());
         int saveCursor = cursor;
         Space prefix = whitespace();
         if (source.startsWith("when", cursor)) {
