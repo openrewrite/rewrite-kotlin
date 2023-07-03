@@ -26,6 +26,10 @@ public class SourceRange {
         return (!range.equals(this)) && range.start >= start && range.end <= end;
     }
 
+    public boolean covers(int position) {
+        return start <= position && position < end;
+    }
+
     @Override
     public String toString() {
         return "[" + start + "," + end + ")";
