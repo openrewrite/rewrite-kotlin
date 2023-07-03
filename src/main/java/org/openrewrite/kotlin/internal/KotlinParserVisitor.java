@@ -1605,6 +1605,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
     @Override
     public J visitProperty(FirProperty property, ExecutionContext ctx) {
         psiTree.parseFirElementSource(property.getSource());
+        System.out.println(PsiTreePrinter.printPsiTree(psiTree));
         Space prefix = whitespace();
         Markers markers = Markers.EMPTY;
 
