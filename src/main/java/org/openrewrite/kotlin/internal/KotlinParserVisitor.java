@@ -59,6 +59,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.lang.Math.max;
 import static java.util.Collections.*;
@@ -84,6 +85,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
     private int cursor;
 
     private Map<Integer, ASTNode> nodes;
+    private PsiTree psiTree;
 
     // Associate top-level function and property declarations to the file.
     @Nullable
@@ -101,6 +103,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         this.ctx = ctx;
         this.firSession = firSession;
         this.nodes = kotlinSource.getNodes();
+        this.psiTree = kotlinSource.getPsiTree();
     }
 
     @Override
@@ -213,6 +216,9 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         if (annotationCall.getUseSiteTarget() == AnnotationUseSiteTarget.PROPERTY_GETTER) {
             skip("get");
             markers = markers.addIfAbsent(new AnnotationCallSite(randomId(), "get", sourceBefore(":")));
+        } else if (annotationCall.getUseSiteTarget() == AnnotationUseSiteTarget.PROPERTY_SETTER) {
+            skip("set");
+            markers = markers.addIfAbsent(new AnnotationCallSite(randomId(), "set", sourceBefore(":")));
         }
 
         J.Identifier name = (J.Identifier) visitElement(annotationCall.getCalleeReference(), ctx);
@@ -1581,20 +1587,62 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
     @Override
     public J visitProperty(FirProperty property, ExecutionContext ctx) {
+        List<PsiTree.Node> nodes = psiTree.findByCursor(property.getSource().getStartOffset());
+        PsiTree.Node propertyPsiNode = nodes.stream().filter(n -> n.getType().equals("PROPERTY")).findFirst().get();
+
         Space prefix = whitespace();
         Markers markers = Markers.EMPTY;
 
-        List<J> modifiers = emptyList();
-        List<FirAnnotation> mapAnnotations = new ArrayList<>(property.getAnnotations());
-        // Note: it might be possible to have annotations on both the property associated to the getter
-        // AND the getter itself. In that case, we to use a single list to avoid duplicates and add
-        // the target annotations to the appropriate LST element.
-        if (property.getGetter() != null && !property.getGetter().getAnnotations().isEmpty()) {
-            mapAnnotations.addAll(property.getGetter().getAnnotations());
+        Map<String, FirAnnotation> firAnnotationsMap = property.getAnnotations().stream().collect(Collectors.toMap(
+            firAnno -> {
+                if (firAnno.getUseSiteTarget() != null) {
+                    return firAnno.getUseSiteTarget().getRenderName();
+                } else {
+                    FirReference f = ((FirAnnotationCall) firAnno).getCalleeReference();
+                    if (f instanceof FirResolvedNamedReference) {
+                       return ((FirResolvedNamedReference)  f).getName().asString();
+                    }
+
+                    throw new RuntimeException("Unknown annotation name");
+
+                }
+            },
+            Function.identity()
+        ));
+
+        if (property.getSetter() != null && !property.getSetter().getAnnotations().isEmpty()) {
+            firAnnotationsMap.put("set", property.getSetter().getAnnotations().get(0));
         }
 
-        List<J.Annotation> annotations = mapModifiers(mapAnnotations, property.getName().asString());
+        if (property.getGetter() != null && !property.getGetter().getAnnotations().isEmpty()) {
+            firAnnotationsMap.put("get", property.getGetter().getAnnotations().get(0));
+        }
 
+        List<J.Annotation> annotations = new ArrayList<>();
+
+        if (propertyPsiNode.getChildNodes().get(0).getType().equals("MODIFIER_LIST")) {
+            // handle annotations
+            PsiTree.Node modifiersNode = propertyPsiNode.getChildNodes().get(0);
+            for (PsiTree.Node annotationNode : modifiersNode.getChildNodes()) {
+                PsiTree.Node annotationNameNode = annotationNode.findFirstChildByType("ANNOTATION_TARGET");
+                if (annotationNameNode == null) {
+                    annotationNameNode = annotationNode.findFirstChildByType("CONSTRUCTOR_CALLEE");
+                }
+
+                String annotationName = annotationNameNode.getPsiElement().getText();
+
+                if (!firAnnotationsMap.containsKey(annotationName)) {
+                    throw new RuntimeException("Expected annotation not detected in Fir");
+                }
+
+                FirAnnotation firAnnotation = firAnnotationsMap.get(annotationName);
+
+                J.Annotation annotation = (J.Annotation) visitElement(firAnnotation, ctx);
+                annotations.add(annotation);
+            }
+        }
+
+        annotations.addAll(mapModifiers(new ArrayList<>(), property.getName().asString()));
         J.VariableDeclarations receiver = null;
         if (property.getReceiverTypeRef() != null) {
             // Generates a VariableDeclaration to represent the receiver similar to how it is done in the Kotlin compiler.

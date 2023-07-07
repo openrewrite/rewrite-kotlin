@@ -73,6 +73,10 @@ public class PsiTree {
         Node parent;
         PsiElement psiElement;
 
+        @Nullable
+        Node findFirstChildByType(String targetType) {
+            return childNodes.stream().filter(n -> n.getType().equals(targetType)).findFirst().orElse(null);
+        }
 
         @Override
         public boolean equals(Object obj) {

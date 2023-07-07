@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.com.intellij.psi.PsiElementVisitor;
 import org.jetbrains.kotlin.com.intellij.psi.PsiFile;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.psi.KtElement;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
 
 import java.util.*;
@@ -33,6 +34,7 @@ import java.util.*;
 public class KotlinSource {
     Parser.Input input;
     Map<Integer, ASTNode> nodes; // Maybe replace with PsiTree?
+    PsiTree psiTree;
 
     @Setter
     FirFile firFile;
@@ -41,6 +43,7 @@ public class KotlinSource {
                         @Nullable PsiFile psiFile) {
         this.input = input;
         this.nodes = map(psiFile);
+        this.psiTree = new PsiTree(psiFile, input.getSource(new InMemoryExecutionContext()).readFully());
     }
 
     // Map the PsiFile ahead of time so that the Disposable may be disposed early and free up memory.

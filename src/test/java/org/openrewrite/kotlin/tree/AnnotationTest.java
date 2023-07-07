@@ -82,4 +82,42 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/156")
+    @Test
+    void annotationUseSiteTarget() {
+        rewriteRun(
+          kotlin(
+            """
+              annotation class Ann
+              class Test {
+                  @set : Ann
+                  @get : Ann
+                  var name: String = ""
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/156")
+    @Test
+    void multipleAnnotationUseSite() {
+        rewriteRun(
+          kotlin(
+            """
+              import org.simpleframework.xml.Attribute
+              import org.simpleframework.xml.Namespace
+              import org.simpleframework.xml.Root
+
+              class LibraryPom {
+                  @set:Attribute(name = "schemaLocation", required = false)
+                  @get:Attribute(name = "schemaLocation", required = false)
+                  @Namespace(reference = "http://www.w3.org/2001/XMLSchema-instance", prefix = "xsi")
+                  var mSchemaLocation: String = ""
+              }
+              """
+          )
+        );
+    }
 }
