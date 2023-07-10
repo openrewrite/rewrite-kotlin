@@ -30,6 +30,7 @@ dependencies {
     implementation(kotlin("stdlib"))
 
     testImplementation("org.assertj:assertj-core:latest.release")
+    testImplementation("org.simpleframework:simple-xml:2.7.1")
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testImplementation("org.junit-pioneer:junit-pioneer:2.0.0")

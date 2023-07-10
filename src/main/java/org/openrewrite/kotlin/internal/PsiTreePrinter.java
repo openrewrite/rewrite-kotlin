@@ -34,26 +34,26 @@ public class PsiTreePrinter {
         outputLines = new ArrayList<>();
     }
 
-    public static String printPsiFileSkeleton(PsiFile psiFile) {
+    public static String printPsiSkeleton(PsiElement psiElement) {
         PsiTreePrinter treePrinter = new PsiTreePrinter();
         StringBuilder sb = new StringBuilder();
         sb.append("------------").append("\n");
-        sb.append("PSI File Skeleton").append("\n");
+        sb.append("PSI Element Skeleton").append("\n");
         Set<TextRange> covered =  new HashSet<>();
-        collectCovered(psiFile, covered);
-        treePrinter.printNode(psiFile, 1);
+        collectCovered(psiElement, covered);
+        treePrinter.printNode(psiElement, 1);
         sb.append(String.join("\n", treePrinter.outputLines));
         return sb.toString();
     }
 
-    public static String printPsiFileAll(PsiFile psiFile) {
+    public static String printPsiAll(PsiElement psiElement) {
         PsiTreePrinter treePrinter = new PsiTreePrinter();
         StringBuilder sb = new StringBuilder();
         sb.append("------------").append("\n");
-        sb.append("PSI File All").append("\n");
+        sb.append("PSI Element All").append("\n");
         Set<TextRange> covered =  new HashSet<>();
-        collectCovered(psiFile, covered);
-        treePrinter.printNode(psiFile, 1, covered, false);
+        collectCovered(psiElement, covered);
+        treePrinter.printNode(psiElement, 1, covered, false);
         sb.append(String.join("\n", treePrinter.outputLines));
         return sb.toString();
     }

@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.com.intellij.psi.PsiElementVisitor;
 import org.jetbrains.kotlin.com.intellij.psi.PsiFile;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.psi.KtElement;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
 
 import java.util.*;
@@ -41,6 +42,10 @@ public class KotlinSource {
                         @Nullable PsiFile psiFile) {
         this.input = input;
         this.nodes = map(psiFile);
+
+        System.out.println(PsiTreePrinter.printIndexedSourceCode(input.getSource(new InMemoryExecutionContext()).readFully()));
+        System.out.println(PsiTreePrinter.printPsiSkeleton(psiFile));
+        System.out.println(PsiTreePrinter.printPsiAll(psiFile));
     }
 
     // Map the PsiFile ahead of time so that the Disposable may be disposed early and free up memory.
