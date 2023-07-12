@@ -1635,16 +1635,21 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         Markers markers = Markers.EMPTY;
 
         List<J.Modifier> modifiers = emptyList();
-        PsiElement currentNode = getCurrentPsiNode();
-        PsiElement propertyNode;
-        if ("<destruct>".equals(property.getName().toString())) {
-            propertyNode = (currentNode instanceof KtDestructuringDeclaration) ? currentNode : PsiTreeUtil.getParentOfType(currentNode, KtDestructuringDeclaration.class);
-        } else {
-            propertyNode = (currentNode instanceof KtProperty) ? currentNode : PsiTreeUtil.getParentOfType(currentNode, KtProperty.class);
-        }
-
+        PsiElement currentNode = getCurrentPsiNode(property.getSource().getStartOffset());
         if (currentNode instanceof KtAnnotationEntry) {
             currentNode = PsiTreeUtil.getParentOfType(currentNode, KtModifierList.class);
+        }
+
+        // We need better PSI utility
+        PsiElement parentNode = currentNode;
+        if (currentNode != null &&
+            !(currentNode instanceof KtProperty) &&
+            !(currentNode instanceof KtDestructuringDeclaration) &&
+            !(currentNode instanceof KtParameter)) {
+            parentNode = currentNode.getParent();
+            if (parentNode == null || parentNode.getTextRange().getStartOffset() != currentNode.getTextRange().getStartOffset()) {
+                parentNode = currentNode;
+            }
         }
 
         List<J.Annotation> annotations = new ArrayList<>();
@@ -1656,7 +1661,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
             modifiers = mapModifierList((KtModifierList) currentNode, firAnnotations, annotations);
         }
 
-        String maybeValOrVarModifier = getValOrVarModifier(propertyNode);
+        String maybeValOrVarModifier = getValOrVarModifier(parentNode);
         if (maybeValOrVarModifier != null) {
             annotations.add(mapKModifierToAnnotation(maybeValOrVarModifier));
         }
@@ -1771,7 +1776,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                     throw new UnsupportedOperationException(generateUnsupportedMessage("Unexpected property delegation. FirProperty#delegate for name: " +
                             ((FirFunctionCall) property.getDelegate()).getCalleeReference().getName().asString()));
                 }
-            } else if (property.getReturnTypeRef() instanceof FirResolvedTypeRef && (property.getReturnTypeRef().getSource() == null || !(property.getReturnTypeRef().getSource().getKind() instanceof KtFakeSourceElementKind))) {
+            } else if (property.getReturnTypeRef() instanceof FirResolvedTypeRef) {
                 FirResolvedTypeRef typeRef = (FirResolvedTypeRef) property.getReturnTypeRef();
                 if (typeRef.getDelegatedTypeRef() != null) {
                     Space delimiterPrefix = whitespace();
@@ -3446,11 +3451,15 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         List<FirElement> membersMultiVariablesSeparated = new ArrayList<>(regularClass.getDeclarations().size());
         List<FirDeclaration> jcEnums = new ArrayList<>(regularClass.getDeclarations().size());
         FirPrimaryConstructor firPrimaryConstructor = null;
+        List<FirProperty> firProperties = new ArrayList<>();
         for (FirDeclaration declaration : regularClass.getDeclarations()) {
             if (declaration instanceof FirEnumEntry) {
                 jcEnums.add(declaration);
             } else if (declaration instanceof FirPrimaryConstructor) {
                 firPrimaryConstructor = (FirPrimaryConstructor) declaration;
+            } else if (declaration instanceof FirProperty) {
+                firProperties.add((FirProperty) declaration);
+                membersMultiVariablesSeparated.add(declaration);
             } else {
                 // We aren't interested in the generated values.
                 if (ClassKind.ENUM_CLASS == classKind && declaration.getSource() != null &&
@@ -3488,14 +3497,22 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                 primaryConstructor = JContainer.build(before, singletonList(padRight(new J.Empty(randomId(), sourceBefore(")"), Markers.EMPTY), EMPTY)), Markers.EMPTY);
             } else {
                 List<JRightPadded<Statement>> statements = new ArrayList<>(firPrimaryConstructor.getValueParameters().size());
-                List<FirValueParameter> valueParameters = firPrimaryConstructor.getValueParameters();
-                for (int i = 0; i < valueParameters.size(); i++) {
-                    J j = visitElement(valueParameters.get(i), ctx);
+                boolean useFirProperty = firProperties.stream()
+                    .anyMatch(
+                        firProperty -> (firProperty.getGetter() != null && !firProperty.getGetter().getAnnotations().isEmpty()) ||
+                                       (firProperty.getSetter() != null && !firProperty.getSetter().getAnnotations().isEmpty())
+                    );
+
+                List<FirElement> firElements = useFirProperty ? new ArrayList<>(firProperties) : new ArrayList<>(firPrimaryConstructor.getValueParameters());
+                for (int i = 0; i < firElements.size(); i++) {
+                    FirElement firElement = firElements.get(i);
+                    J j = visitElement(firElement, ctx);
                     if (j instanceof Expression && !(j instanceof Statement)) {
                         j = new K.ExpressionStatement(randomId(), (Expression) j);
                     }
-                    statements.add(padRight((Statement) j, i == valueParameters.size() - 1 ? sourceBefore(")") : sourceBefore(",")));
+                    statements.add(padRight((Statement) j, i == firElements.size() - 1 ? sourceBefore(")") : sourceBefore(",")));
                 }
+
                 primaryConstructor = JContainer.build(before, statements, Markers.EMPTY);
             }
         } else {
@@ -4575,6 +4592,15 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         }
         return null;
     }
+
+    @Nullable
+    private PsiElement getCurrentPsiNode(int cursor) {
+        if (nodes.containsKey(cursor)) {
+            return nodes.get(cursor).getPsi();
+        }
+        return null;
+    }
+
 
     @SuppressWarnings("unchecked")
     private <J2 extends J> J2 convertToExpression(FirElement t, ExecutionContext ctx) {
