@@ -1809,26 +1809,72 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                 }
 
                 int saveCursor = cursor;
-                whitespace();
+                Space s0 = whitespace();
 
+                PsiElement currentPsiElement = getCurrentPsiNode();
+                KtModifierList modifierList = null;
+                List<J.Annotation> annos = new ArrayList<>();
+
+                if (currentPsiElement instanceof KtAnnotationEntry) {
+                    modifierList = PsiTreeUtil.getParentOfType(currentPsiElement, KtModifierList.class);
+                }
+
+                if (modifierList != null) {
+                    List<FirAnnotation> firAnnotations = new ArrayList<>();
+                    firAnnotations.addAll(property.getAnnotations());
+                    firAnnotations.addAll(property.getGetter().getAnnotations());
+                    firAnnotations.addAll(property.getSetter().getAnnotations());
+                    mapModifierList(modifierList, firAnnotations, annos);
+                    if (!annos.isEmpty()) {
+                        J.Annotation a0 = annos.get(0).withPrefix(s0);
+                        annos.set(0, a0);
+                    }
+                }
+
+                boolean hasAnno = !annos.isEmpty();
+                if (hasAnno) {
+                    saveCursor = cursor;
+                } else {
+                    cursor(saveCursor);
+                }
+
+                Space s1 = whitespace();
                 String methodName = source.substring(cursor, cursor + 3);
                 switch (methodName) {
                     case "get":
-                        cursor(saveCursor);
+                        if (!hasAnno) {
+                            cursor(saveCursor);
+                        }
                         if (isValidGetter(property.getGetter())) {
                             getter = (J.MethodDeclaration) visitElement(property.getGetter(), ctx);
                             if (receiver != null) {
                                 getter = getter.withParameters(ListUtils.concat(receiver, getter.getParameters()));
                             }
+
+                            if (!annos.isEmpty()) {
+                                getter = getter.withName(getter.getName().withPrefix(s1));
+                                getter = getter.withLeadingAnnotations(annos);
+                            } else {
+                                getter = getter.withPrefix(s1);
+                            }
                             expressions.add(getter);
                         }
                         break;
                     case "set":
-                        cursor(saveCursor);
+                        if (!hasAnno) {
+                            cursor(saveCursor);
+                        }
                         if (isValidSetter(property.getSetter())) {
                             setter = (J.MethodDeclaration) visitElement(property.getSetter(), ctx);
                             if (receiver != null) {
                                 setter = setter.withParameters(ListUtils.concat(receiver, setter.getParameters()));
+                            }
+
+                            if (!annos.isEmpty()) {
+                                setter = setter.withName(setter.getName().withPrefix(s1));
+                                setter = setter.withLeadingAnnotations(annos);
+                            } else {
+                                setter = setter.withPrefix(s1);
                             }
                             expressions.add(setter);
                         }
@@ -1837,27 +1883,70 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                         cursor(saveCursor);
                         break;
                 }
-                saveCursor = cursor;
-                whitespace();
 
+                saveCursor = cursor;
+                s0 = whitespace();
+                List<J.Annotation> annos2 = new ArrayList<>();
+
+                currentPsiElement = getCurrentPsiNode();
+                modifierList = null;
+
+                if (currentPsiElement instanceof KtAnnotationEntry) {
+                    modifierList = PsiTreeUtil.getParentOfType(currentPsiElement, KtModifierList.class);
+                }
+
+                if (modifierList != null) {
+                    List<FirAnnotation> firAnnotations = new ArrayList<>();
+                    firAnnotations.addAll(property.getAnnotations());
+                    firAnnotations.addAll(property.getGetter().getAnnotations());
+                    firAnnotations.addAll(property.getSetter().getAnnotations());
+                    mapModifierList(modifierList, firAnnotations, annos2);
+                    if (!annos2.isEmpty()) {
+                        J.Annotation a0 = annos2.get(0).withPrefix(s0);
+                        annos2.set(0, a0);
+                    }
+                }
+
+                hasAnno = !annos2.isEmpty();
+                if (hasAnno) {
+                    saveCursor = cursor;
+                } else {
+                    cursor(saveCursor);
+                }
+
+                Space s2 = whitespace();
                 methodName = source.substring(cursor, cursor + 3);
                 switch (methodName) {
                     case "get":
-                        cursor(saveCursor);
+                        if (!hasAnno) {
+                            cursor(saveCursor);
+                        }
                         if (isValidGetter(property.getGetter())) {
                             getter = (J.MethodDeclaration) visitElement(property.getGetter(), ctx);
                             if (receiver != null) {
                                 getter = getter.withParameters(ListUtils.concat(receiver, getter.getParameters()));
                             }
+
+                            if (!annos.isEmpty()) {
+                                getter = getter.withName(getter.getName().withPrefix(s2));
+                                getter = getter.withLeadingAnnotations(annos2);
+                            }
                             expressions.add(getter);
                         }
                         break;
                     case "set":
-                        cursor(saveCursor);
+                        if (!hasAnno) {
+                            cursor(saveCursor);
+                        }
                         if (isValidSetter(property.getSetter())) {
                             setter = (J.MethodDeclaration) visitElement(property.getSetter(), ctx);
                             if (receiver != null) {
                                 setter = setter.withParameters(ListUtils.concat(receiver, setter.getParameters()));
+                            }
+
+                            if (!annos.isEmpty()) {
+                                setter = setter.withName(setter.getName().withPrefix(s2));
+                                setter = setter.withLeadingAnnotations(annos2);
                             }
                             expressions.add(setter);
                         }
