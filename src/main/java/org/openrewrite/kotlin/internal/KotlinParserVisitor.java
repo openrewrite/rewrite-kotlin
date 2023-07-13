@@ -1848,11 +1848,9 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                         throw new RuntimeException("a ktPropertyAccessor node should have get or set");
                     }
 
-                    PsiElement maybeWhiteSpace = accessorNode.getPrevSibling();
                     Space accessorPrefix = EMPTY;
-                    if (maybeWhiteSpace instanceof PsiWhiteSpace) {
-                        PsiWhiteSpace whiteSpace = (PsiWhiteSpace) maybeWhiteSpace;
-                        accessorPrefix = Space.format(whiteSpace.getText());
+                    if (accessorNode.getPrevSibling() instanceof PsiWhiteSpace) {
+                        accessorPrefix = Space.format(accessorNode.getPrevSibling().getText());
                     }
 
                     FirPropertyAccessor firPropertyAccessor = null;
