@@ -2737,14 +2737,8 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         List<FirAnnotation> firAnnotations = valueParameter.getAnnotations();
         if (generatedFirProperties.containsKey(range)) {
             FirProperty generatedFirProperty = generatedFirProperties.get(range);
-            if (generatedFirProperty.getGetter() != null &&
-                !generatedFirProperty.getGetter().getAnnotations().isEmpty()) {
-                firAnnotations.addAll(generatedFirProperty.getGetter().getAnnotations());
-            }
-            if (generatedFirProperty.getSetter() != null &&
-                !generatedFirProperty.getSetter().getAnnotations().isEmpty()) {
-                firAnnotations.addAll(generatedFirProperty.getSetter().getAnnotations());
-            }
+            firAnnotations.addAll(generatedFirProperty.getGetter() != null ? generatedFirProperty.getGetter().getAnnotations() : emptyList());
+            firAnnotations.addAll(generatedFirProperty.getSetter() != null ? generatedFirProperty.getSetter().getAnnotations() : emptyList());
         }
 
         List<J.Annotation> annotations = mapModifiers(firAnnotations, valueParameter.getName().asString());
