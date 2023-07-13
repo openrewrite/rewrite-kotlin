@@ -3467,7 +3467,9 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                 jcEnums.add(declaration);
             } else if (declaration instanceof FirPrimaryConstructor) {
                 firPrimaryConstructor = (FirPrimaryConstructor) declaration;
-            } else if (declaration instanceof FirProperty && declaration.getSource().getKind() instanceof KtFakeSourceElementKind.PropertyFromParameter) {
+            } else if (declaration instanceof FirProperty &&
+                       declaration.getSource() != null &&
+                       declaration.getSource().getKind() instanceof KtFakeSourceElementKind.PropertyFromParameter) {
                 TextRange range = new TextRange(declaration.getSource().getStartOffset(), declaration.getSource().getEndOffset());
                 generatedFirProperties.put(range, (FirProperty) declaration);
             } else {
