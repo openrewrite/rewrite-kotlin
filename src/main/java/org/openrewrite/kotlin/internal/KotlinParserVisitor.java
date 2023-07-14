@@ -1821,7 +1821,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                     expressions = new ArrayList<>(2);
                 }
                 List<KtPropertyAccessor> accessors = propertyNodeChildren.stream()
-                    .filter(c -> c instanceof KtPropertyAccessor)
+                    .filter(KtPropertyAccessor.class::isInstance)
                     .map(KtPropertyAccessor.class::cast)
                     .collect(toList());
                 if (accessors.size() > 2) {
@@ -1830,7 +1830,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
                 for (KtPropertyAccessor ktPropertyAccessor : accessors) {
                     Optional<KtDeclarationModifierList> maybeModifier = Arrays.stream(ktPropertyAccessor.getChildren())
-                        .filter(c -> c instanceof KtDeclarationModifierList)
+                        .filter(KtDeclarationModifierList.class::isInstance)
                         .map(KtDeclarationModifierList.class::cast)
                         .findFirst();
                     boolean hasAnnotationBeforeAccessors = maybeModifier.isPresent();
