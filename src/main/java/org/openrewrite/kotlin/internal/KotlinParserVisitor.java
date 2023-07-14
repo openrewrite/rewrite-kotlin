@@ -1857,6 +1857,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                     }
 
                     J.MethodDeclaration m = (J.MethodDeclaration) visitElement(firPropertyAccessor, ctx);
+                    m = m.withPrefix(accessorPrefix);
                     if (receiver != null) {
                         m = m.withParameters(ListUtils.concat(receiver, m.getParameters()));
                     }
@@ -1866,8 +1867,6 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                             .withPrefix(EMPTY);
                     }
                     expressions.add(m);
-
-                    cursor(ktPropertyAccessor.getTextRange().getEndOffset());
                 }
             } else if (isValidGetter(property.getGetter()) && !isValidSetter(property.getSetter())) {
                 if (expressions == null) {
