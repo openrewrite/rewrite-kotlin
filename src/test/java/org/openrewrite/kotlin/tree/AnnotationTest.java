@@ -187,8 +187,8 @@ class AnnotationTest implements RewriteTest {
               annotation class A
               class Test {
                   public var stringRepresentation : String = ""
-
                       @A
+                      // comment
                       get ( ) = field
 
                       @A

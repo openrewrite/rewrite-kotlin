@@ -1843,14 +1843,10 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                         mapModifierList(maybeModifier.get(), firAnnotations, annos);
                     }
 
+                    Space accessorPrefix = whitespace();
                     LeafPsiElement accessorNode = getGetterOrSetterNode(ktPropertyAccessor);
                     if (accessorNode == null) {
                         throw new RuntimeException("a ktPropertyAccessor node should have get or set");
-                    }
-
-                    Space accessorPrefix = EMPTY;
-                    if (accessorNode.getPrevSibling() instanceof PsiWhiteSpace) {
-                        accessorPrefix = Space.format(accessorNode.getPrevSibling().getText());
                     }
 
                     FirPropertyAccessor firPropertyAccessor = null;
