@@ -159,7 +159,6 @@ public class PsiTreePrinter {
         connectToLatestSibling(depth);
         outputLines.add(line);
 
-        PsiUtilsKt.getAllChildren(psiElement);
         Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(psiElement).iterator();
         while (iterator.hasNext()) {
             PsiElement it = iterator.next();

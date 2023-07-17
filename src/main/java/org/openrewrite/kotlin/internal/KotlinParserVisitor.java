@@ -91,6 +91,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
     private int cursor;
 
     private final Map<Integer, ASTNode> nodes;
+    private final Map<Integer, ASTNode> allNodes;
     private final Map<TextRange, FirProperty> generatedFirProperties;
 
     // Associate top-level function and property declarations to the file.
@@ -109,6 +110,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         this.ctx = ctx;
         this.firSession = firSession;
         this.nodes = kotlinSource.getNodes();
+        this.allNodes = kotlinSource.getAllNodes();
         this.generatedFirProperties = new HashMap<>();
     }
 
@@ -1657,6 +1659,12 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
         List<J.Modifier> modifiers = emptyList();
         PsiElement currentNode = getCurrentPsiNode();
+
+        if (currentNode == null) {
+            currentNode = getCurrentPsiNodeByType(KtProperty.class);
+        }
+
+
         PsiElement propertyNode = currentNode instanceof KtProperty ? currentNode :
                 PsiTreeUtil.getParentOfType(currentNode, KtProperty.class);
         List<PsiElement> propertyNodeChildren = propertyNode != null ? Arrays.asList(propertyNode.getChildren()) : emptyList();
@@ -4626,6 +4634,15 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
     private PsiElement getCurrentPsiNode() {
         if (nodes.containsKey(cursor)) {
             return nodes.get(cursor).getPsi();
+        }
+        return null;
+    }
+
+    @Nullable
+    private PsiElement getCurrentPsiNodeByType(Class type) {
+        if (allNodes.containsKey(cursor)) {
+            PsiElement psiElement = allNodes.get(cursor).getPsi();
+            return PsiTreeUtil.getParentOfType(psiElement, type);
         }
         return null;
     }

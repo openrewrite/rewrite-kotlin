@@ -25,14 +25,17 @@ import org.jetbrains.kotlin.com.intellij.psi.PsiElementVisitor;
 import org.jetbrains.kotlin.com.intellij.psi.PsiFile;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.psi.KtElement;
+import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
 import org.openrewrite.Parser;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 @Getter
 public class KotlinSource {
     Parser.Input input;
-    Map<Integer, ASTNode> nodes; // Maybe replace with PsiTree?
+    Map<Integer, ASTNode> nodes;
+    Map<Integer, ASTNode> allNodes;
 
     @Setter
     FirFile firFile;
@@ -41,6 +44,7 @@ public class KotlinSource {
                         @Nullable PsiFile psiFile) {
         this.input = input;
         this.nodes = map(psiFile);
+        this.allNodes = mapAll(psiFile);
     }
 
     // Map the PsiFile ahead of time so that the Disposable may be disposed early and free up memory.
@@ -73,5 +77,27 @@ public class KotlinSource {
         };
         v.visitElement(psiFile);
         return result;
+    }
+
+    // Map the PsiFile ahead of time so that the Disposable may be disposed early and free up memory.
+    private Map<Integer, ASTNode> mapAll(@Nullable PsiFile psiFile) {
+        Map<Integer, ASTNode> result = new LinkedHashMap<>();
+        if (psiFile == null) {
+            return result;
+        }
+
+        visitNode(psiFile, n -> {
+            result.put(n.getTextRange().getStartOffset(), n.getNode());
+        });
+        return result;
+    }
+
+    private void visitNode(PsiElement psiNode, Consumer<PsiElement> consumer) {
+        consumer.accept(psiNode);
+        Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(psiNode).iterator();
+        while (iterator.hasNext()) {
+            PsiElement child = iterator.next();
+            visitNode(child, consumer);
+        }
     }
 }

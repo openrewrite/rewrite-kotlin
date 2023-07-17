@@ -24,6 +24,21 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"UnusedReceiverParameter", "PropertyName", "RemoveCurlyBracesFromTemplate", "UnnecessaryStringEscape", "RedundantGetter"})
 class VariableDeclarationTest implements RewriteTest {
+    @Test
+    void leadingWhitespace() {
+        rewriteRun(
+          kotlin(
+            """
+            annotation class Ann
+            
+            // comment 1
+            
+            // comment 2
+            val a = 10
+            """
+          )
+        );
+    }
 
     @Test
     void singleVariableDeclaration() {
