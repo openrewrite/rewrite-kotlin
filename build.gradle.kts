@@ -31,7 +31,6 @@ dependencies {
     implementation(kotlin("compiler-embeddable"))
 //    implementation("org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable:${kotlinVersion}")
 
-    api("com.nikialeksey:jhunspell:1.0.5")
     implementation(kotlin("stdlib"))
 
     testImplementation("org.assertj:assertj-core:latest.release")
@@ -41,8 +40,4 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-test")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
     testRuntimeOnly("org.openrewrite:rewrite-java-17")
-
-    // implementation("com.sparkjava:spark-core:2.9.1")
-    // implementation("io.kotest:kotest-runner-junit5:4.6.2")
-    // implementation("io.kotest:kotest-assertions-core:4.6.2")
 }
