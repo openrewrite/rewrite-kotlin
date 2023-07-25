@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
 import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.LeafPsiElement;
+import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.descriptors.ClassKind;
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget;
@@ -932,15 +933,34 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
     public J visitFunctionCall(FirFunctionCall functionCall, ExecutionContext ctx) {
         FirFunctionCallOrigin origin = functionCall.getOrigin();
 
+        IElementType psiType = functionCall.getSource().getElementType();
+
+        boolean isBinaryType = "BINARY_EXPRESSION".equals(psiType.toString());
+
         J j;
         if (origin == FirFunctionCallOrigin.Operator && !(functionCall instanceof FirImplicitInvokeCall)) {
             String operatorName = functionCall.getCalleeReference().getName().asString();
-            if (isUnaryOperation(operatorName)) {
-                j = mapUnaryOperation(functionCall);
-            } else if ("contains".equals(operatorName) || "rangeTo".equals(operatorName) || "get".equals(operatorName) || "set".equals(operatorName)) {
-                j = mapKotlinBinaryOperation(functionCall);
+
+            if (isBinaryType) {
+                if ("contains".equals(operatorName) ||
+                        "rangeTo".equals(operatorName) ||
+                        "get".equals(operatorName) ||
+                        "set".equals(operatorName) ||
+                        "not".equals(operatorName)
+                ) {
+                    j = mapKotlinBinaryOperation(functionCall);
+                } else {
+                    j = mapBinaryOperation(functionCall);
+                }
             } else {
-                j = mapBinaryOperation(functionCall);
+                // todo, this part needs to be refactored
+                if (isUnaryOperation(operatorName)) {
+                    j = mapUnaryOperation(functionCall);
+                } else if ("contains".equals(operatorName) || "rangeTo".equals(operatorName) || "get".equals(operatorName) || "set".equals(operatorName)) {
+                    j = mapKotlinBinaryOperation(functionCall);
+                } else {
+                    j = mapBinaryOperation(functionCall);
+                }
             }
         } else {
             j = mapFunctionCall(functionCall, origin == FirFunctionCallOrigin.Infix);
@@ -1418,7 +1438,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
 
         String name = functionCall.getCalleeReference().getName().asString();
         switch (name) {
-            case "contains":
+            case "contains": {
                 // Prevent SOE of methods with an implicit LHS that refers to the subject of a when expression.
                 if (functionCall.getArgumentList().getArguments().get(0) instanceof FirWhenSubjectExpression) {
                     left = new J.Empty(randomId(), EMPTY, Markers.EMPTY);
@@ -1434,6 +1454,19 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                 right = convertToExpression(rhs, ctx);
 
                 break;
+            }
+            case "not": {
+                LinkedHashMap<FirExpression, FirValueParameter> mapping = ((FirResolvedArgumentList) (((FirFunctionCall) (functionCall.getExplicitReceiver())).getArgumentList())).getMapping();
+                FirExpression lhs = mapping.keySet().stream().findFirst().get();
+                left = convertToExpression(lhs, ctx);
+
+                opPrefix = sourceBefore("!in");
+                kotlinBinaryType = K.Binary.Type.Not;
+
+                FirExpression rhs = ((FirFunctionCall)functionCall.getExplicitReceiver()).getExplicitReceiver();
+                right = convertToExpression(rhs, ctx);
+                break;
+            }
             case "get":
                 left = convertToExpression(functionCall.getExplicitReceiver(), ctx);
 

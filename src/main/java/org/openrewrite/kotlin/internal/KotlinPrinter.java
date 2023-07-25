@@ -84,6 +84,9 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             case Contains:
                 keyword = "in";
                 break;
+            case Not:
+                keyword = "!in";
+                break;
             case IdentityEquals:
                 keyword = "===";
                 break;

@@ -138,4 +138,21 @@ class IfTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/201")
+    @Test
+    void notInCondition() {
+        rewriteRun(
+          kotlin(
+            """
+              fun test() {
+                  val numbers = listOf( 1, 2, 3)
+                  val target = 1
+                  if (target !in numbers) {
+                  }
+              }
+              """
+          )
+        );
+    }
 }

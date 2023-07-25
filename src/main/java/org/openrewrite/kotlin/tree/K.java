@@ -332,6 +332,7 @@ public interface K extends J {
 
         public enum Type {
             Contains,
+            Not,
             Get,
             IdentityEquals,
             IdentityNotEquals,
