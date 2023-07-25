@@ -16,22 +16,703 @@
 package org.openrewrite.kotlin.format;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.Tree;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TextComment;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.style.IntelliJ;
+import org.openrewrite.kotlin.style.SpacesStyle;
 import org.openrewrite.kotlin.tree.KSpace;
 import org.openrewrite.marker.Markers;
+import org.openrewrite.style.NamedStyles;
+import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
+
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
+import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
+@SuppressWarnings({"ControlFlowWithEmptyBody", "ConstantConditionIf", "CatchMayIgnoreException", "KotlinConstantConditions", "SimplifyBooleanWithConstants"})
 class SpacesTest implements RewriteTest {
 
-    // This test ensures spaces stored in markers are visited and may be removed once the SpacesVisitor and tests are implemented.
+    private static Consumer<RecipeSpec> spaces() {
+        return spaces(style -> style);
+    }
+
+    private static Consumer<RecipeSpec> spaces(UnaryOperator<SpacesStyle> with) {
+        return spec -> spec.recipe(new Spaces())
+          .parser(KotlinParser.builder().styles(singletonList(
+            new NamedStyles(
+              Tree.randomId(), "test", "test", "test", emptySet(),
+              singletonList(with.apply(IntelliJ.spaces()))
+            )
+          )));
+    }
+
+    @DocumentExample
+    @Test
+    void beforeParensMethodDeclaration() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              fun method1 ( ) {
+              }
+              fun method2	( ) {
+              }
+              fun method3() {
+              }
+              """,
+            """
+              fun method1() {
+              }
+              fun method2() {
+              }
+              fun method3() {
+              }
+              """
+          )
+        );
+    }
+
+    @SuppressWarnings("TrailingWhitespacesInTextBlock")
+    @Test
+    void beforeParensMethodDeclarationFalseWithLineBreakIgnored() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              fun method 
+              () {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensMethodDeclarationWithComment() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              fun method  /* C */  () {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeClassBody() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              class Test{
+                  val s: String = ""
+              }
+              """,
+            """
+              class Test {
+                  val s: String = ""
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensMethodCall() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              fun foo() {
+                  foo ()
+                  val test = Test ()
+              }
+              """,
+            """
+              fun foo() {
+                  foo()
+                  val test = Test()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensIfParenthesesFalse() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withIfParentheses(false))),
+          kotlin(
+            """
+              fun foo() {
+                  if (true) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  if(true) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensIfParenthesesTrue() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withIfParentheses(true))),
+          kotlin(
+            """
+              fun foo() {
+                  if(true) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  if (true) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensForParenthesesFalse() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withForParentheses(false))),
+          kotlin(
+            """
+              fun foo() {
+                  for (i in 1..10) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  for(i in 1..10) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensForParenthesesTrue() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withForParentheses(true))),
+          kotlin(
+            """
+              fun foo() {
+                  for(i in 1..10) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  for (i in 1..10) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensWhileParenthesesFalse() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withWhileParentheses(false))),
+          kotlin(
+            """
+              fun foo() {
+                  while (true) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  while(true) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensWhileParenthesesTrue() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withWhileParentheses(true))),
+          kotlin(
+            """
+              fun foo() {
+                  while(true) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  while (true) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensCatchParenthesesFalse() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withCatchParentheses(false))),
+          kotlin(
+            """
+              fun foo() {
+                  try {
+                  } catch (e: Exception) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  try {
+                  } catch(e: Exception) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensCatchParenthesesTrue() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withCatchParentheses(true))),
+          kotlin(
+            """
+              fun foo() {
+                  try {
+                  } catch(e: Exception) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  try {
+                  } catch (e: Exception) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensAnnotationParameters() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              annotation class Ann(val s: String)
+              @Ann ("")
+              class Test
+              """,
+            """
+              annotation class Ann(val s: String)
+              @Ann("")
+              class Test
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsAssignmentFalse() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withAssignment(false))),
+          kotlin(
+            """
+              fun method() {
+                  var x = 0
+                  x += 1
+              }
+              """,
+            """
+              fun method() {
+                  var x=0
+                  x+=1
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsAssignmentTrue() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withAssignment(true))),
+          kotlin(
+            """
+              fun method() {
+                  var x=0
+                  x+=1
+              }
+              """,
+            """
+              fun method() {
+                  var x = 0
+                  x += 1
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsLogicalFalse() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withLogical(false))),
+          kotlin(
+            """
+              fun foo() {
+                  val x = true && false
+                  val y = true || false
+              }
+              """,
+            """
+              fun foo() {
+                  val x = true&&false
+                  val y = true||false
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsLogicalTrue() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withLogical(true))),
+          kotlin(
+            """
+              fun foo() {
+                  val x = true&&false
+                  val y = true||false
+              }
+              """,
+            """
+              fun foo() {
+                  val x = true && false
+                  val y = true || false
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsEqualityFalse() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withEquality(false))),
+          kotlin(
+            """
+              fun foo() {
+                  val x = 0 == 1
+                  val y = 0 != 1
+                  val a = 0 === 1
+                  val b = 0 !== 1
+              }
+              """,
+            """
+              fun foo() {
+                  val x = 0==1
+                  val y = 0!=1
+                  val a = 0===1
+                  val b = 0!==1
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsEqualityTrue() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withEquality(true))),
+          kotlin(
+            """
+              fun foo() {
+                  val x = 0==1
+                  val y = 0!=1
+                  val a = 0===1
+                  val b = 0!==1
+              }
+              """,
+            """
+              fun foo() {
+                  val x = 0 == 1
+                  val y = 0 != 1
+                  val a = 0 === 1
+                  val b = 0 !== 1
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsRelationalFalse() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withRelational(false))),
+          kotlin(
+            """
+              fun foo() {
+                  val a = 0 < 1
+                  val b = 0 <= 1
+                  val c = 0 >= 1
+                  val d = 0 >= 1
+              }
+              """,
+            """
+              fun foo() {
+                  val a = 0<1
+                  val b = 0<=1
+                  val c = 0>=1
+                  val d = 0>=1
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsRelationalTrue() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withRelational(true))),
+          kotlin(
+            """
+              fun foo() {
+                  val a = 0<1
+                  val b = 0<=1
+                  val c = 0>=1
+                  val d = 0>=1
+              }
+              """,
+            """
+              fun foo() {
+                  val a = 0 < 1
+                  val b = 0 <= 1
+                  val c = 0 >= 1
+                  val d = 0 >= 1
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsBitwise() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              fun foo() {
+                  val a = 1  and  2
+                  val b = 1  or  2
+                  val c = 1  xor  2
+                  val d = a  shr  1
+                  val e = a  shl  1
+              }
+              """,
+            """
+              fun foo() {
+                  val a = 1 and 2
+                  val b = 1 or 2
+                  val c = 1 xor 2
+                  val d = a shr 1
+                  val e = a shl 1
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsAdditiveFalse() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withAdditive(false))),
+          kotlin(
+            """
+              fun foo() {
+                  val x = 1 + 2
+                  val y = 1 - 2
+              }
+              """,
+            """
+              fun foo() {
+                  val x = 1+2
+                  val y = 1-2
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsAdditiveTrue() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withAdditive(true))),
+          kotlin(
+            """
+              fun foo() {
+                  val x = 1+2
+                  val y = 1-2
+              }
+              """,
+            """
+              fun foo() {
+                  val x = 1 + 2
+                  val y = 1 - 2
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsMultiplicativeFalse() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withMultiplicative(false))),
+          kotlin(
+            """
+              fun foo() {
+                  val a = 1 * 2
+                  val b = 1 / 2
+                  val c = 1 % 2
+              }
+              """,
+            """
+              fun foo() {
+                  val a = 1*2
+                  val b = 1/2
+                  val c = 1%2
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsMultiplicativeTrue() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withMultiplicative(true))),
+          kotlin(
+            """
+              fun foo() {
+                  val a = 1*2
+                  val b = 1/2
+                  val c = 1%2
+              }
+              """,
+            """
+              fun foo() {
+                  val a = 1 * 2
+                  val b = 1 / 2
+                  val c = 1 % 2
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsUnaryFalse() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withUnary(false))),
+          kotlin(
+            """
+              fun foo() {
+                  var x = 0
+                  x ++
+                  x --
+                  -- x
+                  ++ x
+                  x = - x
+                  x = + x
+                  var y = false
+                  y = ! y
+              }
+              """,
+            """
+              fun foo() {
+                  var x = 0
+                  x++
+                  x--
+                  --x
+                  ++x
+                  x = -x
+                  x = +x
+                  var y = false
+                  y = !y
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsUnaryTrue() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withUnary(true))),
+          kotlin(
+            """
+              fun foo() {
+                  var x = 0
+                  x++
+                  x--
+                  --x
+                  ++x
+                  x = -x
+                  x = +x
+                  var y = false
+                  y = !y
+              }
+              """,
+            """
+              fun foo() {
+                  var x = 0
+                  x ++
+                  x --
+                  -- x
+                  ++ x
+                  x = - x
+                  x = + x
+                  var y = false
+                  y = ! y
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/192")
     @SuppressWarnings("RedundantNullableReturnType")
     @Test
