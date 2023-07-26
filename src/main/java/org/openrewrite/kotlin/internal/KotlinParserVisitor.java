@@ -1455,7 +1455,11 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
             case "not": {
                 LinkedHashMap<FirExpression, FirValueParameter> mapping = ((FirResolvedArgumentList) (((FirFunctionCall) (functionCall.getExplicitReceiver())).getArgumentList())).getMapping();
                 FirExpression lhs = mapping.keySet().stream().findFirst().orElse(null);
-                left = lhs != null ? convertToExpression(lhs, ctx) : null;
+                if (lhs instanceof FirWhenSubjectExpression) {
+                    left = new J.Empty(randomId(), EMPTY, Markers.EMPTY);
+                } else {
+                    left = lhs != null ? convertToExpression(lhs, ctx) : null;
+                }
 
                 opPrefix = sourceBefore("!in");
                 kotlinBinaryType = K.Binary.Type.Not;
