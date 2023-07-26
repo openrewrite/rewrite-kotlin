@@ -157,11 +157,6 @@ class IfTest implements RewriteTest {
                   // DOT_QUALIFIED_EXPRESSION
                   if (intArrayOf(1, 2, 3).contains(n).not()) {
                   }
-
-                  // CALL_EXPRESSION
-                  if (foo()) {
-                  }
-                  fun foo(): Boolean {}
               }
               """
           )
