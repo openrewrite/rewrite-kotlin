@@ -345,6 +345,48 @@ class SpacesTest implements RewriteTest {
     }
 
     @Test
+    void beforeParensWhenParenthesesTrue() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withWhenParentheses(true))),
+          kotlin(
+            """
+              fun foo() {
+                  when(42) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  when (42) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void beforeParensWhenParenthesesFalse() {
+        rewriteRun(
+          spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withWhenParentheses(false))),
+          kotlin(
+            """
+              fun foo() {
+                  when   (42) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  when(42) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void aroundOperatorsAssignmentFalse() {
         rewriteRun(
           spaces(style -> style.withAroundOperators(style.getAroundOperators().withAssignment(false))),

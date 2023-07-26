@@ -442,6 +442,15 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
     }
 
     @Override
+    public K.When visitWhen(K.When when, P p) {
+        K.When w = super.visitWhen(when, p);
+        if (w.getSelector() != null) {
+            w = w.withSelector(spaceBefore(w.getSelector(), style.getBeforeParentheses().getWhenParentheses()));
+        }
+        return w;
+    }
+
+    @Override
     public J.WhileLoop visitWhileLoop(J.WhileLoop whileLoop, P p) {
         J.WhileLoop w = super.visitWhileLoop(whileLoop, p);
         w = w.withCondition(spaceBefore(w.getCondition(), style.getBeforeParentheses().getWhileParentheses()));
