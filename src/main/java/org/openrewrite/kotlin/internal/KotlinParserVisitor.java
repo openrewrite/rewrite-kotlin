@@ -20,7 +20,6 @@ import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
 import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.LeafPsiElement;
-import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.descriptors.ClassKind;
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget;
@@ -932,38 +931,36 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
     @Override
     public J visitFunctionCall(FirFunctionCall functionCall, ExecutionContext ctx) {
         FirFunctionCallOrigin origin = functionCall.getOrigin();
+        if (origin != FirFunctionCallOrigin.Operator || functionCall instanceof FirImplicitInvokeCall) {
+            return mapFunctionCall(functionCall, origin == FirFunctionCallOrigin.Infix);
+        }
 
-        IElementType psiType = functionCall.getSource().getElementType();
-
-        boolean isBinaryType = "BINARY_EXPRESSION".equals(psiType.toString());
+        KtSourceElement source = functionCall.getSource();
+        if (source == null) {
+            throw new UnsupportedOperationException("The source of a FirFunctionCall is null");
+        }
 
         J j;
-        if (origin == FirFunctionCallOrigin.Operator && !(functionCall instanceof FirImplicitInvokeCall)) {
+        String type = Objects.requireNonNull(source.getElementType()).toString();
+        if ("BINARY_EXPRESSION".equals(type) ||
+                "ARRAY_ACCESS_EXPRESSION".equals(type) ||
+                "WHEN_CONDITION_IN_RANGE".equals(type)) {
             String operatorName = functionCall.getCalleeReference().getName().asString();
-
-            if (isBinaryType) {
-                if ("contains".equals(operatorName) ||
-                        "rangeTo".equals(operatorName) ||
-                        "get".equals(operatorName) ||
-                        "set".equals(operatorName) ||
-                        "not".equals(operatorName)
-                ) {
-                    j = mapKotlinBinaryOperation(functionCall);
-                } else {
-                    j = mapBinaryOperation(functionCall);
-                }
+            if ("not".equals(operatorName) ||
+                    "contains".equals(operatorName) ||
+                    "rangeTo".equals(operatorName) ||
+                    "get".equals(operatorName) ||
+                    "set".equals(operatorName)) {
+                j = mapKotlinBinaryOperation(functionCall);
             } else {
-                // todo, this part needs to be refactored
-                if (isUnaryOperation(operatorName)) {
-                    j = mapUnaryOperation(functionCall);
-                } else if ("contains".equals(operatorName) || "rangeTo".equals(operatorName) || "get".equals(operatorName) || "set".equals(operatorName)) {
-                    j = mapKotlinBinaryOperation(functionCall);
-                } else {
-                    j = mapBinaryOperation(functionCall);
-                }
+                j = mapBinaryOperation(functionCall);
             }
+        } else if ("PREFIX_EXPRESSION".equals(type) || "POSTFIX_EXPRESSION".equals(type)) {
+            j = mapUnaryOperation(functionCall);
+        } else if ("DOT_QUALIFIED_EXPRESSION".equals(type) || "CALL_EXPRESSION".equals(type)) {
+            j = mapFunctionCall(functionCall, false);
         } else {
-            j = mapFunctionCall(functionCall, origin == FirFunctionCallOrigin.Infix);
+            throw new UnsupportedOperationException("Unsupported FirFunctionCall's source type: " + type);
         }
 
         return j;
@@ -1457,8 +1454,8 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
             }
             case "not": {
                 LinkedHashMap<FirExpression, FirValueParameter> mapping = ((FirResolvedArgumentList) (((FirFunctionCall) (functionCall.getExplicitReceiver())).getArgumentList())).getMapping();
-                FirExpression lhs = mapping.keySet().stream().findFirst().get();
-                left = convertToExpression(lhs, ctx);
+                FirExpression lhs = mapping.keySet().stream().findFirst().orElse(null);
+                left = lhs != null ? convertToExpression(lhs, ctx) : null;
 
                 opPrefix = sourceBefore("!in");
                 kotlinBinaryType = K.Binary.Type.Not;

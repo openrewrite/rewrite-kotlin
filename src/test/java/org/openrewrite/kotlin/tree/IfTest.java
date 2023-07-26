@@ -141,18 +141,31 @@ class IfTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/201")
     @Test
-    void notInCondition() {
+    void notIn() {
         rewriteRun(
           kotlin(
             """
-              fun test() {
-                  val numbers = listOf( 1, 2, 3)
-                  val target = 1
-                  if (target !in numbers) {
+              fun method ( n : Int ) {
+                  // BINARY_EXPRESSION
+                  if (n !in intArrayOf(1, 2, 3)) {
                   }
+
+                  // PREFIX_EXPRESSION
+                  if (!intArrayOf(1, 2, 3).contains(n)) {
+                  }
+
+                  // DOT_QUALIFIED_EXPRESSION
+                  if (intArrayOf(1, 2, 3).contains(n).not()) {
+                  }
+
+                  // CALL_EXPRESSION
+                  if (foo()) {
+                  }
+                  fun foo(): Boolean {}
               }
               """
           )
         );
     }
+
 }
