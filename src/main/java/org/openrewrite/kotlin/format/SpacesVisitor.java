@@ -668,18 +668,14 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         K.Binary.Type operator = b.getOperator();
         switch (operator) {
             case Contains:
-                System.out.println();
-                break;
             case Get:
-                System.out.println();
                 break;
             case IdentityEquals:
             case IdentityNotEquals:
                 b = applyBinarySpaceAround(b, style.getAroundOperators().getEquality());
                 break;
             case RangeTo:
-                System.out.println();
-                b = applyBinarySpaceAround(b, true);
+                b = applyBinarySpaceAround(b, style.getAroundOperators().getRange());
                 break;
         }
         return b;
@@ -865,7 +861,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         );
 
         // Defaulted to `false` in IntelliJ's Kotlin formatting.
-        boolean aroundOperatorsBeforeMethodReferenceDoubleColon = true;
+        boolean aroundOperatorsBeforeMethodReferenceDoubleColon = false;
         if (m.getPadding().getTypeParameters() != null) {
             m.getPadding().withTypeParameters(spaceBefore(m.getPadding().getTypeParameters(), aroundOperatorsBeforeMethodReferenceDoubleColon, true));
         } else {

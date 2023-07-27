@@ -582,6 +582,7 @@ class SpacesTest implements RewriteTest {
                   val c = 1  xor  2
                   val d = a  shr  1
                   val e = a  shl  1
+                  val f = 1   ushr   2
               }
               """,
             """
@@ -591,6 +592,7 @@ class SpacesTest implements RewriteTest {
                   val c = 1 xor 2
                   val d = a shr 1
                   val e = a shl 1
+                  val f = 1 ushr 2
               }
               """
           )
@@ -755,6 +757,52 @@ class SpacesTest implements RewriteTest {
         );
     }
 
+    @Test
+    void aroundOperatorsRangeOperatorsFalse() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withRange(false))),
+          kotlin(
+            """
+              fun foo() {
+                  var r = 1 .. 5
+                  for (i in 10 .. 42) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  var r = 1..5
+                  for (i in 10..42) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsRangeOperatorsTrue() {
+        rewriteRun(
+          spaces(style -> style.withAroundOperators(style.getAroundOperators().withRange(true))),
+          kotlin(
+            """
+              fun foo() {
+                  var r = 1..5
+                  for (i in 10..42) {
+                  }
+              }
+              """,
+            """
+              fun foo() {
+                  var r = 1 .. 5
+                  for (i in 10 .. 42) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/192")
     @SuppressWarnings("RedundantNullableReturnType")
     @Test
@@ -802,4 +850,51 @@ class SpacesTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void aroundOperatorsLambda() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              class Test {
+                  fun foo() {
+                      val r: Runnable   =   {}
+                  }
+              }
+              """,
+            """
+              class Test {
+                  fun foo() {
+                      val r: Runnable = {}
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void aroundOperatorsMethodReferenceDoubleColon() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              class Test {
+                  fun foo() {
+                      val r1: () -> Unit = this   ::   foo
+                  }
+              }
+              """,
+            """
+              class Test {
+                  fun foo() {
+                      val r1: () -> Unit = this::foo
+                  }
+              }
+              """
+          )
+        );
+    }
+
 }
