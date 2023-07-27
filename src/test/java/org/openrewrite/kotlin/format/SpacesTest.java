@@ -106,7 +106,7 @@ class SpacesTest implements RewriteTest {
           spaces(),
           kotlin(
             """
-              fun method  /* C */  () {
+              fun method   /* C */  () {
               }
               """
           )

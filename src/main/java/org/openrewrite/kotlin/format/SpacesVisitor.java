@@ -74,10 +74,13 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
     }
 
     <T> JContainer<T> spaceBefore(JContainer<T> container, boolean spaceBefore, boolean formatComment) {
-        if (!container.getBefore().getComments().isEmpty() && formatComment) {
-            // Perform the space rule for the suffix of the last comment only. Same as IntelliJ.
-            List<Comment> comments = spaceLastCommentSuffix(container.getBefore().getComments(), spaceBefore);
-            return container.withBefore(container.getBefore().withComments(comments));
+        if (!container.getBefore().getComments().isEmpty()) {
+            if (formatComment) {
+                // Perform the space rule for the suffix of the last comment only. Same as IntelliJ.
+                List<Comment> comments = spaceLastCommentSuffix(container.getBefore().getComments(), spaceBefore);
+                return container.withBefore(container.getBefore().withComments(comments));
+            }
+            return container;
         }
 
         if (spaceBefore && notSingleSpace(container.getBefore().getWhitespace())) {
