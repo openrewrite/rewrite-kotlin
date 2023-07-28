@@ -22,10 +22,14 @@ import org.openrewrite.internal.lang.Nullable;
 //import org.openrewrite.java.style.EmptyForInitializerPadStyle;
 //import org.openrewrite.java.style.EmptyForIteratorPadStyle;
 import org.openrewrite.java.marker.OmitParentheses;
+import org.openrewrite.kotlin.internal.KotlinPrinter;
+import org.openrewrite.kotlin.marker.TypeReferencePrefix;
 import org.openrewrite.kotlin.style.SpacesStyle;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.kotlin.tree.KSpace;
+import org.openrewrite.marker.Markers;
 
 import java.util.List;
 
@@ -70,6 +74,20 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
             return j.withPrefix(j.getPrefix().withWhitespace(""));
         } else {
             return j;
+        }
+    }
+
+    Space singleSpaceBefore(Space s, boolean spaceBefore) {
+        if (!s.getComments().isEmpty()) {
+            return s;
+        }
+
+        if (spaceBefore && notSingleSpace(s.getWhitespace())) {
+            return s.withWhitespace(" ");
+        } else if (!spaceBefore && onlySpacesAndNotEmpty(s.getWhitespace())) {
+            return s.withWhitespace("");
+        } else {
+            return s;
         }
     }
 
@@ -168,6 +186,18 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         return onlySpaces(str) && !" ".equals(str);
     }
 
+    // handle space before colon after declaration name
+    private Markers spaceBeforeColonAfterDeclarationName(Markers markers) {
+        return markers.withMarkers(ListUtils.map(markers.getMarkers(), marker -> {
+            if (marker instanceof TypeReferencePrefix) {
+                TypeReferencePrefix mf = (TypeReferencePrefix) marker;
+                return mf.withPrefix(singleSpaceBefore(mf.getPrefix(),
+                        style.getOther().getBeforeColonAfterDeclarationName()));
+            }
+            return marker;
+        }));
+    }
+
     @Override
     public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration classDecl, P p) {
         J.ClassDeclaration c = super.visitClassDeclaration(classDecl, p);
@@ -254,6 +284,9 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
                 m.getParameters(), (index, param) ->
                         index == 0 ? param : spaceBefore(param, style.getOther().getAfterComma())
         ));
+
+        // handle space before colon after declaration name
+        m = m.withMarkers(spaceBeforeColonAfterDeclarationName(m.getMarkers()));
 
         if (m.getBody() != null) {
             m = m.withBody(spaceBefore(m.getBody(), beforeLeftBrace));
@@ -624,6 +657,13 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
     }
 
     @Override
+    public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, P p) {
+        J.VariableDeclarations mv =  super.visitVariableDeclarations(multiVariable, p);
+        mv = mv.withMarkers(spaceBeforeColonAfterDeclarationName(mv.getMarkers()));
+        return mv;
+    }
+
+    @Override
     public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, P p) {
         J.VariableDeclarations.NamedVariable v = super.visitVariable(variable, p);
         if (v.getPadding().getInitializer() != null) {
@@ -838,9 +878,16 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         // FIXME. FunctionType wraps a lambda and has different settings. IntelliJ default only changes the before.
         boolean useSpaceAroundLambdaArrow = true; // style.getAroundOperators().getLambdaArrow();
         if (useSpaceAroundLambdaArrow && StringUtils.isNullOrEmpty(l.getArrow().getWhitespace())) {
-            l = l.withArrow(
-                    l.getArrow().withWhitespace(" ")
-            );
+            boolean alreadyHasSpace = false;
+            List<JRightPadded<J>> params = l.getParameters().getPadding().getParams();
+            if (!params.isEmpty()) {
+                Space after = params.get(params.size() - 1).getAfter();
+                alreadyHasSpace = (after.getComments().isEmpty() && onlySpacesAndNotEmpty(after.getWhitespace()));
+            }
+
+            if (!alreadyHasSpace) {
+                l = l.withArrow(l.getArrow().withWhitespace(" "));
+            }
         } else if (!useSpaceAroundLambdaArrow && l.getArrow().getWhitespace().equals(" ")) {
             l = l.withArrow(
                     l.getArrow().withWhitespace("")

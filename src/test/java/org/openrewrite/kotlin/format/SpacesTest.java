@@ -61,7 +61,7 @@ class SpacesTest implements RewriteTest {
     }
 
     @Nested
-    class beforeParensTest implements RewriteTest {
+    class beforeParensTest {
         @DocumentExample
         @Test
         void beforeParensMethodDeclaration() {
@@ -391,7 +391,7 @@ class SpacesTest implements RewriteTest {
     }
 
     @Nested
-    class aroundOperatorsTest implements RewriteTest {
+    class aroundOperatorsTest {
         @Test
         void aroundOperatorsAssignmentFalse() {
             rewriteRun(
@@ -905,7 +905,7 @@ class SpacesTest implements RewriteTest {
     }
 
     @Nested
-    class OtherTest implements RewriteTest {
+    class OtherTest {
         // Space before/after comma
         // In Kotlin, comma ',' can appear in the below locations
         // 1. Method parameters
@@ -914,7 +914,7 @@ class SpacesTest implements RewriteTest {
         // FIXME. add more
 
         @Nested
-        class otherBeforeComma implements RewriteTest {
+        class otherBeforeComma {
             // 1. Method parameters
             @Test
             void otherBeforeCommaFalseMethodParameters() {
@@ -1167,6 +1167,178 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
+        }
+
+        @Nested
+        class otherBeforeColonAfterDeclarationName {
+            @Test
+            void otherBeforeColonAfterDeclarationNameFalseProperty() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
+                  kotlin(
+                    """
+                      class some {
+                          private val f   : (Int) -> Int = { a : Int -> a * 2 }
+                          val test : Int = 12
+                      }
+                      """,
+                    """
+                      class some {
+                          private val f: (Int) -> Int = { a: Int -> a * 2 }
+                          val test: Int = 12
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeColonAfterDeclarationNameTrueProperty() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
+                  kotlin(
+                    """
+                      class some {
+                          private val f: (Int) -> Int = { a: Int -> a * 2 }
+                          val test: Int = 12
+                      }
+                      """,
+                    """
+                      class some {
+                          private val f : (Int) -> Int = { a : Int -> a * 2 }
+                          val test : Int = 12
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeColonAfterDeclarationNameFalseMethodDeclaration() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
+                  kotlin(
+                    """
+                      fun foo()   : Int {
+                          return 1
+                      }
+                      """,
+                    """
+                      fun foo(): Int {
+                          return 1
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeColonAfterDeclarationNameTrueMethodDeclaration() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
+                  kotlin(
+                    """
+                      fun foo(): Int {
+                          return 1
+                      }
+                      """,
+                    """
+                      fun foo() : Int {
+                          return 1
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeColonAfterDeclarationNameFalseTryCatch() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
+                  kotlin(
+                    """
+                      fun foo() {
+                          try {
+                          } catch (e   : Exception) {
+                          }
+                      }
+                      """,
+                    """
+                      fun foo() {
+                          try {
+                          } catch (e: Exception) {
+                          }
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeColonAfterDeclarationNameTrueTryCatch() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
+                  kotlin(
+                    """
+                      fun foo() {
+                          try {
+                          } catch (e: Exception) {
+                          }
+                      }
+                      """,
+                    """
+                      fun foo() {
+                          try {
+                          } catch (e : Exception) {
+                          }
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeColonAfterDeclarationNameFalseMethodDeclarationParameters() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
+                  kotlin(
+                    """
+                      fun method(
+                              foo : String,
+                              bar   : String) {
+                      }
+                      """,
+                    """
+                      fun method(
+                              foo: String,
+                              bar: String) {
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeColonAfterDeclarationNameTrueMethodDeclarationParameters() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
+                  kotlin(
+                    """
+                      fun method(
+                              foo: String,
+                              bar: String) {
+                      }
+                      """,
+                    """
+                      fun method(
+                              foo : String,
+                              bar : String) {
+                      }
+                      """
+                  )
+                );
+            }
+
         }
     }
 }
