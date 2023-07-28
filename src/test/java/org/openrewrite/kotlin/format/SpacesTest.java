@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.format;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -1510,8 +1511,101 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
+        }
 
+        @Nested
+        class otherBeforeColonInNewTypeDefinition {
+
+            @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
+            @Test
+            void otherBeforeColonInNewTypeDefinitionTrue() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonInNewTypeDefinition(true))),
+                  kotlin(
+                    """
+                      fun <T> foo(): Int where T: List<T> {
+                          return 0
+                      }
+                      """,
+                    """
+                      fun <T> foo(): Int where T : List<T> {
+                          return 0
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
+            @Test
+            void otherBeforeColonInNewTypeDefinitionFalse() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonInNewTypeDefinition(false))),
+                  kotlin(
+                    """
+                      fun <T> foo(): Int where T : List<T> {
+                          return 0
+                      }
+                      """,
+                    """
+                      fun <T> foo(): Int where T: List<T> {
+                          return 0
+                      }
+                      """
+                  )
+                );
+            }
+        }
+
+        @Nested
+        class otherAfterColonInNewTypeDefinition {
+
+            @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
+            @Test
+            void otherAfterColonInNewTypeDefinitionTrue() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonInNewTypeDefinition(true))),
+                  kotlin(
+                    """
+                      fun <T> foo(): Int where T :List<T> {
+                          return 0
+                      }
+                      """,
+                    """
+                      fun <T> foo(): Int where T : List<T> {
+                          return 0
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
+            @Test
+            void otherAfterColonInNewTypeDefinitionFalse() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonInNewTypeDefinition(false))),
+                  kotlin(
+                    """
+                      fun <T> foo(): Int where T : List<T> {
+                          return 0
+                      }
+                      """,
+                    """
+                      fun <T> foo(): Int where T :List<T> {
+                          return 0
+                      }
+                      """
+                  )
+                );
+            }
 
         }
+
+
+
+
+
+
     }
 }
