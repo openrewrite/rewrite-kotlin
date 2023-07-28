@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.format;
 
+import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
@@ -23,12 +24,12 @@ import org.openrewrite.internal.lang.Nullable;
 //import org.openrewrite.java.style.EmptyForIteratorPadStyle;
 import org.openrewrite.java.marker.OmitParentheses;
 import org.openrewrite.kotlin.internal.KotlinPrinter;
+import org.openrewrite.kotlin.marker.OmitBraces;
 import org.openrewrite.kotlin.marker.TypeReferencePrefix;
 import org.openrewrite.kotlin.style.SpacesStyle;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.tree.K;
-import org.openrewrite.kotlin.tree.KSpace;
 import org.openrewrite.marker.Markers;
 
 import java.util.List;
@@ -77,14 +78,14 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         }
     }
 
-    Space singleSpaceBefore(Space s, boolean spaceBefore) {
+    Space updateSpace(Space s, boolean haveSpace) {
         if (!s.getComments().isEmpty()) {
             return s;
         }
 
-        if (spaceBefore && notSingleSpace(s.getWhitespace())) {
+        if (haveSpace && notSingleSpace(s.getWhitespace())) {
             return s.withWhitespace(" ");
-        } else if (!spaceBefore && onlySpacesAndNotEmpty(s.getWhitespace())) {
+        } else if (!haveSpace && onlySpacesAndNotEmpty(s.getWhitespace())) {
             return s.withWhitespace("");
         } else {
             return s;
@@ -191,7 +192,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         return markers.withMarkers(ListUtils.map(markers.getMarkers(), marker -> {
             if (marker instanceof TypeReferencePrefix) {
                 TypeReferencePrefix mf = (TypeReferencePrefix) marker;
-                return mf.withPrefix(singleSpaceBefore(mf.getPrefix(),
+                return mf.withPrefix(updateSpace(mf.getPrefix(),
                         style.getOther().getBeforeColonAfterDeclarationName()));
             }
             return marker;
@@ -926,6 +927,30 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
                     )
             );
         }
+
+        // handle spaces in simple one line methods
+        boolean omitBraces = l.getMarkers().findFirst(OmitBraces.class).isPresent();
+        if (!omitBraces) {
+            PrintOutputCapture<Integer> print = new PrintOutputCapture<>(0);
+            new KotlinPrinter<Integer>().visitLambda(l, print);
+            boolean singleLine = !print.out.toString().contains("\n");
+
+            if (singleLine && !l.getParameters().getParameters().isEmpty()) {
+                // handle leading spaces
+                List<J> params = ListUtils.mapFirst(l.getParameters().getParameters(), x ->
+                        spaceBefore(x, style.getOther().getInSimpleOneLineMethods())
+                );
+                l = l.withParameters(l.getParameters().withParameters(params));
+
+                // handle trailing spaces
+                if (l.getBody() instanceof J.Block) {
+                    J.Block block = (J.Block) l.getBody();
+                    block = block.withEnd(updateSpace(block.getEnd(), style.getOther().getInSimpleOneLineMethods()));
+                    l = l.withBody(block);
+                }
+            }
+        }
+
         return l;
     }
 

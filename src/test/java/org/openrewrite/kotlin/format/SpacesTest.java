@@ -818,14 +818,14 @@ class SpacesTest implements RewriteTest {
                 """
                   class Test {
                       fun foo() {
-                          val r: Runnable   =   {}
+                          val r: () -> Unit   =   {}
                       }
                   }
                   """,
                 """
                   class Test {
                       fun foo() {
-                          val r: Runnable = {}
+                          val r: () -> Unit = {}
                       }
                   }
                   """
@@ -1604,7 +1604,6 @@ class SpacesTest implements RewriteTest {
         @Nested
         class otherInSimpleOneLineMethods {
 
-            @Disabled("FIXME, seems we need a separate visitor to do this")
             @Test
             void otherInSimpleOneLineMethodsTrue() {
                 rewriteRun(
@@ -1620,14 +1619,13 @@ class SpacesTest implements RewriteTest {
                 );
             }
 
-            @Disabled("FIXME, seems we need a separate visitor to do this")
             @Test
             void otherInSimpleOneLineMethodsFalse() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withInSimpleOneLineMethods(false))),
                   kotlin(
                     """
-                      private val f: (Int) -> Int = { a: Int -> a * 2 }
+                      private val f: (Int) -> Int = {   a: Int -> a * 2   }
                       """,
                     """
                       private val f: (Int) -> Int = {a: Int -> a * 2}
