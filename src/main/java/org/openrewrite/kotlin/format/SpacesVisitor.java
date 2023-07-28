@@ -288,6 +288,11 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         // handle space before colon after declaration name
         m = m.withMarkers(spaceBeforeColonAfterDeclarationName(m.getMarkers()));
 
+        // handle space after colon before declaration type
+        if (m.getReturnTypeExpression() != null) {
+            m = m.withReturnTypeExpression(spaceBefore(m.getReturnTypeExpression(), style.getOther().getAfterColonBeforeDeclarationType()));
+        }
+
         if (m.getBody() != null) {
             m = m.withBody(spaceBefore(m.getBody(), beforeLeftBrace));
         }
@@ -660,6 +665,12 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
     public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, P p) {
         J.VariableDeclarations mv =  super.visitVariableDeclarations(multiVariable, p);
         mv = mv.withMarkers(spaceBeforeColonAfterDeclarationName(mv.getMarkers()));
+
+        if (multiVariable.getMarkers().findFirst(TypeReferencePrefix.class).orElse(null) != null &&
+                mv.getTypeExpression() != null) {
+            mv = mv.withTypeExpression(spaceBefore(mv.getTypeExpression(), style.getOther().getAfterColonBeforeDeclarationType()));
+
+        }
         return mv;
     }
 

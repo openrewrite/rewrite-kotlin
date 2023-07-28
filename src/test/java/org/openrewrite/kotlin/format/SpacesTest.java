@@ -1172,7 +1172,7 @@ class SpacesTest implements RewriteTest {
         @Nested
         class otherBeforeColonAfterDeclarationName {
             @Test
-            void otherBeforeColonAfterDeclarationNameFalseProperty() {
+            void otherBeforeColonAfterDeclarationNameFalseVariableDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
                   kotlin(
@@ -1193,7 +1193,7 @@ class SpacesTest implements RewriteTest {
             }
 
             @Test
-            void otherBeforeColonAfterDeclarationNameTrueProperty() {
+            void otherBeforeColonAfterDeclarationNameTrueVariableDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
                   kotlin(
@@ -1338,6 +1338,179 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
+
+        }
+
+        @Nested
+        class otherAfterColonBeforeDeclarationType {
+            @Test
+            void otherAfterColonBeforeDeclarationTypeTrueVariableDeclaration() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(true))),
+                  kotlin(
+                    """
+                      class some {
+                          private val f:(Int) -> Int = { a:Int -> a * 2 }
+                          val test:   Int = 12
+                      }
+                      """,
+                    """
+                      class some {
+                          private val f: (Int) -> Int = { a: Int -> a * 2 }
+                          val test: Int = 12
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterColonBeforeDeclarationTypeFalseVariableDeclaration() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(false))),
+                  kotlin(
+                    """
+                      class some {
+                          private val f: (Int) -> Int = { a:   Int -> a * 2 }
+                          val test:   Int = 12
+                      }
+                      """,
+                    """
+                      class some {
+                          private val f:(Int) -> Int = { a:Int -> a * 2 }
+                          val test:Int = 12
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterColonBeforeDeclarationTypeTrueMethodDeclaration() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(true))),
+                  kotlin(
+                    """
+                      fun foo():Int {
+                          return 1
+                      }
+                      """,
+                    """
+                      fun foo(): Int {
+                          return 1
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterColonBeforeDeclarationTypeFalseMethodDeclaration() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(false))),
+                  kotlin(
+                    """
+                      fun foo():   Int {
+                          return 1
+                      }
+                      """,
+                    """
+                      fun foo():Int {
+                          return 1
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterColonBeforeDeclarationTypeTrueTryCatch() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(true))),
+                  kotlin(
+                    """
+                      fun foo() {
+                          try {
+                          } catch (e:Exception) {
+                          }
+                      }
+                      """,
+                    """
+                      fun foo() {
+                          try {
+                          } catch (e: Exception) {
+                          }
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterColonBeforeDeclarationTypeFalseTryCatch() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(false))),
+                  kotlin(
+                    """
+                      fun foo() {
+                          try {
+                          } catch (e:   Exception) {
+                          }
+                      }
+                      """,
+                    """
+                      fun foo() {
+                          try {
+                          } catch (e:Exception) {
+                          }
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterColonBeforeDeclarationTypeTrueMethodDeclarationParameters() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(true))),
+                  kotlin(
+                    """
+                      fun method(
+                              foo:String,
+                              bar:String) {
+                      }
+                      """,
+                    """
+                      fun method(
+                              foo: String,
+                              bar: String) {
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterColonBeforeDeclarationTypeFalseMethodDeclarationParameters() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(false))),
+                  kotlin(
+                    """
+                      fun method(
+                              foo: String,
+                              bar:   String) {
+                      }
+                      """,
+                    """
+                      fun method(
+                              foo:String,
+                              bar:String) {
+                      }
+                      """
+                  )
+                );
+            }
+
 
         }
     }
