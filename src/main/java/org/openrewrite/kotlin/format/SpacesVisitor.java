@@ -239,6 +239,22 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         boolean beforeParenthesesOfMethodDeclaration = false;
         m = m.getPadding().withParameters(
                 spaceBefore(m.getPadding().getParameters(), beforeParenthesesOfMethodDeclaration, false));
+
+        // handle space before comma
+        JContainer<Statement> jc = m.getPadding().getParameters();
+        List<JRightPadded<Statement>> rps = jc.getPadding().getElements();
+        if (rps.size() > 1) {
+            int range = rps.size() - 1;
+            rps = ListUtils.map(rps, (index, rp) -> (index < range) ? spaceAfter(rp, style.getOther().getBeforeComma()) : rp);
+            m = m.getPadding().withParameters(jc.getPadding().withElements(rps));
+        }
+
+        // handle space after comma
+        m = m.withParameters(ListUtils.map(
+                m.getParameters(), (index, param) ->
+                        index == 0 ? param : spaceBefore(param, style.getOther().getAfterComma())
+        ));
+
         if (m.getBody() != null) {
             m = m.withBody(spaceBefore(m.getBody(), beforeLeftBrace));
         }
@@ -311,14 +327,14 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
                             ListUtils.map(m.getPadding().getArguments().getPadding().getElements(),
                                     (index, arg) -> {
                                         if (index == 0) {
-                                            arg = arg.withElement(spaceBefore(arg.getElement(), !noParens));
+                                            arg = arg.withElement(spaceBefore(arg.getElement(), false));
                                         } else {
                                             arg = arg.withElement(
                                                     spaceBefore(arg.getElement(), style.getOther().getAfterComma())
                                             );
                                         }
                                         if (index == argsSize - 1) {
-                                            arg = spaceAfter(arg, !noParens);
+                                            arg = spaceAfter(arg, false);
                                         } else {
                                             arg = spaceAfter(arg, style.getOther().getBeforeComma());
                                         }
@@ -328,6 +344,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
                     )
             );
         }
+
         if (m.getPadding().getTypeParameters() != null) {
             // Defaulted to `false` in IntelliJ's Kotlin formatting.
             boolean typeArgumentsBeforeOpeningAngleBracket = false;

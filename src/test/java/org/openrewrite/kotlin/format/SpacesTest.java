@@ -906,7 +906,267 @@ class SpacesTest implements RewriteTest {
 
     @Nested
     class OtherTest implements RewriteTest {
-        
+        // Space before/after comma
+        // In Kotlin, comma ',' can appear in the below locations
+        // 1. Method parameters
+        // 2. Array
+        // 3. Destructuring Declaration
+        // FIXME. add more
 
+        @Nested
+        class otherBeforeComma implements RewriteTest {
+            // 1. Method parameters
+            @Test
+            void otherBeforeCommaFalseMethodParameters() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeComma(false))),
+                  kotlin(
+                    """
+                      fun method(
+                              foo: String ,
+                              bar: String   ,
+                              baz: String
+                      ) {
+                      }
+                      """,
+                    """
+                      fun method(
+                              foo: String,
+                              bar: String,
+                              baz: String
+                      ) {
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeCommaTrueMethodParameters() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeComma(true))),
+                  kotlin(
+                    """
+                      fun method(
+                              foo: String,
+                              bar: String,
+                              baz: String
+                      ) {
+                      }
+                      """,
+                    """
+                      fun method(
+                              foo: String ,
+                              bar: String ,
+                              baz: String
+                      ) {
+                      }
+                      """
+                  )
+                );
+            }
+
+            // 2. Array
+            @Test
+            void otherBeforeCommaFalseArray() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeComma(false))),
+                  kotlin(
+                    """
+                      val numbers = arrayOf(1 , 2  , 3   , 4)
+                      val list = listOf("apple" , "banana"   , "orange")
+                      """,
+                    """
+                      val numbers = arrayOf(1, 2, 3, 4)
+                      val list = listOf("apple", "banana", "orange")
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeCommaTrueArray() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeComma(true))),
+                  kotlin(
+                    """
+                      val numbers = arrayOf(1, 2, 3, 4)
+                      val list = listOf("apple", "banana", "orange")
+                      """,
+                    """
+                      val numbers = arrayOf(1 , 2 , 3 , 4)
+                      val list = listOf("apple" , "banana" , "orange")
+                      """
+                  )
+                );
+            }
+
+            // 3. Destructuring Declaration
+            @Test
+            void otherBeforeCommaFalseDestruct() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeComma(false))),
+                  kotlin(
+                    """
+                      data class Person(val name: String , val age: Int)
+
+                      fun method() {
+                          val (name, age) = Person("John" , 30)
+                      }
+                      """,
+                    """
+                      data class Person(val name: String, val age: Int)
+
+                      fun method() {
+                          val (name, age) = Person("John", 30)
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeCommaTrueDestruct() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeComma(true))),
+                  kotlin(
+                    """
+                      data class Person(val name: String, val age: Int)
+
+                      fun method() {
+                          val (name, age) = Person("John", 30)
+                      }
+                      """,
+                    """
+                      data class Person(val name: String , val age: Int)
+
+                      fun method() {
+                          val (name, age) = Person("John" , 30)
+                      }
+                      """
+                  )
+                );
+            }
+        }
+
+        @Nested
+        class otherAfterComma {
+            // 1. Method parameters
+            @Test
+            void otherAfterCommaTrueMethodParameters() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterComma(true))),
+                  kotlin(
+                    """
+                      fun method(foo: String,bar: String,baz: String) {
+                      }
+                      """,
+                    """
+                      fun method(foo: String, bar: String, baz: String) {
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterCommaFalseMethodParameters() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterComma(false))),
+                  kotlin(
+                    """
+                      fun method(foo: String, bar: String,   baz: String) {
+                      }
+                      """,
+                    """
+                      fun method(foo: String,bar: String,baz: String) {
+                      }
+                      """
+                  )
+                );
+            }
+
+            // 2. Array
+            @Test
+            void otherAfterCommaTrueArray() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterComma(true))),
+                  kotlin(
+                    """
+                      val numbers = arrayOf(1,2,3,4)
+                      val list = listOf("apple","banana","orange")
+                      """,
+                    """
+                      val numbers = arrayOf(1, 2, 3, 4)
+                      val list = listOf("apple", "banana", "orange")
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterCommaFalseArray() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterComma(false))),
+                  kotlin(
+                    """
+                      val numbers = arrayOf(1, 2,  3,   4)
+                      val list = listOf("apple", "banana",   "orange")
+                      """,
+                    """
+                      val numbers = arrayOf(1,2,3,4)
+                      val list = listOf("apple","banana","orange")
+                      """
+                  )
+                );
+            }
+
+            // 3. Destructuring Declaration
+            @Test
+            void otherAfterCommaTrueDestruct() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterComma(true))),
+                  kotlin(
+                    """
+                      data class Person(val name: String,val age: Int)
+
+                      fun method() {
+                          val (name, age) = Person("John",30)
+                      }
+                      """,
+                    """
+                      data class Person(val name: String, val age: Int)
+
+                      fun method() {
+                          val (name, age) = Person("John", 30)
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAfterCommaFalseDestruct() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAfterComma(false))),
+                  kotlin(
+                    """
+                      data class Person(val name: String, val age: Int)
+
+                      fun method() {
+                          val (name, age) = Person("John",   30)
+                      }
+                      """,
+                    """
+                      data class Person(val name: String,val age: Int)
+
+                      fun method() {
+                          val (name, age) = Person("John",30)
+                      }
+                      """
+                  )
+                );
+            }
+        }
     }
 }
