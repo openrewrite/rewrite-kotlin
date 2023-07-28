@@ -1599,9 +1599,43 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
         }
 
+        @Nested
+        class otherInSimpleOneLineMethods {
+
+            @Disabled("FIXME, seems we need a separate visitor to do this")
+            @Test
+            void otherInSimpleOneLineMethodsTrue() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withInSimpleOneLineMethods(true))),
+                  kotlin(
+                    """
+                      private val f: (Int) -> Int = {a: Int -> a * 2}
+                      """,
+                    """
+                      private val f: (Int) -> Int = { a: Int -> a * 2 }
+                      """
+                  )
+                );
+            }
+
+            @Disabled("FIXME, seems we need a separate visitor to do this")
+            @Test
+            void otherInSimpleOneLineMethodsFalse() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withInSimpleOneLineMethods(false))),
+                  kotlin(
+                    """
+                      private val f: (Int) -> Int = { a: Int -> a * 2 }
+                      """,
+                    """
+                      private val f: (Int) -> Int = {a: Int -> a * 2}
+                      """
+                  )
+                );
+            }
+        }
 
 
 
