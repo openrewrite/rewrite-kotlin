@@ -33,6 +33,7 @@ import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 
 import java.util.List;
+import java.util.Objects;
 
 public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
 
@@ -885,8 +886,25 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
     }
 
     @Override
+    public K.FunctionType visitFunctionType(K.FunctionType functionType, P p) {
+        K.FunctionType kf = super.visitFunctionType(functionType, p);
+
+        // handle space around arrow in function type
+        TypedTree tree = kf.getTypedTree();
+        if (tree instanceof J.Lambda) {
+            J.Lambda l = (J.Lambda) tree;
+            l = l.withArrow(updateSpace(l.getArrow(), style.getOther().getAroundArrowInFunctionTypes()));
+            l = l.withBody(spaceBefore(l.getBody(), style.getOther().getAroundArrowInFunctionTypes()));
+            kf = kf.withTypedTree(l);
+        }
+        return kf;
+    }
+
+    @Override
     public J.Lambda visitLambda(J.Lambda lambda, P p) {
         J.Lambda l = super.visitLambda(lambda, p);
+        boolean isFunctionType = Objects.requireNonNull(getCursor().getParent()).getValue() instanceof K.FunctionType;
+
         // FIXME. FunctionType wraps a lambda and has different settings. IntelliJ default only changes the before.
         boolean useSpaceAroundLambdaArrow = true; // style.getAroundOperators().getLambdaArrow();
         if (useSpaceAroundLambdaArrow && StringUtils.isNullOrEmpty(l.getArrow().getWhitespace())) {
@@ -896,7 +914,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
                 Space after = params.get(params.size() - 1).getAfter();
                 alreadyHasSpace = (after.getComments().isEmpty() && onlySpacesAndNotEmpty(after.getWhitespace()));
             }
-
+q
             if (!alreadyHasSpace) {
                 l = l.withArrow(l.getArrow().withWhitespace(" "));
             }
@@ -905,8 +923,11 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
                     l.getArrow().withWhitespace("")
             );
         }
-        // FIXME. FunctionType wraps a lambda and has different settings. IntelliJ default only changes the before.
-        l = l.withBody(spaceBefore(l.getBody(), useSpaceAroundLambdaArrow));
+
+        if (!isFunctionType) {
+            // FIXME. FunctionType wraps a lambda and has different settings. IntelliJ default only changes the before.
+            l = l.withBody(spaceBefore(l.getBody(), useSpaceAroundLambdaArrow));
+        }
         if (!(l.getParameters().getParameters().isEmpty() || l.getParameters().getParameters().iterator().next() instanceof J.Empty)) {
             int parametersSize = l.getParameters().getParameters().size();
             l = l.withParameters(
