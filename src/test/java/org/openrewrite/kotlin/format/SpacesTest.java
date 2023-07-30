@@ -1641,13 +1641,14 @@ class SpacesTest implements RewriteTest {
             @Test
             void otherAroundArrowInFunctionTypeTrue() {
                 rewriteRun(
-                  spaces(style -> style.withOther(style.getOther().withAroundArrowInFunctionTypes(true))),
+                  spaces(style -> style.withOther(style.getOther().withAroundArrowInFunctionTypes(true)
+                    .withBeforeLambdaArrow(false))),
                   kotlin(
                     """
                       private val f: (Int)->Int = { a: Int->a * 2 }
                       """,
                     """
-                      private val f: (Int) -> Int = { a: Int ->a * 2 }
+                      private val f: (Int) -> Int = { a: Int->a * 2 }
                       """
                   )
                 );
@@ -1667,12 +1668,7 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-
         }
-
-
-
 
     }
 }
