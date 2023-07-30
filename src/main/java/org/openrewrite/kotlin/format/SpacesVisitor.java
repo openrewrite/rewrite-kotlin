@@ -904,36 +904,31 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
     public J.Lambda visitLambda(J.Lambda lambda, P p) {
         J.Lambda l = super.visitLambda(lambda, p);
         boolean isFunctionType = Objects.requireNonNull(getCursor().getParent()).getValue() instanceof K.FunctionType;
+        if (isFunctionType) {
+            return lambda;
+        }
 
-        if (!isFunctionType) {
-            // handle space before Lambda arrow
-            boolean useSpaceBeforeLambdaArrow = style.getOther().getBeforeLambdaArrow();
-            if (useSpaceBeforeLambdaArrow && StringUtils.isNullOrEmpty(l.getArrow().getWhitespace())) {
-                boolean alreadyHasSpace = false;
-                List<JRightPadded<J>> params = l.getParameters().getPadding().getParams();
-                if (!params.isEmpty()) {
-                    Space after = params.get(params.size() - 1).getAfter();
-                    alreadyHasSpace = (after.getComments().isEmpty() && onlySpacesAndNotEmpty(after.getWhitespace()));
-                }
-
-                if (!alreadyHasSpace) {
-                    l = l.withArrow(l.getArrow().withWhitespace(" "));
-                }
-            } else if (!useSpaceBeforeLambdaArrow && l.getArrow().getWhitespace().equals(" ")) {
-                l = l.withArrow(l.getArrow().withWhitespace(""));
+        // handle space before Lambda arrow
+        boolean useSpaceBeforeLambdaArrow = style.getOther().getBeforeLambdaArrow();
+        if (useSpaceBeforeLambdaArrow && StringUtils.isNullOrEmpty(l.getArrow().getWhitespace())) {
+            boolean alreadyHasSpace = false;
+            List<JRightPadded<J>> params = l.getParameters().getPadding().getParams();
+            if (!params.isEmpty()) {
+                Space after = params.get(params.size() - 1).getAfter();
+                alreadyHasSpace = (after.getComments().isEmpty() && onlySpacesAndNotEmpty(after.getWhitespace()));
             }
 
-            // handle space after Lambda arrow
-            // Intellij has a specific setting for Space before Lambda arrow, but no setting for space after Lambda arrow, default to true.
-            boolean useSpaceAfterLambdaArrow = true;
-            l = l.withBody(spaceBefore(l.getBody(), useSpaceAfterLambdaArrow));
+            if (!alreadyHasSpace) {
+                l = l.withArrow(l.getArrow().withWhitespace(" "));
+            }
+        } else if (!useSpaceBeforeLambdaArrow && l.getArrow().getWhitespace().equals(" ")) {
+            l = l.withArrow(l.getArrow().withWhitespace(""));
         }
 
-
-        if (!isFunctionType) {
-
-        }
-
+        // handle space after Lambda arrow
+        // Intellij has a specific setting for Space before Lambda arrow, but no setting for space after Lambda arrow, default to true.
+        boolean useSpaceAfterLambdaArrow = true;
+        l = l.withBody(spaceBefore(l.getBody(), useSpaceAfterLambdaArrow));
 
         if (!(l.getParameters().getParameters().isEmpty() || l.getParameters().getParameters().iterator().next() instanceof J.Empty)) {
             int parametersSize = l.getParameters().getParameters().size();
