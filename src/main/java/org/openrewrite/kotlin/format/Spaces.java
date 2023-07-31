@@ -45,15 +45,12 @@ public class Spaces extends Recipe {
     private static class SpacesFromCompilationUnitStyle extends KotlinIsoVisitor<ExecutionContext> {
         @Override
         public @Nullable J visit(@Nullable Tree tree, ExecutionContext executionContext) {
-            if (tree instanceof JavaSourceFile) {
-                JavaSourceFile cu = (JavaSourceFile) requireNonNull(tree);
-                SpacesStyle style = ((SourceFile) cu).getStyle(SpacesStyle.class);
-                if (style == null) {
-                    style = IntelliJ.spaces();
-                }
-                doAfterVisit(new SpacesVisitor<>(style));
+            if (!(tree instanceof K.CompilationUnit)) {
+                return tree;
             }
-            return super.visit(tree, executionContext);
+            K.CompilationUnit cu = (K.CompilationUnit) tree;
+            SpacesStyle style = cu.getStyle(SpacesStyle.class, IntelliJ.spaces());
+            return new SpacesVisitor<>(style).visitNonNull(cu, getCursor().fork());
         }
     }
 
