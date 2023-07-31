@@ -533,7 +533,6 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
             wb = wb.withBody(spaceBefore(wb.getBody(), style.getOther().getAroundArrowInWhenClause()));
         }
 
-
         return wb;
     }
 
@@ -937,19 +936,18 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
 
         // handle space before Lambda arrow
         boolean useSpaceBeforeLambdaArrow = style.getOther().getBeforeLambdaArrow();
-        if (useSpaceBeforeLambdaArrow && StringUtils.isNullOrEmpty(l.getArrow().getWhitespace())) {
-            boolean alreadyHasSpace = false;
-            List<JRightPadded<J>> params = l.getParameters().getPadding().getParams();
-            if (!params.isEmpty()) {
-                Space after = params.get(params.size() - 1).getAfter();
-                alreadyHasSpace = (after.getComments().isEmpty() && onlySpacesAndNotEmpty(after.getWhitespace()));
-            }
+        boolean lastParamHasSpace = false;
+        List<JRightPadded<J>> parameters = l.getParameters().getPadding().getParams();
+        if (!parameters.isEmpty()) {
+            Space after = parameters.get(parameters.size() - 1).getAfter();
+            lastParamHasSpace = (after.getComments().isEmpty() && onlySpacesAndNotEmpty(after.getWhitespace()));
+        }
 
-            if (!alreadyHasSpace) {
-                l = l.withArrow(l.getArrow().withWhitespace(" "));
-            }
-        } else if (!useSpaceBeforeLambdaArrow && l.getArrow().getWhitespace().equals(" ")) {
-            l = l.withArrow(l.getArrow().withWhitespace(""));
+        if (lastParamHasSpace) {
+            parameters = ListUtils.mapLast(parameters, rp  -> spaceAfter(rp, useSpaceBeforeLambdaArrow));
+            l = l.withParameters(l.getParameters().getPadding().withParams(parameters));
+        } else {
+            l = l.withArrow(updateSpace(l.getArrow(), useSpaceBeforeLambdaArrow));
         }
 
         // handle space after Lambda arrow

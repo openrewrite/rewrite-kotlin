@@ -1804,11 +1804,40 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-
-
-
         }
 
+        @Nested
+        class otherBeforeLambdaArrow {
+
+            @Test
+            void otherBeforeLambdaArrowTrue() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeLambdaArrow(true))),
+                  kotlin(
+                    """
+                      private val f: (Int) -> Int = { a: Int-> a * 2 }
+                      """,
+                    """
+                      private val f: (Int) -> Int = { a: Int -> a * 2 }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeLambdaArrowFalse() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeLambdaArrow(false))),
+                  kotlin(
+                    """
+                      private val f: (Int) -> Int = { a: Int -> a * 2 }
+                      """,
+                    """
+                      private val f: (Int) -> Int = { a: Int-> a * 2 }
+                      """
+                  )
+                );
+            }
+        }
     }
 }
