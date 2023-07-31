@@ -3992,6 +3992,14 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                         firElement = ((FirBlock) firElement).getStatements().get(0);
                     }
                     break;
+                case "INTEGER_CONSTANT":
+                case "FLOAT_CONSTANT":
+                case "BOOLEAN_CONSTANT":
+                    if (firElement instanceof FirSingleExpressionBlock) {
+                        FirSingleExpressionBlock firSingleExpressionBlock = (FirSingleExpressionBlock) firElement;
+                        firElement = firSingleExpressionBlock.getStatements().get(0);
+                    }
+                    break;
                 default:
                     break;
             }

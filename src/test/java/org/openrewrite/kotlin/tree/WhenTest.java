@@ -17,8 +17,10 @@ package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"LiftReturnOrAssignment", "IntroduceWhenSubject"})
@@ -84,7 +86,7 @@ class WhenTest implements RewriteTest {
           kotlin(
             """
               fun method ( i : Int ) : String {
-                  when ( i ) {
+                  return when ( i ) {
                       in 1 .. 10 -> return "in range 1"
                       !in 10 .. 20 -> return "not in range 2"
                       else -> "42"
@@ -203,6 +205,32 @@ class WhenTest implements RewriteTest {
               }
               fun isTrue ( ) = true
               """
+          )
+        );
+    }
+
+    @SuppressWarnings("All")
+    @Test
+    void branchArrowToLiteral() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method() {
+                  val condition: Int = 11
+                  when {
+                      condition < 10   ->    1
+                      condition > 10   ->    true
+                      else             ->    0.9
+                  }
+              }
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                K.When when = (K.When)((J.MethodDeclaration)(cu.getStatements().get(0))).getBody().getStatements().get(1);
+                boolean allBranchesHasLiteralBody = when.getBranches().getStatements().stream().map(K.WhenBranch.class::cast).allMatch(
+                  branch -> branch.getBody() instanceof J.Literal
+                );
+                assertThat(allBranchesHasLiteralBody).isTrue();
+            })
           )
         );
     }
