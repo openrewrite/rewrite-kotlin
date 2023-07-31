@@ -52,7 +52,7 @@ class SpacesTest implements RewriteTest {
     }
 
     private static Consumer<RecipeSpec> spaces(UnaryOperator<SpacesStyle> with) {
-        return spec -> spec.recipe(new Spaces())
+        return spec -> spec.recipe(toRecipe(SpacesFromCompilationUnitStyle::new))
           .parser(KotlinParser.builder().styles(singletonList(
             new NamedStyles(
               Tree.randomId(), "test", "test", "test", emptySet(),
