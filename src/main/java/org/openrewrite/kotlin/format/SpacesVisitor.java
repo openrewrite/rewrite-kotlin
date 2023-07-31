@@ -511,6 +511,20 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
     }
 
     @Override
+    public K.WhenBranch visitWhenBranch(K.WhenBranch whenBranch, P p) {
+        K.WhenBranch wb = super.visitWhenBranch(whenBranch, p);
+
+        // handle space before arrow
+        List<JRightPadded<Expression>> rps = wb.getPadding().getExpressions().getPadding().getElements();
+        rps = ListUtils.mapLast(rps, exp -> spaceAfter(exp, style.getOther().getAroundArrowInWhenClause()));
+        wb = wb.getPadding().withExpressions(wb.getPadding().getExpressions().getPadding().withElements(rps));
+
+        // handle space after arrow
+        wb = wb.withBody(spaceBefore(wb.getBody(), style.getOther().getAroundArrowInWhenClause()));
+        return wb;
+    }
+
+    @Override
     public J.WhileLoop visitWhileLoop(J.WhileLoop whileLoop, P p) {
         J.WhileLoop w = super.visitWhileLoop(whileLoop, p);
         w = w.withCondition(spaceBefore(w.getCondition(), style.getBeforeParentheses().getWhileParentheses()));

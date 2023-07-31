@@ -1670,5 +1670,95 @@ class SpacesTest implements RewriteTest {
             }
         }
 
+        @Nested
+        class otherAroundArrowInWhenClause {
+
+            @Test
+            void otherAroundArrowInWhenClauseTrue() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(true))),
+                  kotlin(
+                    """
+                      fun method() {
+                          val test: Int = 12
+                          var i = 0
+                          when {
+                              i < test->-1
+                              i > test->    1
+                              else  ->0
+                          }
+
+                          when (test) {
+                              12->println("foo")
+                              in 10..42->   println("baz")
+                              else   ->   println("bar")
+                          }
+                      }
+                      """,
+                    """
+                      fun method() {
+                          val test: Int = 12
+                          var i = 0
+                          when {
+                              i < test -> -1
+                              i > test -> 1
+                              else -> 0
+                          }
+
+                          when (test) {
+                              12 -> println("foo")
+                              in 10..42 -> println("baz")
+                              else -> println("bar")
+                          }
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAroundArrowInWhenClauseFalse() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(false))),
+                  kotlin(
+                    """
+                      fun method() {
+                          val test: Int = 12
+                          var i = 0
+                          when {
+                              i < test   ->   -1
+                              i > test -> 1
+                              else  -> 0
+                          }
+
+                          when (test) {
+                              12 -> println("foo")
+                              in 10..42   ->   println("baz")
+                              else   ->   println("bar")
+                          }
+                      }
+                      """,
+                    """
+                      fun method() {
+                          val test: Int = 12
+                          var i = 0
+                          when {
+                              i < test->-1
+                              i > test->1
+                              else->0
+                          }
+
+                          when (test) {
+                              12->println("foo")
+                              in 10..42->println("baz")
+                              else->println("bar")
+                          }
+                      }
+                      """
+                  )
+                );
+            }
+        }
+
     }
 }
