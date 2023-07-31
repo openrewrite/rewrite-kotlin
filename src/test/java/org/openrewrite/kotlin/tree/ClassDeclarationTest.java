@@ -23,7 +23,6 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("ALL")
