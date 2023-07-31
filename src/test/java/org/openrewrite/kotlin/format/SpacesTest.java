@@ -1674,7 +1674,7 @@ class SpacesTest implements RewriteTest {
         class otherAroundArrowInWhenClause {
 
             @Test
-            void otherAroundArrowInWhenClauseTrue() {
+            void otherAroundArrowInWhenClauseTrueArrowToConstant() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(true))),
                   kotlin(
@@ -1687,12 +1687,6 @@ class SpacesTest implements RewriteTest {
                               i > test->    1
                               else  ->0
                           }
-
-                          when (test) {
-                              12->println("foo")
-                              in 10..42->   println("baz")
-                              else   ->   println("bar")
-                          }
                       }
                       """,
                     """
@@ -1704,12 +1698,6 @@ class SpacesTest implements RewriteTest {
                               i > test -> 1
                               else -> 0
                           }
-
-                          when (test) {
-                              12 -> println("foo")
-                              in 10..42 -> println("baz")
-                              else -> println("bar")
-                          }
                       }
                       """
                   )
@@ -1717,7 +1705,7 @@ class SpacesTest implements RewriteTest {
             }
 
             @Test
-            void otherAroundArrowInWhenClauseFalse() {
+            void otherAroundArrowInWhenClauseFalseArrowToConstant() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(false))),
                   kotlin(
@@ -1730,12 +1718,6 @@ class SpacesTest implements RewriteTest {
                               i > test -> 1
                               else  -> 0
                           }
-
-                          when (test) {
-                              12 -> println("foo")
-                              in 10..42   ->   println("baz")
-                              else   ->   println("bar")
-                          }
                       }
                       """,
                     """
@@ -1747,10 +1729,74 @@ class SpacesTest implements RewriteTest {
                               i > test->1
                               else->0
                           }
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAroundArrowInWhenClauseTrueArrowToMethodInvocation() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(true))),
+                  kotlin(
+                    """
+                      fun method() {
+                          val test: Int = 12
 
                           when (test) {
                               12->println("foo")
-                              in 10..42->println("baz")
+                              in 10..42->    {
+                                  println("baz")
+                              }
+                              else   ->   println("bar")
+                          }
+                      }
+                      """,
+                    """
+                      fun method() {
+                          val test: Int = 12
+
+                          when (test) {
+                              12 -> println("foo")
+                              in 10..42 -> {
+                                  println("baz")
+                              }
+                              else -> println("bar")
+                          }
+                      }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherAroundArrowInWhenClauseFalseArrowToMethodInvocation() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(false))),
+                  kotlin(
+                    """
+                      fun method() {
+                          val test: Int = 12
+
+                          when (test) {
+                              12   ->   println("foo")
+                              in 10..42 ->    {
+                                  println("baz")
+                              }
+                              else   ->   println("bar")
+                          }
+                      }
+                      """,
+                    """
+                      fun method() {
+                          val test: Int = 12
+
+                          when (test) {
+                              12->println("foo")
+                              in 10..42->{
+                                  println("baz")
+                              }
                               else->println("bar")
                           }
                       }
@@ -1758,6 +1804,10 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
+
+
+
+
         }
 
     }

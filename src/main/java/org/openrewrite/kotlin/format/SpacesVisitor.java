@@ -520,7 +520,20 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         wb = wb.getPadding().withExpressions(wb.getPadding().getExpressions().getPadding().withElements(rps));
 
         // handle space after arrow
-        wb = wb.withBody(spaceBefore(wb.getBody(), style.getOther().getAroundArrowInWhenClause()));
+        if (wb.getBody() instanceof J.Block) {
+            J.Block block = (J.Block) wb.getBody();
+            if (block.getMarkers().findFirst(OmitBraces.class).isPresent()) {
+                block = block.withStatements(ListUtils.mapFirst(block.getStatements(), s -> spaceBefore(s, style.getOther().getAroundArrowInWhenClause())));
+            } else {
+                block = spaceBefore(block, style.getOther().getAroundArrowInWhenClause());
+            }
+
+            wb = wb.withBody(block);
+        } else {
+            wb = wb.withBody(spaceBefore(wb.getBody(), style.getOther().getAroundArrowInWhenClause()));
+        }
+
+
         return wb;
     }
 
