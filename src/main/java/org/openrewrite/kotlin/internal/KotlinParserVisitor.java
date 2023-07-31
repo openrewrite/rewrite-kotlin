@@ -519,7 +519,8 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
                     TypeUtils.asFullyQualified(typeMapping.type(callableReferenceAccess.getExplicitReceiver())), getCurrentFile());
         }
 
-        FirElement receiver = callableReferenceAccess.getExplicitReceiver() != null ? callableReferenceAccess.getExplicitReceiver() : callableReferenceAccess.getDispatchReceiver();
+        // FirElement receiver = callableReferenceAccess.getExplicitReceiver() != null ? callableReferenceAccess.getExplicitReceiver() : callableReferenceAccess.getDispatchReceiver();
+        FirElement receiver = callableReferenceAccess.getExplicitReceiver();
         Expression receiverExpr = convertToExpression(receiver, ctx);
 
         JRightPadded<Expression> paddedExr;
