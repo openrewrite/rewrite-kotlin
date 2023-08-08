@@ -150,7 +150,8 @@ public class KotlinTypeMapping implements JavaTypeMapping<Object> {
         } else if (type instanceof FirTypeParameter) {
             return resolveConeTypeProjection((FirTypeParameter) type, signature);
         } else if (type instanceof FirVariableAssignment) {
-            return type(((FirVariableAssignment) type).getCalleeReference(), ownerFallBack);
+            // FIXME
+//            return type(((FirVariableAssignment) type).getCalleeReference(), ownerFallBack);
         }
 
         return null;
@@ -632,109 +633,110 @@ public class KotlinTypeMapping implements JavaTypeMapping<Object> {
 
     @Nullable
     public JavaType.Method methodInvocationType(@Nullable FirFunctionCall functionCall, @Nullable FirBasedSymbol<?> ownerSymbol) {
-        if (functionCall == null || functionCall.getCalleeReference() instanceof FirErrorNamedReference) {
-            return null;
-        }
-
-        String signature = signatureBuilder.methodSignature(functionCall, ownerSymbol);
-        JavaType.Method existing = typeCache.get(signature);
-        if (existing != null) {
-            return existing;
-        }
-
-        FirBasedSymbol<?> symbol = ((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol();
-        FirConstructor constructor = null;
-        FirSimpleFunction simpleFunction = null;
-        if (symbol instanceof FirConstructorSymbol) {
-            constructor = (FirConstructor) symbol.getFir();
-        } else {
-            simpleFunction = (FirSimpleFunction) symbol.getFir();
-        }
-
-        List<String> paramNames = null;
-        if (simpleFunction != null && !simpleFunction.getValueParameters().isEmpty()) {
-            paramNames = new ArrayList<>(simpleFunction.getValueParameters().size());
-            for (FirValueParameter p : simpleFunction.getValueParameters()) {
-                String s = p.getName().asString();
-                paramNames.add(s);
-            }
-        } else if (constructor != null && !constructor.getValueParameters().isEmpty()) {
-            paramNames = new ArrayList<>(constructor.getValueParameters().size());
-            for (FirValueParameter p : constructor.getValueParameters()) {
-                String s = p.getName().asString();
-                paramNames.add(s);
-            }
-        }
-
-        JavaType.Method method = new JavaType.Method(
-                null,
-                convertToFlagsBitMap(constructor != null ? constructor.getStatus() : simpleFunction.getStatus()),
-                null,
-                constructor != null ? "<constructor>" : simpleFunction.getName().asString(),
-                null,
-                paramNames,
-                null, null, null, null
-        );
-        typeCache.put(signature, method);
-
-        List<JavaType> parameterTypes = null;
-        if (constructor != null && !constructor.getValueParameters().isEmpty()) {
-            parameterTypes = new ArrayList<>(constructor.getValueParameters().size());
-            for (FirValueParameter argtype : constructor.getValueParameters()) {
-                if (argtype != null) {
-                    JavaType javaType = type(argtype);
-                    parameterTypes.add(javaType);
-                }
-            }
-        }
-
-        JavaType.FullyQualified resolvedDeclaringType = null;
-        if (functionCall.getCalleeReference() instanceof FirResolvedNamedReference) {
-            if (((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
-                FirNamedFunctionSymbol resolvedSymbol = (FirNamedFunctionSymbol) ((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol();
-                if (ClassMembersKt.containingClass(resolvedSymbol) != null) {
-                    ConeClassLikeLookupTag lookupTag = ClassMembersKt.containingClass(resolvedSymbol);
-                    if (lookupTag != null) {
-                        FirRegularClassSymbol classSymbol = LookupTagUtilsKt.toFirRegularClassSymbol(lookupTag, firSession);
-                        if (classSymbol != null) {
-                            resolvedDeclaringType = TypeUtils.asFullyQualified(type(classSymbol.getFir()));
-                        }
-                    }
-                } else if (resolvedSymbol.getOrigin() == FirDeclarationOrigin.Library.INSTANCE) {
-                    if (resolvedSymbol.getFir().getContainerSource() instanceof JvmPackagePartSource) {
-                        JvmPackagePartSource source = (JvmPackagePartSource) resolvedSymbol.getFir().getContainerSource();
-                        if (source.getFacadeClassName() != null) {
-                            resolvedDeclaringType = TypeUtils.asFullyQualified(type(convertKotlinFqToJavaFq(source.getFacadeClassName().toString())));
-                        } else {
-                            resolvedDeclaringType = TypeUtils.asFullyQualified(type(convertKotlinFqToJavaFq(source.getClassName().toString())));
-                        }
-                    } else if (!resolvedSymbol.getFir().getOrigin().getGenerated() &&
-                            !resolvedSymbol.getFir().getOrigin().getFromSupertypes() &&
-                            !resolvedSymbol.getFir().getOrigin().getFromSource()) {
-                        resolvedDeclaringType = TypeUtils.asFullyQualified(type("kotlin.Library"));
-                    }
-                } else if (resolvedSymbol.getOrigin() == FirDeclarationOrigin.Source.INSTANCE && ownerSymbol != null) {
-                    if (ownerSymbol instanceof FirFileSymbol) {
-                        resolvedDeclaringType = TypeUtils.asFullyQualified(type(((FirFileSymbol) ownerSymbol).getFir()));
-                    } else if (ownerSymbol instanceof FirNamedFunctionSymbol) {
-                        resolvedDeclaringType = TypeUtils.asFullyQualified(type(((FirNamedFunctionSymbol) ownerSymbol).getFir()));
-                    } else if (ownerSymbol instanceof FirRegularClassSymbol) {
-                        resolvedDeclaringType = TypeUtils.asFullyQualified(type(((FirRegularClassSymbol) ownerSymbol).getFir()));
-                    }
-                }
-            }
-        }
-
-        if (resolvedDeclaringType == null) {
-            return null;
-        }
-
-        JavaType returnType = type(functionCall.getTypeRef(), ownerSymbol);
-
-        method.unsafeSet(resolvedDeclaringType,
-                constructor != null ? resolvedDeclaringType : returnType,
-                parameterTypes, null, listAnnotations(constructor != null ? constructor.getAnnotations() : simpleFunction.getAnnotations()));
-        return method;
+//        if (functionCall == null || functionCall.getCalleeReference() instanceof FirErrorNamedReference) {
+//            return null;
+//        }
+//
+//        String signature = signatureBuilder.methodSignature(functionCall, ownerSymbol);
+//        JavaType.Method existing = typeCache.get(signature);
+//        if (existing != null) {
+//            return existing;
+//        }
+//
+//        FirBasedSymbol<?> symbol = ((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol();
+//        FirConstructor constructor = null;
+//        FirSimpleFunction simpleFunction = null;
+//        if (symbol instanceof FirConstructorSymbol) {
+//            constructor = (FirConstructor) symbol.getFir();
+//        } else {
+//            simpleFunction = (FirSimpleFunction) symbol.getFir();
+//        }
+//
+//        List<String> paramNames = null;
+//        if (simpleFunction != null && !simpleFunction.getValueParameters().isEmpty()) {
+//            paramNames = new ArrayList<>(simpleFunction.getValueParameters().size());
+//            for (FirValueParameter p : simpleFunction.getValueParameters()) {
+//                String s = p.getName().asString();
+//                paramNames.add(s);
+//            }
+//        } else if (constructor != null && !constructor.getValueParameters().isEmpty()) {
+//            paramNames = new ArrayList<>(constructor.getValueParameters().size());
+//            for (FirValueParameter p : constructor.getValueParameters()) {
+//                String s = p.getName().asString();
+//                paramNames.add(s);
+//            }
+//        }
+//
+//        JavaType.Method method = new JavaType.Method(
+//                null,
+//                convertToFlagsBitMap(constructor != null ? constructor.getStatus() : simpleFunction.getStatus()),
+//                null,
+//                constructor != null ? "<constructor>" : simpleFunction.getName().asString(),
+//                null,
+//                paramNames,
+//                null, null, null, null
+//        );
+//        typeCache.put(signature, method);
+//
+//        List<JavaType> parameterTypes = null;
+//        if (constructor != null && !constructor.getValueParameters().isEmpty()) {
+//            parameterTypes = new ArrayList<>(constructor.getValueParameters().size());
+//            for (FirValueParameter argtype : constructor.getValueParameters()) {
+//                if (argtype != null) {
+//                    JavaType javaType = type(argtype);
+//                    parameterTypes.add(javaType);
+//                }
+//            }
+//        }
+//
+//        JavaType.FullyQualified resolvedDeclaringType = null;
+//        if (functionCall.getCalleeReference() instanceof FirResolvedNamedReference) {
+//            if (((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
+//                FirNamedFunctionSymbol resolvedSymbol = (FirNamedFunctionSymbol) ((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol();
+//                if (ClassMembersKt.containingClass(resolvedSymbol) != null) {
+//                    ConeClassLikeLookupTag lookupTag = ClassMembersKt.containingClass(resolvedSymbol);
+//                    if (lookupTag != null) {
+//                        FirRegularClassSymbol classSymbol = LookupTagUtilsKt.toFirRegularClassSymbol(lookupTag, firSession);
+//                        if (classSymbol != null) {
+//                            resolvedDeclaringType = TypeUtils.asFullyQualified(type(classSymbol.getFir()));
+//                        }
+//                    }
+//                } else if (resolvedSymbol.getOrigin() == FirDeclarationOrigin.Library.INSTANCE) {
+//                    if (resolvedSymbol.getFir().getContainerSource() instanceof JvmPackagePartSource) {
+//                        JvmPackagePartSource source = (JvmPackagePartSource) resolvedSymbol.getFir().getContainerSource();
+//                        if (source.getFacadeClassName() != null) {
+//                            resolvedDeclaringType = TypeUtils.asFullyQualified(type(convertKotlinFqToJavaFq(source.getFacadeClassName().toString())));
+//                        } else {
+//                            resolvedDeclaringType = TypeUtils.asFullyQualified(type(convertKotlinFqToJavaFq(source.getClassName().toString())));
+//                        }
+//                    } else if (!resolvedSymbol.getFir().getOrigin().getGenerated() &&
+//                            !resolvedSymbol.getFir().getOrigin().getFromSupertypes() &&
+//                            !resolvedSymbol.getFir().getOrigin().getFromSource()) {
+//                        resolvedDeclaringType = TypeUtils.asFullyQualified(type("kotlin.Library"));
+//                    }
+//                } else if (resolvedSymbol.getOrigin() == FirDeclarationOrigin.Source.INSTANCE && ownerSymbol != null) {
+//                    if (ownerSymbol instanceof FirFileSymbol) {
+//                        resolvedDeclaringType = TypeUtils.asFullyQualified(type(((FirFileSymbol) ownerSymbol).getFir()));
+//                    } else if (ownerSymbol instanceof FirNamedFunctionSymbol) {
+//                        resolvedDeclaringType = TypeUtils.asFullyQualified(type(((FirNamedFunctionSymbol) ownerSymbol).getFir()));
+//                    } else if (ownerSymbol instanceof FirRegularClassSymbol) {
+//                        resolvedDeclaringType = TypeUtils.asFullyQualified(type(((FirRegularClassSymbol) ownerSymbol).getFir()));
+//                    }
+//                }
+//            }
+//        }
+//
+//        if (resolvedDeclaringType == null) {
+//            return null;
+//        }
+//
+//        JavaType returnType = type(functionCall.getTypeRef(), ownerSymbol);
+//
+//        method.unsafeSet(resolvedDeclaringType,
+//                constructor != null ? resolvedDeclaringType : returnType,
+//                parameterTypes, null, listAnnotations(constructor != null ? constructor.getAnnotations() : simpleFunction.getAnnotations()));
+//        return method;
+        return null;
     }
 
     @Nullable

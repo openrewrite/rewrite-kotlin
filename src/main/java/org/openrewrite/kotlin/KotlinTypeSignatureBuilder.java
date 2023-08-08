@@ -140,7 +140,8 @@ public class KotlinTypeSignatureBuilder implements JavaTypeSignatureBuilder {
         } else if (type instanceof FirValueParameterSymbol) {
             return signature(((FirValueParameterSymbol) type).getResolvedReturnType(), ownerSymbol);
         } else if (type instanceof FirVariableAssignment) {
-            return signature(((FirVariableAssignment) type).getCalleeReference(), ownerSymbol);
+            // FIXME
+            //return signature(((FirVariableAssignment) type).getCalleeReference(), ownerSymbol);
         } else if (type instanceof FirOuterClassTypeParameterRef) {
             return signature(((FirOuterClassTypeParameterRef) type).getSymbol());
         }
@@ -518,74 +519,76 @@ public class KotlinTypeSignatureBuilder implements JavaTypeSignatureBuilder {
 
     public String methodSignature(FirFunctionCall functionCall, @Nullable FirBasedSymbol<?> ownerSymbol) {
         String owner = "{undefined}";
-        if (functionCall.getExplicitReceiver() != null) {
-            owner = signature(functionCall.getExplicitReceiver().getTypeRef());
-        } else if (functionCall.getCalleeReference() instanceof FirResolvedNamedReference) {
-            if (((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
-                FirNamedFunctionSymbol resolvedSymbol = (FirNamedFunctionSymbol) ((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol();
-                if (ClassMembersKt.containingClass(resolvedSymbol) != null) {
-                    //noinspection DataFlowIssue
-                    owner = signature(LookupTagUtilsKt.toFirRegularClassSymbol(ClassMembersKt.containingClass(resolvedSymbol), firSession), ownerSymbol);
-                } else if (resolvedSymbol.getOrigin() == FirDeclarationOrigin.Library.INSTANCE) {
-                    if (resolvedSymbol.getFir().getContainerSource() instanceof JvmPackagePartSource) {
-                        JvmPackagePartSource source = (JvmPackagePartSource) resolvedSymbol.getFir().getContainerSource();
-                        if (source.getFacadeClassName() != null) {
-                            owner = convertKotlinFqToJavaFq(source.getFacadeClassName().toString());
-                        } else {
-                            owner = convertKotlinFqToJavaFq(source.getClassName().toString());
-                        }
-                    } else if (!resolvedSymbol.getFir().getOrigin().getFromSource() &&
-                            !resolvedSymbol.getFir().getOrigin().getFromSupertypes() &&
-                            !resolvedSymbol.getFir().getOrigin().getGenerated()) {
-                        owner = "kotlin.Library";
-                    }
-                } else if (resolvedSymbol.getOrigin() == FirDeclarationOrigin.Source.INSTANCE && ownerSymbol != null) {
-                    if (ownerSymbol instanceof FirFileSymbol) {
-                        owner = ((FirFileSymbol) ownerSymbol).getFir().getName();
-                    } else if (ownerSymbol instanceof FirNamedFunctionSymbol) {
-                        owner = signature(((FirNamedFunctionSymbol) ownerSymbol).getFir());
-                    } else if (ownerSymbol instanceof FirRegularClassSymbol) {
-                        owner = signature(((FirRegularClassSymbol) ownerSymbol).getFir());
-                    }
-                }
-            }
-        }
+//        if (functionCall.getExplicitReceiver() != null) {
+//            owner = signature(functionCall.getExplicitReceiver().getTypeRef());
+//        } else if (functionCall.getCalleeReference() instanceof FirResolvedNamedReference) {
+//            if (((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
+//                FirNamedFunctionSymbol resolvedSymbol = (FirNamedFunctionSymbol) ((FirResolvedNamedReference) functionCall.getCalleeReference()).getResolvedSymbol();
+//                if (ClassMembersKt.containingClass(resolvedSymbol) != null) {
+//                    //noinspection DataFlowIssue
+//                    owner = signature(LookupTagUtilsKt.toFirRegularClassSymbol(ClassMembersKt.containingClass(resolvedSymbol), firSession), ownerSymbol);
+//                } else if (resolvedSymbol.getOrigin() == FirDeclarationOrigin.Library.INSTANCE) {
+//                    if (resolvedSymbol.getFir().getContainerSource() instanceof JvmPackagePartSource) {
+//                        JvmPackagePartSource source = (JvmPackagePartSource) resolvedSymbol.getFir().getContainerSource();
+//                        if (source.getFacadeClassName() != null) {
+//                            owner = convertKotlinFqToJavaFq(source.getFacadeClassName().toString());
+//                        } else {
+//                            owner = convertKotlinFqToJavaFq(source.getClassName().toString());
+//                        }
+//                    } else if (!resolvedSymbol.getFir().getOrigin().getFromSource() &&
+//                            !resolvedSymbol.getFir().getOrigin().getFromSupertypes() &&
+//                            !resolvedSymbol.getFir().getOrigin().getGenerated()) {
+//                        owner = "kotlin.Library";
+//                    }
+//                } else if (resolvedSymbol.getOrigin() == FirDeclarationOrigin.Source.INSTANCE && ownerSymbol != null) {
+//                    if (ownerSymbol instanceof FirFileSymbol) {
+//                        owner = ((FirFileSymbol) ownerSymbol).getFir().getName();
+//                    } else if (ownerSymbol instanceof FirNamedFunctionSymbol) {
+//                        owner = signature(((FirNamedFunctionSymbol) ownerSymbol).getFir());
+//                    } else if (ownerSymbol instanceof FirRegularClassSymbol) {
+//                        owner = signature(((FirRegularClassSymbol) ownerSymbol).getFir());
+//                    }
+//                }
+//            }
+//        }
+//
+//        String s = owner;
+//
+//        FirNamedReference namedReference = functionCall.getCalleeReference();
+//        if (namedReference instanceof FirResolvedNamedReference &&
+//                ((FirResolvedNamedReference) namedReference).getResolvedSymbol() instanceof FirConstructorSymbol) {
+//            s += "{name=<constructor>,return=" + s;
+//        } else {
+//            s += "{name=" + functionCall.getCalleeReference().getName().asString() +
+//                    ",return=" + signature(functionCall.getTypeRef());
+//        }
 
-        String s = owner;
-
-        FirNamedReference namedReference = functionCall.getCalleeReference();
-        if (namedReference instanceof FirResolvedNamedReference &&
-                ((FirResolvedNamedReference) namedReference).getResolvedSymbol() instanceof FirConstructorSymbol) {
-            s += "{name=<constructor>,return=" + s;
-        } else {
-            s += "{name=" + functionCall.getCalleeReference().getName().asString() +
-                    ",return=" + signature(functionCall.getTypeRef());
-        }
-
-        return s + ",parameters=" + methodArgumentSignature(functionCall.getArgumentList().getArguments()) + '}';
+//        return s + ",parameters=" + methodArgumentSignature(functionCall.getArgumentList().getArguments()) + '}';
+        return "";
     }
 
     /**
      *  Generate the method declaration signature.
      */
     public String methodDeclarationSignature(FirFunctionSymbol<? extends FirFunction> symbol) {
-        String s = symbol instanceof FirConstructorSymbol ? classSignature(symbol.getResolvedReturnTypeRef()) :
-                symbol.getDispatchReceiverType() != null ? classSignature(symbol.getDispatchReceiverType()) :
-                        classSignature(ClassMembersKt.containingClass(symbol));
-
-        if (symbol instanceof FirConstructorSymbol) {
-            s += "{name=<constructor>,return=" + s;
-        } else {
-            String returnSignature;
-            if (symbol.getFir() instanceof FirJavaMethod) {
-                returnSignature = signature((symbol.getFir()).getReturnTypeRef());
-            } else {
-                returnSignature = signature(symbol.getResolvedReturnTypeRef());
-            }
-            s += "{name=" + symbol.getName().asString() +
-                    ",return=" + returnSignature;
-        }
-        return s + ",parameters=" + methodArgumentSignature(symbol) + '}';
+//        String s = symbol instanceof FirConstructorSymbol ? classSignature(symbol.getResolvedReturnTypeRef()) :
+//                symbol.getDispatchReceiverType() != null ? classSignature(symbol.getDispatchReceiverType()) :
+//                        classSignature(ClassMembersKt.containingClass(symbol));
+//
+//        if (symbol instanceof FirConstructorSymbol) {
+//            s += "{name=<constructor>,return=" + s;
+//        } else {
+//            String returnSignature;
+//            if (symbol.getFir() instanceof FirJavaMethod) {
+//                returnSignature = signature((symbol.getFir()).getReturnTypeRef());
+//            } else {
+//                returnSignature = signature(symbol.getResolvedReturnTypeRef());
+//            }
+//            s += "{name=" + symbol.getName().asString() +
+//                    ",return=" + returnSignature;
+//        }
+//        return s + ",parameters=" + methodArgumentSignature(symbol) + '}';
+        return "";
     }
 
     public String methodDeclarationSignature(JavaMethod method) {

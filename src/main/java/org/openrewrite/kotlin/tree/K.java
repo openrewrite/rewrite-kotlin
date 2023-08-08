@@ -66,7 +66,6 @@ public interface K extends J {
     @ToString
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @RequiredArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     final class CompilationUnit implements K, JavaSourceFile, SourceFile {
         @Nullable
@@ -111,6 +110,34 @@ public interface K extends J {
         @Getter
         @Nullable
         Checksum checksum;
+
+        public CompilationUnit(UUID id,
+                               Space prefix,
+                               Markers markers,
+                               Path sourcePath,
+                               @Nullable FileAttributes fileAttributes,
+                               @Nullable String charsetName,
+                               boolean charsetBomMarked,
+                               @Nullable Checksum checksum,
+                               List<Annotation> annotations,
+                               @Nullable JRightPadded<Package> packageDeclaration,
+                               List<JRightPadded<Import>> imports,
+                               List<JRightPadded<Statement>> statements,
+                               Space eof) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.sourcePath = sourcePath;
+            this.fileAttributes = fileAttributes;
+            this.charsetName = charsetName;
+            this.charsetBomMarked = charsetBomMarked;
+            this.checksum = checksum;
+            this.annotations = annotations;
+            this.packageDeclaration = packageDeclaration;
+            this.imports = imports;
+            this.statements = statements;
+            this.eof = eof;
+        }
 
         @Override
         public Charset getCharset() {
@@ -278,7 +305,6 @@ public interface K extends J {
     @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @RequiredArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     @Data
     final class Binary implements K, Expression, TypedTree {
@@ -301,6 +327,17 @@ public interface K extends J {
         Expression left;
 
         JLeftPadded<K.Binary.Type> operator;
+
+        public Binary(UUID id, Space prefix, Markers markers, Expression left, JLeftPadded<Type> operator, Expression right, Space after, @Nullable JavaType type) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.left = left;
+            this.operator = operator;
+            this.right = right;
+            this.after = after;
+            this.type = type;
+        }
 
         public K.Binary.Type getOperator() {
             return operator.getElement();
@@ -371,7 +408,6 @@ public interface K extends J {
     @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @RequiredArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     final class DestructuringDeclaration implements K, Statement {
 
@@ -397,6 +433,14 @@ public interface K extends J {
         J.VariableDeclarations initializer;
 
         JContainer<J.VariableDeclarations.NamedVariable> assignments;
+
+        public DestructuringDeclaration(UUID id, Space prefix, Markers markers, VariableDeclarations initializer, JContainer<VariableDeclarations.NamedVariable> assignments) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.initializer = initializer;
+            this.assignments = assignments;
+        }
 
         public List<J.VariableDeclarations.NamedVariable> getAssignments() {
             return assignments.getElements();
@@ -455,7 +499,6 @@ public interface K extends J {
     @ToString
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @AllArgsConstructor
     final class ExpressionStatement implements K, Expression, Statement {
 
         @With
@@ -473,10 +516,15 @@ public interface K extends J {
             this.expression = expression;
         }
 
+        public ExpressionStatement(UUID id, Expression expression) {
+            this.id = id;
+            this.expression = expression;
+        }
+
         @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
             J j = v.visit(getExpression(), p);
-            if(j instanceof ExpressionStatement) {
+            if (j instanceof ExpressionStatement) {
                 return j;
             } else if (j instanceof Expression) {
                 return withExpression((Expression) j);
@@ -529,6 +577,16 @@ public interface K extends J {
 
         UUID id;
         Space prefix;
+
+        public FunctionType(UUID id, Space prefix, Markers markers, TypedTree typedTree, List<Annotation> leadingAnnotations, List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.typedTree = typedTree;
+            this.leadingAnnotations = leadingAnnotations;
+            this.modifiers = modifiers;
+            this.receiver = receiver;
+        }
 
         public Space getPrefix() {
             // For backwards compatibility with older LST before there was a prefix field
@@ -608,6 +666,13 @@ public interface K extends J {
         @Nullable
         J.Identifier label;
 
+        public KReturn(UUID id, List<Annotation> annotations, Return expression, @Nullable J.Identifier label) {
+            this.id = id;
+            this.annotations = annotations;
+            this.expression = expression;
+            this.label = label;
+        }
+
         @Override
         public Space getPrefix() {
             return expression.getPrefix();
@@ -661,6 +726,15 @@ public interface K extends J {
         @Nullable
         JavaType type;
 
+        public KString(UUID id, Space prefix, Markers markers, String delimiter, List<J> strings, @Nullable JavaType type) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.delimiter = delimiter;
+            this.strings = strings;
+            this.type = type;
+        }
+
         @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
             return v.visitKString(this, p);
@@ -681,6 +755,15 @@ public interface K extends J {
 
             @Nullable
             Space prefix;
+
+            public Value(UUID id, @Nullable Space prefix, Markers markers, J tree, @Nullable Space after, boolean enclosedInBraces) {
+                this.id = id;
+                this.prefix = prefix;
+                this.markers = markers;
+                this.tree = tree;
+                this.after = after;
+                this.enclosedInBraces = enclosedInBraces;
+            }
 
             @Override
             public Space getPrefix() {
@@ -729,6 +812,14 @@ public interface K extends J {
         @Nullable
         JavaType type;
 
+        public KThis(UUID id, Space prefix, Markers markers, @Nullable J.Identifier label, @Nullable JavaType type) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.label = label;
+            this.type = type;
+        }
+
         @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
             return v.visitKThis(this, p);
@@ -749,7 +840,6 @@ public interface K extends J {
     @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @RequiredArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     final class ListLiteral implements K, Expression, TypedTree {
         @Nullable
@@ -770,6 +860,14 @@ public interface K extends J {
         Markers markers;
 
         JContainer<Expression> elements;
+
+        public ListLiteral(UUID id, Space prefix, Markers markers, JContainer<Expression> elements, @Nullable JavaType type) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.elements = elements;
+            this.type = type;
+        }
 
         public List<Expression> getElements() {
             return elements.getElements();
@@ -845,6 +943,16 @@ public interface K extends J {
 
         boolean isSetterFirst;
 
+        public Property(UUID id, Space prefix, Markers markers, VariableDeclarations variableDeclarations, @Nullable J.MethodDeclaration getter, @Nullable J.MethodDeclaration setter, boolean isSetterFirst) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.variableDeclarations = variableDeclarations;
+            this.getter = getter;
+            this.setter = setter;
+            this.isSetterFirst = isSetterFirst;
+        }
+
         @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
             return v.visitProperty(this, p);
@@ -897,14 +1005,13 @@ public interface K extends J {
 
     /**
      * Kotlin defines certain java statements like J.If as expression.
-     *<p>
+     * <p>
      * Has no state or behavior of its own aside from the Expression it wraps.
      */
     @SuppressWarnings("unchecked")
     @ToString
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @AllArgsConstructor
     final class StatementExpression implements K, Expression, Statement {
 
         @With
@@ -914,6 +1021,11 @@ public interface K extends J {
         @With
         @Getter
         Statement statement;
+
+        public StatementExpression(UUID id, Statement statement) {
+            this.id = id;
+            this.statement = statement;
+        }
 
         @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
@@ -987,6 +1099,15 @@ public interface K extends J {
         @Nullable
         JavaType type;
 
+        public When(UUID id, Space prefix, Markers markers, @Nullable ControlParentheses<Expression> selector, Block branches, @Nullable JavaType type) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.selector = selector;
+            this.branches = branches;
+            this.type = type;
+        }
+
         @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
             return v.visitWhen(this, p);
@@ -1017,7 +1138,6 @@ public interface K extends J {
     @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @RequiredArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     final class WhenBranch implements K, Statement {
         @Nullable
@@ -1038,6 +1158,14 @@ public interface K extends J {
         Markers markers;
 
         JContainer<Expression> expressions;
+
+        public WhenBranch(UUID id, Space prefix, Markers markers, JContainer<Expression> expressions, JRightPadded<J> body) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.expressions = expressions;
+            this.body = body;
+        }
 
         public List<Expression> getExpressions() {
             return expressions.getElements();

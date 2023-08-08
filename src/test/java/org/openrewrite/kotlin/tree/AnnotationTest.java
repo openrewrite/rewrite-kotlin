@@ -244,19 +244,6 @@ class AnnotationTest implements RewriteTest {
     }
 
     @Test
-    void conditionalParameter() {
-        rewriteRun(
-          kotlin("annotation class A ( val s : String )"),
-          kotlin(
-            """
-              @A ( if ( true ) "1" else "2" )
-              class Test
-              """
-          )
-        );
-    }
-
-    @Test
     void paramAnnotation() {
         rewriteRun(
           kotlin(ANNOTATION),

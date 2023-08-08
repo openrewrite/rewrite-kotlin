@@ -44,10 +44,10 @@ import org.jetbrains.kotlin.fir.FirSession;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.fir.java.FirProjectSessionProvider;
 import org.jetbrains.kotlin.fir.pipeline.AnalyseKt;
-import org.jetbrains.kotlin.fir.pipeline.BuildFirKt;
+import org.jetbrains.kotlin.fir.pipeline.FirUtilsKt;
 import org.jetbrains.kotlin.fir.resolve.ScopeSession;
 import org.jetbrains.kotlin.fir.session.FirSessionConfigurator;
-import org.jetbrains.kotlin.fir.session.FirSessionFactory;
+import org.jetbrains.kotlin.fir.session.FirSessionFactoryHelper;
 import org.jetbrains.kotlin.fir.session.environment.AbstractProjectFileSearchScope;
 import org.jetbrains.kotlin.idea.KotlinFileType;
 import org.jetbrains.kotlin.idea.KotlinLanguage;
@@ -62,8 +62,8 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.kotlin.internal.CompiledSource;
-import org.openrewrite.kotlin.internal.KotlinParserVisitor;
-import org.openrewrite.kotlin.internal.KotlinSource;
+import internal.KotlinParserVisitor;
+import internal.KotlinSource;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.tree.ParseError;
@@ -172,6 +172,7 @@ public class KotlinParser implements Parser {
                                                 ctx
                                         );
 
+                                        assert kotlinSource.getFirFile() != null;
                                         SourceFile kcu = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), new InMemoryExecutionContext());
                                         parsingListener.parsed(kotlinSource.getInput(), kcu);
                                         return requirePrintEqualsInput(kcu, kotlinSource.getInput(), relativeTo, ctx);
@@ -284,6 +285,8 @@ public class KotlinParser implements Parser {
         }
     }
 
+    // TODO move compiler configuration and use Classpath to determine, which parser to use.
+    // fromVersion ... check KotlinVersion
     public CompiledSource parse(List<Parser.Input> sources, Disposable disposable, ExecutionContext ctx) {
         CompilerConfiguration compilerConfiguration = compilerConfiguration();
 
@@ -359,7 +362,7 @@ public class KotlinParser implements Parser {
 
         Function1<FirSessionConfigurator, Unit> sessionConfigurator = session -> Unit.INSTANCE;
 
-        FirSession firSession = FirSessionFactory.INSTANCE.createSessionWithDependencies(
+        FirSession firSession = FirSessionFactoryHelper.INSTANCE.createSessionWithDependencies(
                 Name.identifier(moduleName),
                 JvmPlatforms.INSTANCE.getUnspecifiedJvmPlatform(),
                 JvmPlatformAnalyzerServices.INSTANCE,
@@ -377,7 +380,7 @@ public class KotlinParser implements Parser {
                 sessionConfigurator
         );
 
-        List<FirFile> rawFir = BuildFirKt.buildFirFromKtFiles(firSession, ktFiles);
+        List<FirFile> rawFir = FirUtilsKt.buildFirFromKtFiles(firSession, ktFiles);
         Pair<ScopeSession, List<FirFile>> result = AnalyseKt.runResolution(firSession, rawFir);
         AnalyseKt.runCheckers(firSession, result.getFirst(), result.getSecond(), diagnosticsReporter);
         assert kotlinSources.size() == result.getSecond().size();
