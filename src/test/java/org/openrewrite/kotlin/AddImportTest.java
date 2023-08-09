@@ -100,4 +100,24 @@ public class AddImportTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void noImportOfImplicitTypes() {
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new AddImport<>("kotlin.Pair", null, null, false))),
+          kotlin(
+            """
+              class A
+              """
+          )
+        );
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new AddImport<>("java.lang.Integer", null, null, false))),
+          kotlin(
+            """
+              class A
+              """
+          )
+        );
+    }
 }

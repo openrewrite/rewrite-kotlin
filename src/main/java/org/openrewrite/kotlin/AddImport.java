@@ -28,13 +28,11 @@ import org.openrewrite.java.search.FindTypes;
 import org.openrewrite.java.style.ImportLayoutStyle;
 import org.openrewrite.java.style.IntelliJ;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.style.GeneralFormatStyle;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.openrewrite.Tree.randomId;
@@ -58,6 +56,19 @@ import static org.openrewrite.java.tree.TypeUtils.isOfClassType;
  */
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 public class AddImport<P> extends KotlinIsoVisitor<P> {
+
+    private static final Set<String> IMPLICITLY_IMPORTED_PACKAGES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "kotlin",
+            "kotlin.annotation",
+            "kotlin.collections",
+            "kotlin.comparisons",
+            "kotlin.io",
+            "kotlin.ranges",
+            "kotlin.sequences",
+            "kotlin.text",
+            "kotlin.math",
+            "java.lang"
+    )));
 
     @EqualsAndHashCode.Include
     private final String type;
@@ -87,19 +98,17 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
     public @Nullable J preVisit(J tree, P p) {
         stopAfterPreVisit();
         J j = tree;
-        if (tree instanceof JavaSourceFile) {
-            JavaSourceFile cu = (JavaSourceFile) tree;
-            if (JavaType.Primitive.fromKeyword(classType.getFullyQualifiedName()) != null) {
-                return cu;
-            }
-
-            int dotIndex = classType.getFullyQualifiedName().lastIndexOf('.');
-            if (dotIndex >= 0) {
-                String packageName = classType.getFullyQualifiedName().substring(0, dotIndex);
-                // No need to add imports if the class to import is in java.lang, or if the classes are within the same package
-                if (("java.lang".equals(packageName) && StringUtils.isBlank(member)) || (cu.getPackageDeclaration() != null &&
-                                                                                         packageName.equals(cu.getPackageDeclaration().getExpression().printTrimmed(getCursor())))) {
-                    return cu;
+        if (tree instanceof K.CompilationUnit) {
+            K.CompilationUnit cu = (K.CompilationUnit) tree;
+            if (alias == null) {
+                int dotIndex = classType.getFullyQualifiedName().lastIndexOf('.');
+                if (dotIndex >= 0) {
+                    String packageName = classType.getFullyQualifiedName().substring(0, dotIndex);
+                    // No need to add imports if the class to import is implicitly imported, or if the classes are within the same package
+                    if ((IMPLICITLY_IMPORTED_PACKAGES.contains(packageName) && StringUtils.isBlank(member))
+                        || (cu.getPackageDeclaration() != null && packageName.equals(cu.getPackageDeclaration().getExpression().printTrimmed(getCursor())))) {
+                        return cu;
+                    }
                 }
             }
 
