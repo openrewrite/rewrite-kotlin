@@ -16,19 +16,17 @@
 package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.java.AddImport;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
-import static org.openrewrite.test.RewriteTest.toRecipe;
-
 import static org.openrewrite.kotlin.Assertions.kotlin;
+import static org.openrewrite.test.RewriteTest.toRecipe;
 
 public class AddImportTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(toRecipe(() -> new AddImport<>("a.b.Target", null, false)));
+        spec.recipe(toRecipe(() -> new AddImport<>("a.b.Target", null, null, false)));
     }
 
     @Test
@@ -67,7 +65,7 @@ public class AddImportTest implements RewriteTest {
     @Test
     void inlineImport() {
         rewriteRun(
-          spec -> spec.recipe(toRecipe(() -> new AddImport<>("a.b.Target", "method", false))),
+          spec -> spec.recipe(toRecipe(() -> new AddImport<>("a.b.Target", "method", null, false))),
           kotlin(
             """
               package a.b

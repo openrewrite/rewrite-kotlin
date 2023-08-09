@@ -95,6 +95,18 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         return after;
     }
 
+    @Override
+    public void maybeAddImport(String fullyQualifiedName, @Nullable String statik, boolean onlyIfReferenced) {
+        maybeAddImport(fullyQualifiedName, statik, null, onlyIfReferenced);
+    }
+
+    public void maybeAddImport(String fullyQualifiedName, @Nullable String statik, @Nullable String alias, boolean onlyIfReferenced) {
+        AddImport<P> op = new AddImport<>(fullyQualifiedName, statik, alias, onlyIfReferenced);
+        if (!getAfterVisit().contains(op)) {
+            doAfterVisit(op);
+        }
+    }
+
     public J visitBinary(K.Binary binary, P p) {
         K.Binary b = binary;
         b = b.withPrefix(visitSpace(b.getPrefix(), KSpace.Location.BINARY_PREFIX, p));
