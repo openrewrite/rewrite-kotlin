@@ -15,7 +15,11 @@
  */
 package org.openrewrite.kotlin;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.test.AdHocRecipe;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -104,7 +108,7 @@ public class AddImportTest implements RewriteTest {
     @Test
     void noImportOfImplicitTypes() {
         rewriteRun(
-          spec -> spec.recipe(toRecipe(() -> new AddImport<>("kotlin.Pair", null, null, false))),
+          spec -> spec.recipe(importTypeRecipe("kotlin.Pair")),
           kotlin(
             """
               class A
@@ -112,12 +116,23 @@ public class AddImportTest implements RewriteTest {
           )
         );
         rewriteRun(
-          spec -> spec.recipe(toRecipe(() -> new AddImport<>("java.lang.Integer", null, null, false))),
+          spec -> spec.recipe(importTypeRecipe("java.lang.Integer")),
           kotlin(
             """
               class A
               """
           )
         );
+    }
+
+    @NotNull
+    private static AdHocRecipe importTypeRecipe(String type) {
+        return toRecipe(() -> new KotlinIsoVisitor<>() {
+            @Override
+            public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext ctx) {
+                maybeAddImport(type, null, false);
+                return cu;
+            }
+        });
     }
 }
