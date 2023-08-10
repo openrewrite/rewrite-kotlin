@@ -1171,7 +1171,7 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
             PsiElement propNode = getRealPsiElement(property);
             KtModifierList modifierListVar = getModifierList(propNode);
             if (modifierListVar != null) {
-                mapModifierList(modifierListVar, property.getAnnotations(), emptyList(), annotations);
+                mapModifierList(modifierListVar, property.getAnnotations(), annotations, emptyList());
             }
             JavaType.Variable vt = (JavaType.Variable) typeMapping.type(property, getCurrentFile());
             J.Identifier nameVar = createIdentifier(entry.getName(), vt.getType(), vt).withAnnotations(annotations);
@@ -2888,10 +2888,10 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         int saveCursor = cursor;
         whitespace();
         String opText = node.getOperationReference().getNode().getText();
-        boolean isCompoundAssignment = opText.equals("-=") ||
-                opText.equals("+=") ||
-                opText.equals("*=") ||
-                opText.equals("/=");
+        boolean isCompoundAssignment = "-=".equals(opText) ||
+                "+=".equals(opText) ||
+                "*=".equals(opText) ||
+                "/=".equals(opText);
         cursor(saveCursor);
 
         if (isCompoundAssignment) {
@@ -3790,7 +3790,11 @@ public class KotlinParserVisitor extends FirDefaultVisitor<J, ExecutionContext> 
         }
 
         if (!currentAnnotations.isEmpty()) {
-            lastAnnotations.addAll(currentAnnotations);
+            if (leading) {
+                leadingAnnotations.addAll(currentAnnotations);
+            } else {
+                lastAnnotations.addAll(currentAnnotations);
+            }
         }
 
         return modifiers;
