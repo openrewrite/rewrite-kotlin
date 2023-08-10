@@ -279,7 +279,7 @@ public interface K extends J {
         @Override
         @SuppressWarnings("unchecked")
         public <S> S service(Class<S> service) {
-            if (service == ImportService.class) {
+            if (service == ImportService.class || service == KotlinImportService.class) {
                 return (S) new KotlinImportService();
             }
             return JavaSourceFile.super.service(service);
