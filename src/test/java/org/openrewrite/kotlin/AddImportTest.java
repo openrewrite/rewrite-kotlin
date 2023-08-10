@@ -15,12 +15,10 @@
  */
 package org.openrewrite.kotlin;
 
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
 import org.openrewrite.kotlin.tree.K;
-import org.openrewrite.test.AdHocRecipe;
-import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -28,14 +26,10 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 
 public class AddImportTest implements RewriteTest {
 
-    @Override
-    public void defaults(RecipeSpec spec) {
-        spec.recipe(toRecipe(() -> new AddImport<>("a.b.Target", null, null, false)));
-    }
-
     @Test
     void addImport() {
         rewriteRun(
+          spec -> spec.recipe(importTypeRecipe("a.b.Target")),
           kotlin(
             """
               package a.b
@@ -69,7 +63,7 @@ public class AddImportTest implements RewriteTest {
     @Test
     void inlineImport() {
         rewriteRun(
-          spec -> spec.recipe(toRecipe(() -> new AddImport<>("a.b.Target", "method", null, false))),
+          spec -> spec.recipe(importMemberRecipe("a.b.Target", "method")),
           kotlin(
             """
               package a.b
@@ -125,12 +119,21 @@ public class AddImportTest implements RewriteTest {
         );
     }
 
-    @NotNull
-    private static AdHocRecipe importTypeRecipe(String type) {
+    static Recipe importTypeRecipe(String type) {
         return toRecipe(() -> new KotlinIsoVisitor<>() {
             @Override
             public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext ctx) {
                 maybeAddImport(type, null, false);
+                return cu;
+            }
+        });
+    }
+
+    static Recipe importMemberRecipe(String type, String member) {
+        return toRecipe(() -> new KotlinIsoVisitor<>() {
+            @Override
+            public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext ctx) {
+                maybeAddImport(type, member, false);
                 return cu;
             }
         });
