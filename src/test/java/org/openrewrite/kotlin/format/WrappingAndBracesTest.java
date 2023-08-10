@@ -369,7 +369,7 @@ class WrappingAndBracesTest implements RewriteTest {
                var foo: Int
                   }
               }
-"""
+              """
           )
         );
     }
