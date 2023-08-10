@@ -75,6 +75,7 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
         return visit(tree, p);
     }
 
+
     @Override
     @Nullable
     public J preVisit(@Nullable J tree, P p) {
@@ -117,10 +118,18 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public Space visitSpace(Space space, Space.Location loc, P p) {
         getCursor().putMessage("lastLocation", loc);
+
+        if (loc == Space.Location.RETURN_PREFIX) {
+            return space;
+        }
+
         boolean alignToAnnotation = false;
         Cursor parent = getCursor().getParent();
         if (parent != null && parent.getValue() instanceof J.Annotation) {
-            parent.getParentOrThrow().putMessage("afterAnnotation", true);
+            // todo: Improve
+            // parent.getParentOrThrow().putMessage("afterAnnotation", true);
+            parent.getParentOrThrow().getParentOrThrow().putMessage("afterAnnotation", true);
+
         } else if (parent != null && !getCursor().getParentOrThrow().getPath(J.Annotation.class::isInstance).hasNext()) {
             // when annotations are on their own line, other parts of the declaration that follow are aligned left to it
             alignToAnnotation = getCursor().pollNearestMessage("afterAnnotation") != null &&
