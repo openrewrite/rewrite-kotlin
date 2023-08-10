@@ -93,19 +93,21 @@ class AnnotationTest implements RewriteTest {
     }
 
     @Test
-    void leadingAnnotation() {
+    void leadingAnnotations() {
         rewriteRun(
           kotlin(
             """
               annotation class Anno
+              annotation class Anno2
               class Test {
                   @Anno
+                  @Anno2
                   val id: String = "1"
               }
               """,
             spec -> spec.afterRecipe(cu -> {
-                J.VariableDeclarations v = (J.VariableDeclarations) ((J.ClassDeclaration) cu.getStatements().get(1)).getBody().getStatements().get(0);
-                assertThat(v.getLeadingAnnotations().size()).isEqualTo(1);
+                J.VariableDeclarations v = (J.VariableDeclarations) ((J.ClassDeclaration) cu.getStatements().get(2)).getBody().getStatements().get(0);
+                assertThat(v.getLeadingAnnotations().size()).isEqualTo(2);
             })
           )
         );
