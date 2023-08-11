@@ -331,4 +331,19 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void lambdaExpression() {
+        rewriteRun(
+          kotlin(ANNOTATION),
+          kotlin(
+            """
+              fun method ( ) {
+                  val list = listOf ( 1 , 2 , 3 )
+                  list . filterIndexed { index , _ -> @Ann index % 2 == 0 }
+              }
+              """
+            )
+        );
+    }
 }

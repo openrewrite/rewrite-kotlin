@@ -1859,7 +1859,6 @@ class KotlinParserVisitor(
         data: ExecutionContext
     ): J {
         val prefix = whitespace()
-        val annotations = mapAnnotations(lambdaArgumentExpression.annotations)
         val j: J = visitElement(lambdaArgumentExpression.expression, data)!!
         return j.withPrefix(prefix)
     }
@@ -2130,7 +2129,12 @@ class KotlinParserVisitor(
                 type
             )
         } else {
-            visitElement(propertyAccessExpression.calleeReference, data)!!
+            val annotations = mapAnnotations(propertyAccessExpression.annotations)
+            var j = visitElement(propertyAccessExpression.calleeReference, data)!!
+            if (j is J.Identifier && annotations != null) {
+                j = j.withAnnotations(annotations)
+            }
+            j
         }
     }
 
@@ -3308,6 +3312,7 @@ class KotlinParserVisitor(
                 val exprSize =
                     if (whenBranch.condition is FirEqualityOperatorCall) (whenBranch.condition as FirEqualityOperatorCall).argumentList.arguments.size - 1 else 1
                 val expressions: MutableList<JRightPadded<Expression>> = ArrayList(exprSize)
+                val branchPrefix = whitespace()
                 if (whenBranch.condition is FirElseIfTrueCondition) {
                     expressions.add(padRight(createIdentifier("else"), sourceBefore("->")))
                 } else if (whenBranch.condition is FirEqualityOperatorCall) {
@@ -3338,7 +3343,7 @@ class KotlinParserVisitor(
                 val body: J = visitElement(whenBranch.result, data)!!
                 val branch = WhenBranch(
                     randomId(),
-                    Space.EMPTY,
+                    branchPrefix,
                     Markers.EMPTY,
                     expressionContainer,
                     padRight(body, Space.EMPTY)
