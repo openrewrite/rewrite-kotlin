@@ -44,7 +44,7 @@ import static org.openrewrite.java.tree.TypeUtils.isOfClassType;
  * This visitor can also be configured to only add the import if the imported class / member is referenced within the
  * compilation unit.
  * <p>
- * The {@link AddImport#type} must be supplied and represents a fully qualified class name.
+ * The {@link AddImport#fullyQualifiedName} must be supplied and represents a fully qualified class name.
  * <p>
  * The {@link AddImport#member} is an optional member within the imported type. It can be set to "*"
  * to represent a wildcard import.
@@ -70,8 +70,13 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
             "java.lang"
     )));
 
+    @Nullable
+    private final String packageName;
+
+    private final String typeName;
+
     @EqualsAndHashCode.Include
-    private final String type;
+    private final String fullyQualifiedName;
 
     @EqualsAndHashCode.Include
     @Nullable
@@ -84,11 +89,10 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
     @EqualsAndHashCode.Include
     private final boolean onlyIfReferenced;
 
-    private final JavaType.Class classType;
-
-    public AddImport(String type, @Nullable String member, @Nullable String alias, boolean onlyIfReferenced) {
-        this.type = type;
-        this.classType = JavaType.ShallowClass.build(type);
+    public AddImport(@Nullable String packageName, String typeName, @Nullable String member, @Nullable String alias, boolean onlyIfReferenced) {
+        this.packageName = packageName == null || packageName.isEmpty() ? null : packageName;
+        this.typeName = typeName.replace('.', '$');
+        this.fullyQualifiedName = packageName == null ? typeName : packageName + "." + typeName;
         this.member = member;
         this.alias = alias;
         this.onlyIfReferenced = onlyIfReferenced;
@@ -98,17 +102,17 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
     public @Nullable J preVisit(J tree, P p) {
         stopAfterPreVisit();
         J j = tree;
-        if (tree instanceof K.CompilationUnit) {
+        if (packageName != null && tree instanceof K.CompilationUnit) {
             K.CompilationUnit cu = (K.CompilationUnit) tree;
+            if (JavaType.Primitive.fromKeyword(fullyQualifiedName) != null) {
+                return cu;
+            }
+
             if (alias == null) {
-                int dotIndex = classType.getFullyQualifiedName().lastIndexOf('.');
-                if (dotIndex >= 0) {
-                    String packageName = classType.getFullyQualifiedName().substring(0, dotIndex);
-                    // No need to add imports if the class to import is implicitly imported, or if the classes are within the same package
-                    if ((IMPLICITLY_IMPORTED_PACKAGES.contains(packageName) && StringUtils.isBlank(member))
-                        || (cu.getPackageDeclaration() != null && packageName.equals(cu.getPackageDeclaration().getExpression().printTrimmed(getCursor())))) {
-                        return cu;
-                    }
+                // No need to add imports if the class to import is implicitly imported, or if the classes are within the same package
+                if ((IMPLICITLY_IMPORTED_PACKAGES.contains(packageName) && StringUtils.isBlank(member))
+                    || (cu.getPackageDeclaration() != null && packageName.equals(cu.getPackageDeclaration().getExpression().printTrimmed(getCursor())))) {
+                    return cu;
                 }
             }
 
@@ -116,17 +120,13 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
                 return cu;
             }
 
-            if (classType.getPackageName().isEmpty()) {
-                return cu;
-            }
-
             if (cu.getImports().stream().anyMatch(i -> {
                 String ending = i.getQualid().getSimpleName();
                 if (member == null) {
-                    return !i.isStatic() && i.getPackageName().equals(classType.getPackageName()) &&
-                           (ending.equals(classType.getClassName()) || "*".equals(ending));
+                    return i.getPackageName().equals(packageName) &&
+                           (ending.equals(typeName) || "*".equals(ending));
                 }
-                return i.isStatic() && i.getTypeName().equals(classType.getFullyQualifiedName()) &&
+                return i.getPackageName().equals(fullyQualifiedName) &&
                        (ending.equals(member) || "*".equals(ending));
             })) {
                 return cu;
@@ -135,11 +135,10 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
             J.Import importToAdd = new J.Import(randomId(),
                     Space.EMPTY,
                     Markers.EMPTY,
-                    new JLeftPadded<>(member == null ? Space.EMPTY : Space.format(" "),
-                            member != null, Markers.EMPTY),
-                    TypeTree.build(classType.getFullyQualifiedName() +
-                                   (member == null ? "" : "." + member)).withPrefix(Space.format(" ")),
-                    null);
+                    new JLeftPadded<>(Space.EMPTY,false, Markers.EMPTY),
+                    TypeTree.build(fullyQualifiedName +
+                                   (member == null ? "" : "." + member)).withPrefix(Space.SINGLE_SPACE),
+                    null /* TODO */);
 
             List<JRightPadded<J.Import>> imports = new ArrayList<>(cu.getPadding().getImports());
 
@@ -158,7 +157,7 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
                 }
             }
 
-            ImportLayoutStyle layoutStyle = Optional.ofNullable(((SourceFile) cu).getStyle(ImportLayoutStyle.class))
+            ImportLayoutStyle layoutStyle = Optional.ofNullable(cu.getStyle(ImportLayoutStyle.class))
                     .orElse(IntelliJ.importLayout());
 
             List<JavaType.FullyQualified> classpath = cu.getMarkers().findFirst(JavaSourceSet.class)
@@ -199,7 +198,7 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
     private boolean isTypeReference(NameTree t) {
         boolean isTypRef = true;
         if (t instanceof J.FieldAccess) {
-            isTypRef = isOfClassType(((J.FieldAccess) t).getTarget().getType(), type);
+            isTypRef = isOfClassType(((J.FieldAccess) t).getTarget().getType(), fullyQualifiedName);
         }
         return isTypRef;
     }
@@ -218,8 +217,8 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
     private boolean hasReference(JavaSourceFile compilationUnit) {
         if (member == null) {
             //Non-static imports, we just look for field accesses.
-            for (NameTree t : FindTypes.find(compilationUnit, type)) {
-                if ((!(t instanceof J.FieldAccess) || !((J.FieldAccess) t).isFullyQualifiedClassReference(type)) &&
+            for (NameTree t : FindTypes.find(compilationUnit, fullyQualifiedName)) {
+                if ((!(t instanceof J.FieldAccess) || !((J.FieldAccess) t).isFullyQualifiedClassReference(fullyQualifiedName)) &&
                     isTypeReference(t)) {
                     return true;
                 }
@@ -228,7 +227,7 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
         }
 
         // For static method imports, we are either looking for a specific method or a wildcard.
-        for (J invocation : FindMethods.find(compilationUnit, type + " *(..)")) {
+        for (J invocation : FindMethods.find(compilationUnit, fullyQualifiedName + " *(..)")) {
             if (invocation instanceof J.MethodInvocation) {
                 J.MethodInvocation mi = (J.MethodInvocation) invocation;
                 if (mi.getSelect() == null &&
@@ -240,7 +239,7 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
 
         // Check whether there is static-style access of the field in question
         AtomicReference<Boolean> hasStaticFieldAccess = new AtomicReference<>(false);
-        new AddImport.FindStaticFieldAccess().visit(compilationUnit, hasStaticFieldAccess);
+        new AddImport<P>.FindStaticFieldAccess().visit(compilationUnit, hasStaticFieldAccess);
         return hasStaticFieldAccess.get();
     }
 
@@ -249,7 +248,7 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
         public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, AtomicReference<Boolean> found) {
             // If the type isn't used there's no need to proceed further
             for (JavaType.Variable varType : cu.getTypesInUse().getVariables()) {
-                if (varType.getName().equals(member) && isOfClassType(varType.getType(), type)) {
+                if (varType.getName().equals(member) && isOfClassType(varType.getType(), fullyQualifiedName)) {
                     return super.visitCompilationUnit(cu, found);
                 }
             }
@@ -259,7 +258,7 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
         @Override
         public J.Identifier visitIdentifier(J.Identifier identifier, AtomicReference<Boolean> found) {
             assert getCursor().getParent() != null;
-            if (identifier.getSimpleName().equals(member) && isOfClassType(identifier.getType(), type) &&
+            if (identifier.getSimpleName().equals(member) && isOfClassType(identifier.getType(), fullyQualifiedName) &&
                 !(getCursor().getParent().firstEnclosingOrThrow(J.class) instanceof J.FieldAccess)) {
                 found.set(true);
             }

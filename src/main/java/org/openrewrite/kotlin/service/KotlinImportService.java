@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.service;
 
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.service.ImportService;
 import org.openrewrite.kotlin.AddImport;
@@ -22,7 +23,7 @@ import org.openrewrite.kotlin.AddImport;
 public class KotlinImportService extends ImportService {
 
     @Override
-    public <P> JavaVisitor<P> addImportVisitor(String packageName, String typeName, boolean onlyIfReferenced) {
-        return new AddImport<>(packageName, typeName, null, onlyIfReferenced);
+    public <P> JavaVisitor<P> addImportVisitor(@Nullable String packageName, String typeName, @Nullable String member, boolean onlyIfReferenced) {
+        return new AddImport<>(packageName, typeName, member, null, onlyIfReferenced);
     }
 }

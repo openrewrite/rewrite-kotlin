@@ -27,7 +27,7 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 public class AddImportTest implements RewriteTest {
 
     @Test
-    void addImport() {
+    void normalClass() {
         rewriteRun(
           spec -> spec.recipe(importTypeRecipe("a.b.Target")),
           kotlin(
@@ -61,9 +61,30 @@ public class AddImportTest implements RewriteTest {
     }
 
     @Test
-    void inlineImport() {
+    void jvmStaticMember() {
         rewriteRun(
-          spec -> spec.recipe(importMemberRecipe("a.b.Target", "method")),
+          spec -> spec.recipe(importMemberRecipe("java.lang.Integer", "MAX_VALUE")),
+          kotlin(
+            """
+              import kotlin.Pair
+
+              class A
+              """,
+            """
+              import kotlin.Pair
+
+              import java.lang.Integer.MAX_VALUE
+              
+              class A
+              """
+          )
+        );
+    }
+
+    @Test
+    void packageLevelFunction() {
+        rewriteRun(
+          spec -> spec.recipe(importTypeRecipe("a.b.method")),
           kotlin(
             """
               package a.b
@@ -73,9 +94,7 @@ public class AddImportTest implements RewriteTest {
           kotlin(
             """
               package a.b
-              class Target {
-                  inline fun method() {}
-              }
+              fun method() {}
               """
           ),
           kotlin(
@@ -88,7 +107,6 @@ public class AddImportTest implements RewriteTest {
               """,
             """
               import a.b.Original
-              
               import a.b.method
               
               class A {
