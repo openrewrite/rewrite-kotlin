@@ -1025,7 +1025,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
          * Does not print the final modifier, as it is not supported in Kotlin.
          */
         @Override
-        public void visitModifier(J.Modifier mod, PrintOutputCapture<P> p) {
+        protected void visitModifier(J.Modifier mod, PrintOutputCapture<P> p) {
             visit(mod.getAnnotations(), p);
             String keyword = "";
             switch (mod.getType()) {
