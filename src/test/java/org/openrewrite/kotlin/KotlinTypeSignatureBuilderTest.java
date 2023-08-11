@@ -35,22 +35,16 @@ import java.nio.file.Paths;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SuppressWarnings("ConstantConditions")
 public class KotlinTypeSignatureBuilderTest {
     private static final String goat = StringUtils.readFully(KotlinTypeSignatureBuilderTest.class.getResourceAsStream("/KotlinTypeGoat.kt"));
 
     private static final Disposable disposable = Disposer.newDisposable();
-    private static CompiledSource compiledSource;
-
-    @BeforeAll
-    static void beforeAll() {
-        compiledSource = KotlinParser.builder()
-                .logCompilationWarningsAndErrors(true)
-                .moduleName("test")
-                .build()
-                .parse(singletonList(new Parser.Input(Paths.get("KotlinTypeGoat.kt"), () -> new ByteArrayInputStream(goat.getBytes(StandardCharsets.UTF_8)))), disposable,
-                        new ParsingExecutionContextView(new InMemoryExecutionContext(Throwable::printStackTrace)));
-    }
+    private static final CompiledSource compiledSource = KotlinParser.builder()
+            .logCompilationWarningsAndErrors(true)
+            .moduleName("test")
+            .build()
+            .parse(singletonList(new Parser.Input(Paths.get("KotlinTypeGoat.kt"), () -> new ByteArrayInputStream(goat.getBytes(StandardCharsets.UTF_8)))), disposable,
+                    new ParsingExecutionContextView(new InMemoryExecutionContext(Throwable::printStackTrace)));;
 
     @AfterAll
     static void afterAll() {
@@ -62,7 +56,9 @@ public class KotlinTypeSignatureBuilderTest {
     }
 
     private FirFile getCompiledSource() {
-        return compiledSource.getSources().iterator().next().getFirFile();
+        FirFile file = compiledSource.getSources().iterator().next().getFirFile();
+        assert file != null;
+        return file;
     }
 
     public String constructorSignature() {
