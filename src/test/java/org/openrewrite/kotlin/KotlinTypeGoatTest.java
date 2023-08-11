@@ -30,7 +30,6 @@ public class KotlinTypeGoatTest implements RewriteTest {
     @Language("kotlin")
     private static final String goat = StringUtils.readFully(KotlinTypeMappingTest.class.getResourceAsStream("/KotlinTypeGoat.kt"));
 
-    @Disabled
     @Test
     void printEqualsInput() {
         ExecutionContext ctx = new InMemoryExecutionContext();

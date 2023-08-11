@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2023 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package internal
 
-import KotlinTypeMapping
 import org.jetbrains.kotlin.KtFakeSourceElement
 import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.KtFakeSourceElementKind.GeneratedLambdaLabel
@@ -65,6 +64,7 @@ import org.openrewrite.java.marker.OmitParentheses
 import org.openrewrite.java.tree.*
 import org.openrewrite.java.tree.TypeTree.build
 import org.openrewrite.kotlin.KotlinParser
+import org.openrewrite.kotlin.KotlinTypeMapping
 import org.openrewrite.kotlin.internal.KotlinParsingException
 import org.openrewrite.kotlin.marker.*
 import org.openrewrite.kotlin.tree.K.*
