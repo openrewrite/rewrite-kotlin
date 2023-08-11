@@ -495,6 +495,7 @@ public interface K extends J {
         }
     }
 
+    @Getter
     @SuppressWarnings("unchecked")
     @ToString
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -502,11 +503,9 @@ public interface K extends J {
     final class ExpressionStatement implements K, Expression, Statement {
 
         @With
-        @Getter
         UUID id;
 
         @With
-        @Getter
         Expression expression;
 
         // For backwards compatibility with older ASTs before there was an id field
@@ -1008,6 +1007,7 @@ public interface K extends J {
      * <p>
      * Has no state or behavior of its own aside from the Expression it wraps.
      */
+    @Getter
     @SuppressWarnings("unchecked")
     @ToString
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -1015,11 +1015,9 @@ public interface K extends J {
     final class StatementExpression implements K, Expression, Statement {
 
         @With
-        @Getter
         UUID id;
 
         @With
-        @Getter
         Statement statement;
 
         public StatementExpression(UUID id, Statement statement) {
@@ -1072,6 +1070,72 @@ public interface K extends J {
         @Override
         public CoordinateBuilder.Statement getCoordinates() {
             return new CoordinateBuilder.Statement(this);
+        }
+    }
+
+    @Getter
+    @SuppressWarnings("unchecked")
+    @ToString
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    final class TypeParameterExpression implements K, Expression {
+
+        @With
+        UUID id;
+
+        @With
+        TypeParameter typeParameter;
+
+        public TypeParameterExpression(UUID id, TypeParameter typeParameter) {
+            this.id = id;
+            this.typeParameter = typeParameter;
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            J j = v.visit(getTypeParameter(), p);
+            if (j instanceof TypeParameterExpression) {
+                return j;
+            } else if (j instanceof TypeParameter) {
+                return withTypeParameter((TypeParameter) j);
+            }
+            return j;
+        }
+
+        @Override
+        public <J2 extends J> J2 withPrefix(Space space) {
+            return (J2) withTypeParameter(typeParameter.withPrefix(space));
+        }
+
+        @Override
+        public Space getPrefix() {
+            return typeParameter.getPrefix();
+        }
+
+        @Override
+        public <J2 extends Tree> J2 withMarkers(Markers markers) {
+            return (J2) withTypeParameter(typeParameter.withMarkers(markers));
+        }
+
+        @Override
+        public Markers getMarkers() {
+            return typeParameter.getMarkers();
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            return null;
+        }
+
+        @Override
+        public <T extends J> T withType(@Nullable JavaType type) {
+            return (T) typeParameter;
+        }
+
+        @Transient
+        @Override
+        public CoordinateBuilder.Expression getCoordinates() {
+            return new CoordinateBuilder.Expression(this);
         }
     }
 
@@ -1220,12 +1284,11 @@ public interface K extends J {
         public static class Padding {
             private final WhenBranch t;
 
-            @Nullable
             public JRightPadded<J> getBody() {
                 return t.body;
             }
 
-            public WhenBranch withBody(@Nullable JRightPadded<J> body) {
+            public WhenBranch withBody(JRightPadded<J> body) {
                 return t.body == body ? t : new WhenBranch(t.id, t.prefix, t.markers, t.expressions, body);
             }
 

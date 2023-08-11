@@ -285,8 +285,6 @@ public class KotlinParser implements Parser {
         }
     }
 
-    // TODO move compiler configuration and use Classpath to determine, which parser to use.
-    // fromVersion ... check KotlinVersion
     public CompiledSource parse(List<Parser.Input> sources, Disposable disposable, ExecutionContext ctx) {
         CompilerConfiguration compilerConfiguration = compilerConfiguration();
 

@@ -61,6 +61,7 @@ import org.openrewrite.internal.StringUtils
 import org.openrewrite.java.internal.JavaTypeCache
 import org.openrewrite.java.marker.ImplicitReturn
 import org.openrewrite.java.marker.OmitParentheses
+import org.openrewrite.java.marker.TrailingComma
 import org.openrewrite.java.tree.*
 import org.openrewrite.java.tree.TypeTree.build
 import org.openrewrite.kotlin.KotlinParser
@@ -492,13 +493,24 @@ class KotlinParserVisitor(
     }
 
     override fun visitAnonymousObject(anonymousObject: FirAnonymousObject, data: ExecutionContext): J {
-        val objectPrefix = sourceBefore("object")
-        val markers = Markers.EMPTY.addIfAbsent(KObject(randomId(), objectPrefix))
-        val typeExpressionPrefix = sourceBefore(":")
-        val prefix = whitespace()
-        val clazz = visitElement(anonymousObject.superTypeRefs[0], data) as TypeTree?
-        val args: JContainer<Expression>
         var saveCursor = cursor
+        val objectPrefix = whitespace()
+        var markers = Markers.EMPTY
+        var typeExpressionPrefix = Space.EMPTY
+        var prefix = Space.EMPTY
+        var clazz: TypeTree? = null
+        if (source.startsWith("object", cursor)) {
+            skip("object")
+            markers = markers.addIfAbsent(KObject(randomId(), objectPrefix))
+
+            typeExpressionPrefix = sourceBefore(":")
+            prefix = whitespace()
+            clazz = visitElement(anonymousObject.superTypeRefs[0], data) as TypeTree?
+        } else {
+            cursor(saveCursor)
+        }
+        val args: JContainer<Expression>
+        saveCursor = cursor
         val before = whitespace()
         args = if (source.startsWith("(", cursor)) {
             if (anonymousObject.declarations.isNotEmpty() &&
@@ -992,14 +1004,19 @@ class KotlinParserVisitor(
     override fun visitEnumEntry(enumEntry: FirEnumEntry, data: ExecutionContext): J {
         val prefix = whitespace()
         val annotations: List<J.Annotation?>? = mapAnnotations(enumEntry.annotations)
-        return J.EnumValue(
+        val j = J.EnumValue(
             randomId(),
             prefix,
             Markers.EMPTY,
             annotations ?: emptyList(),
             createIdentifier(enumEntry.name.asString(), enumEntry),
-            null
+            if (enumEntry.initializer is FirAnonymousObjectExpression) {
+                visitElement((enumEntry.initializer as FirAnonymousObjectExpression).anonymousObject, data) as J.NewClass?
+            } else {
+                null
+            }
         )
+        return j
     }
 
     override fun visitSuperReference(superReference: FirSuperReference, data: ExecutionContext): J {
@@ -2869,7 +2886,7 @@ class KotlinParserVisitor(
         }
         val variance = typeParameter.variance
         val name: Expression
-        var bounds: JContainer<TypeTree?>? = null
+        var bounds: JContainer<TypeTree>? = null
         if (variance == Variance.IN_VARIANCE) {
             markers = markers.addIfAbsent(GenericType(randomId(), GenericType.Variance.CONTRAVARIANT))
             name = J.Identifier(
@@ -2953,7 +2970,50 @@ class KotlinParserVisitor(
         typeProjectionWithVariance: FirTypeProjectionWithVariance,
         data: ExecutionContext
     ): J {
-        return visitResolvedTypeRef(typeProjectionWithVariance.typeRef as FirResolvedTypeRef, data)
+        var markers = Markers.EMPTY
+        var bounds: JContainer<TypeTree>? = null
+        var name: Expression? = null
+        when (typeProjectionWithVariance.variance) {
+            Variance.IN_VARIANCE -> {
+                markers = markers.addIfAbsent(GenericType(randomId(), GenericType.Variance.CONTRAVARIANT))
+
+                bounds = JContainer.build(
+                    sourceBefore("in"),
+                    listOf(padRight(visitResolvedTypeRef(typeProjectionWithVariance.typeRef as FirResolvedTypeRef, data) as TypeTree, Space.EMPTY)),
+                    Markers.EMPTY
+                )
+            }
+            Variance.OUT_VARIANCE -> {
+                markers = markers.addIfAbsent(GenericType(randomId(), GenericType.Variance.COVARIANT))
+
+                bounds = JContainer.build(
+                    sourceBefore("out"),
+                    listOf(padRight(visitResolvedTypeRef(typeProjectionWithVariance.typeRef as FirResolvedTypeRef, data) as TypeTree, Space.EMPTY)),
+                    Markers.EMPTY
+                )
+            }
+            else -> {
+                name = visitResolvedTypeRef(typeProjectionWithVariance.typeRef as FirResolvedTypeRef, data) as Expression?
+            }
+        }
+
+        return name
+            ?: TypeParameterExpression(randomId(), J.TypeParameter(
+                randomId(),
+                Space.EMPTY,
+                markers,
+                emptyList(),
+                J.Identifier(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.build(listOf(Implicit(randomId()))),
+                    emptyList(),
+                    "Any",
+                    null,
+                    null
+                ),
+                bounds
+            ))
     }
 
     override fun visitUserTypeRef(userTypeRef: FirUserTypeRef, data: ExecutionContext): J {
@@ -3960,7 +4020,16 @@ class KotlinParserVisitor(
                     val jcEnum = jcEnums[i]
                     val enumValue = visitElement(jcEnum, data) as J.EnumValue
                     val paddedEnumValue: JRightPadded<J.EnumValue> = if (i == jcEnums.size - 1) {
-                        maybeSemicolon(enumValue)
+                        val enumCursor = cursor
+                        val after = whitespace()
+                        if (source.startsWith(",", cursor)) {
+                            skip(",")
+                            val padded = padRight(enumValue, after)
+                            padded.withMarkers(padded.markers.addIfAbsent(TrailingComma(randomId(), Space.EMPTY)))
+                        } else {
+                            cursor(enumCursor)
+                            maybeSemicolon(enumValue)
+                        }
                     } else {
                         padRight(enumValue, sourceBefore(","))
                     }
