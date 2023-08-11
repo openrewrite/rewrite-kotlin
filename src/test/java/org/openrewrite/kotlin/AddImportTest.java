@@ -66,14 +66,37 @@ public class AddImportTest implements RewriteTest {
           spec -> spec.recipe(importMemberRecipe("java.lang.Integer", "MAX_VALUE")),
           kotlin(
             """
-              import kotlin.Pair
+              import java.lang.Integer
+              import java.lang.Long
 
               class A
               """,
             """
-              import kotlin.Pair
-
+              import java.lang.Integer
               import java.lang.Integer.MAX_VALUE
+              import java.lang.Long
+              
+              class A
+              """
+          )
+        );
+    }
+
+    @Test
+    void starFold() {
+        rewriteRun(
+          spec -> spec.recipe(importTypeRecipe("java.io.OutputStream")),
+          kotlin(
+            """
+              import java.io.Closeable
+              import java.io.File
+              import java.io.FileInputStream
+              import java.io.FileOutputStream
+
+              class A
+              """,
+            """
+              import java.io.*
               
               class A
               """
