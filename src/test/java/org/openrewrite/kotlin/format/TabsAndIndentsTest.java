@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.format;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.DocumentExample;
@@ -422,279 +423,295 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
-//
-//    @Issue("https://github.com/openrewrite/rewrite/issues/660")
-//    @Test
-//    void methodInvocationLambdaBlockWithClosingBracketOnSameLineIndent() {
-//        rewriteRun(
-//          java(
-//            """
-//              import java.util.Collection;
-//              class Test {
-//                  Test withData(Object... arg0) {
-//                      return this;
-//                  }
-//
-//                  void method(Test t, Collection<String> c) {
-//                      t = t.withData(c.stream().map(a -> {
-//                          if (!a.isEmpty()) {
-//                              return a.toLowerCase();
-//                          }
-//                          return a;
-//                      }));
-//                  }
-//              }
-//              """
-//          )
-//        );
-//    }
-//
-//    @Test
-//    @Issue("https://github.com/openrewrite/rewrite/issues/660")
-//    void methodInvocationLambdaBlockWithClosingBracketOnNewLineIndent() {
-//        rewriteRun(
-//          java(
-//            """
-//              import java.util.*;
-//              class Test {
-//                  Test withData(Object... arg0) {
-//                      return this;
-//                  }
-//
-//                  void method(Test t, Collection<String> c) {
-//                      t = t.withData(c.stream().map(a -> {
-//                                  if (!a.isEmpty()) {
-//                                      return a.toLowerCase();
-//                                  }
-//                                  return a;
-//                              }
-//                      ));
-//                  }
-//              }
-//              """
-//          )
-//        );
-//    }
-//
-//    @Issue("https://github.com/openrewrite/rewrite/issues/1173")
-//    @Test
-//    void methodInvocationLambdaBlockOnSameLine() {
-//        rewriteRun(
-//          java(
-//            """
-//              import java.util.function.Predicate;
-//
-//              class SomeUtility {
-//                  static boolean test(String property, Predicate<String> test) {
-//                      return false;
-//                  }
-//              }
-//              """
-//          ),
-//          java(
-//            """
-//              class Test {
-//
-//                  void method() {
-//                      SomeUtility.test(
-//                              "hello", s -> {
-//                                  return true;
-//                              });
-//                  }
-//              }
-//              """
-//          )
-//        );
-//    }
-//
-//    @Issue("https://github.com/openrewrite/rewrite/issues/679")
-//    @Test
-//    void lambdaBodyWithNestedMethodInvocationLambdaStatementBodyIndent() {
-//        rewriteRun(
-//          java(
-//            """
-//              import java.util.*;
-//              import java.util.stream.Collectors;
-//              class Test {
-//                  void method(Collection<List<String>> c) {
-//                      c.stream().map(x -> x.stream().max((r1, r2) -> {
-//                                  return 0;
-//                              })
-//                      )
-//                              .collect(Collectors.toList());
-//                  }
-//              }
-//              """
-//          )
-//        );
-//    }
-//
-//    @Test
-//    @Issue("https://github.com/openrewrite/rewrite/issues/679")
-//    void lambdaBodyWithNestedMethodInvocationLambdaExpressionBodyIndent() {
-//        rewriteRun(
-//          java(
-//            """
-//              import java.util.*;
-//              import java.util.stream.Collectors;
-//              class Test {
-//                  void method(Collection<List<String>> c) {
-//                      c.stream().map(x -> x.stream().max((r1, r2) ->
-//                                      0
-//                              )
-//                      )
-//                              .collect(Collectors.toList());
-//                  }
-//              }
-//              """
-//          )
-//        );
-//    }
-//
-//    @Issue("https://github.com/openrewrite/rewrite/issues/679")
-//    @Test
-//    void methodInvocationLambdaArgumentIndent() {
-//        rewriteRun(
-//          java(
-//            """
-//              import java.util.function.Function;
-//
-//              abstract class Test {
-//                  abstract Test a(Function<String, String> f);
-//
-//                  void method(String s) {
-//                      a(
-//                              f -> s.toLowerCase()
-//                      );
-//                  }
-//              }
-//              """
-//          )
-//        );
-//    }
-//
-//    /**
-//     * Slight renaming but structurally the same as IntelliJ's code style view.
-//     */
-//    @SuppressWarnings("EnhancedSwitchMigration")
-//    @Test
-//    void tabsAndIndents() {
-//        rewriteRun(
-//          java("public interface I1{}"),
-//          java("public interface I2{}"),
-//          java("public class E1 extends Exception{}"),
-//          java("public class E2 extends Exception{}"),
-//          java(
-//            """
-//              public class Test {
-//              public int[] X = new int[]{1, 3, 5, 7, 9, 11};
-//              public void doSomething(int i) {}
-//              public void doCase0() {}
-//              public void doDefault() {}
-//              public void processException(Object a, Object b, Object c, Object d) {}
-//              public void processFinally() {}
-//              public void test(boolean a, int x, int y, int z) {
-//              label1:
-//              do {
-//              try {
-//              if (x > 0) {
-//              int someVariable = a ? x : y;
-//              int anotherVariable = a ? x : y;
-//              } else if (x < 0) {
-//              int someVariable = (y + z);
-//              someVariable = x = x + y;
-//              } else {
-//              label2:
-//              for (int i = 0; i < 5; i++) doSomething(i);
-//              }
-//              switch (a) {
-//              case 0:
-//              doCase0();
-//              break;
-//              default:
-//              doDefault();
-//              }
-//              } catch (Exception e) {
-//              processException(e.getMessage(), x + y, z, a);
-//              } finally {
-//              processFinally();
-//              }
-//              }
-//              while (true);
-//
-//              if (2 < 3) return;
-//              if (3 < 4) return;
-//              do {
-//              x++;
-//              }
-//              while (x < 10000);
-//              while (x < 50000) x++;
-//              for (int i = 0; i < 5; i++) System.out.println(i);
-//              }
-//
-//              private class InnerClass implements I1, I2 {
-//              public void bar() throws E1, E2 {
-//              }
-//              }
-//              }
-//              """,
-//            """
-//              public class Test {
-//                  public int[] X = new int[]{1, 3, 5, 7, 9, 11};
-//                  public void doSomething(int i) {}
-//                  public void doCase0() {}
-//                  public void doDefault() {}
-//                  public void processException(Object a, Object b, Object c, Object d) {}
-//                  public void processFinally() {}
-//                  public void test(boolean a, int x, int y, int z) {
-//                      label1:
-//                      do {
-//                          try {
-//                              if (x > 0) {
-//                                  int someVariable = a ? x : y;
-//                                  int anotherVariable = a ? x : y;
-//                              } else if (x < 0) {
-//                                  int someVariable = (y + z);
-//                                  someVariable = x = x + y;
-//                              } else {
-//                                  label2:
-//                                  for (int i = 0; i < 5; i++) doSomething(i);
-//                              }
-//                              switch (a) {
-//                                  case 0:
-//                                      doCase0();
-//                                      break;
-//                                  default:
-//                                      doDefault();
-//                              }
-//                          } catch (Exception e) {
-//                              processException(e.getMessage(), x + y, z, a);
-//                          } finally {
-//                              processFinally();
-//                          }
-//                      }
-//                      while (true);
-//
-//                      if (2 < 3) return;
-//                      if (3 < 4) return;
-//                      do {
-//                          x++;
-//                      }
-//                      while (x < 10000);
-//                      while (x < 50000) x++;
-//                      for (int i = 0; i < 5; i++) System.out.println(i);
-//                  }
-//
-//                  private class InnerClass implements I1, I2 {
-//                      public void bar() throws E1, E2 {
-//                      }
-//                  }
-//              }
-//              """
-//          )
-//        );
-//    }
-//
+
+    @Test
+    void ifElse() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method(a: String) {
+                  if (true) {
+                      a
+                  } else if (false) {
+                      a.toLowerCase()
+                  } else {
+                      a
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lambda() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method() {
+                  val square = { number: Int ->
+                      number * number
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void lambdaWithIfElse() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method() {
+                  val square = { number: Int ->
+                      if (number > 0) {
+                          number * number
+                      } else {
+                          0
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void whenBranch() {
+        rewriteRun(
+          kotlin(
+            """
+              fun foo1(condition: Int) {
+                  when (condition) {
+                      1 -> {
+                          println("1")
+                      }
+
+                      2 -> {
+                          println("2")
+                      }
+
+                      3 -> println("3")
+                      4 -> println("4")
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite/issues/660")
+    @Test
+    void methodInvocationLambdaBlockWithClosingBracketOnSameLineIndent() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.Collection;
+
+              class Test {
+                  fun withData(vararg arg0: Any): Test {
+                      return this;
+                  }
+
+                  fun method(t: Test, c: Collection<String>) {
+                      val t1 = t.withData(c.stream().map { a ->
+                          if (!a.isEmpty()) {
+                              a.toLowerCase();
+                          } else {
+                              a
+                          }
+                      })
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite/issues/660")
+    void methodInvocationLambdaBlockWithClosingBracketOnNewLineIndent() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.*
+
+              class Test {
+                  fun withData(vararg arg0: Any): Test {
+                      return this
+                  }
+
+                  fun method(t: Test, c: Collection<String>) {
+                      val t1 = t.withData(c.stream().map { a ->
+                          if (!a.isEmpty()) {
+                              a.toLowerCase()
+                          } else {
+                              a
+                          }
+                      })
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite/issues/1173")
+    @Test
+    void methodInvocationLambdaBlockOnSameLine() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.function.Predicate;
+
+              class SomeUtility {
+                  fun test(property: String, test: Predicate<String>): Boolean {
+                      return false;
+                  }
+              }
+              """
+          ),
+          kotlin(
+            """
+              class Test {
+                  fun method() {
+                      SomeUtility().test(
+                              "hello", { s ->
+                                  true
+                              })
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite/issues/679")
+    @Test
+    void lambdaBodyWithNestedMethodInvocationLambdaStatementBodyIndent() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.*;
+              import java.util.stream.Collectors;
+
+              class Test {
+                  fun method(c: Collection<List<String>>) {
+                      c.stream().map { x ->
+                          x.stream().max { r1, r2 ->
+                              0
+                          }
+                      }
+                              .collect(Collectors.toList());
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite/issues/679")
+    void lambdaBodyWithNestedMethodInvocationLambdaExpressionBodyIndent() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.*
+              import java.util.stream.Collectors
+
+              class Test {
+                  fun method(c: Collection<List<String>>) {
+                      c.stream()
+                              .map { x ->
+                                  x.stream().max { r1, r2 ->
+                                      0
+                                  }
+                              }
+                              .collect(Collectors.toList())
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite/issues/679")
+    @Test
+    void methodInvocationLambdaArgumentIndent() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.function.Function
+
+              abstract class Test {
+                  abstract fun a(f: Function<String, String>): Test
+
+                  fun method(s: String) {
+                      a({ 
+                              f -> s.toLowerCase()
+                      })
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    /**
+     * Slight renaming but structurally the same as IntelliJ's code style view.
+     */
+    @Test
+    void tabsAndIndents() {
+        rewriteRun(
+          kotlin(
+            """
+              open class Some {
+                  private val f: (Int) -> Int = { a: Int -> a * 2 }
+                  fun foo(): Int {
+                      val test: Int = 12
+                      for (i in 10..42) {
+                          println(when {
+                              i < test -> -1
+                              i > test -> 1
+                              else -> 0
+                          })
+                      }
+                      if (true) {
+                      }
+                      while (true) {
+                          break
+                      }
+                      try {
+                          when (test) {
+                              12 -> println("foo")
+                              in 10..42 -> println("baz")
+                              else -> println("bar")
+                          }
+                      } catch (e: Exception) {
+                      } finally {
+                      }
+                      return test
+                  }
+
+                  fun multilineMethod(
+                          foo: String,
+                          bar: String
+                          ) {
+                      foo
+                              .length
+                  }
+
+                  fun expressionBodyMethod() =
+                      "abc"
+              }
+
+              class AnotherClass<T : Any> : Some()
+              """
+          )
+        );
+    }
+
 //    @Test
 //    void tryCatchFinally() {
 //        rewriteRun(

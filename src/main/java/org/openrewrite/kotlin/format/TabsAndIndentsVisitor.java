@@ -20,9 +20,11 @@ import org.openrewrite.Tree;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.java.marker.ImplicitReturn;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.style.TabsAndIndentsStyle;
+import org.openrewrite.kotlin.tree.K;
 
 import java.util.Iterator;
 import java.util.List;
@@ -94,8 +96,16 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
                 tree instanceof J.ForEachLoop ||
                 tree instanceof J.WhileLoop ||
                 tree instanceof J.Case ||
-                tree instanceof J.EnumValueSet) {
+                tree instanceof J.EnumValueSet
+                ) {
             getCursor().putMessage("indentType", IndentType.INDENT);
+        } else if (tree instanceof K.ExpressionStatement ||
+                   tree instanceof K.StatementExpression ||
+                   tree instanceof K.KReturn ||
+                   tree instanceof K.When ||
+                   tree instanceof K.WhenBranch ||
+                   (tree != null && tree.getMarkers().findFirst(ImplicitReturn.class).isPresent())) {
+            // skip, do nothing
         } else {
             getCursor().putMessage("indentType", IndentType.CONTINUATION_INDENT);
         }
@@ -126,10 +136,7 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
         boolean alignToAnnotation = false;
         Cursor parent = getCursor().getParent();
         if (parent != null && parent.getValue() instanceof J.Annotation) {
-            // todo: Improve
-            // parent.getParentOrThrow().putMessage("afterAnnotation", true);
-            parent.getParentOrThrow().getParentOrThrow().putMessage("afterAnnotation", true);
-
+            parent.getParentOrThrow().putMessage("afterAnnotation", true);
         } else if (parent != null && !getCursor().getParentOrThrow().getPath(J.Annotation.class::isInstance).hasNext()) {
             // when annotations are on their own line, other parts of the declaration that follow are aligned left to it
             alignToAnnotation = getCursor().pollNearestMessage("afterAnnotation") != null &&
