@@ -20,10 +20,9 @@ import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.kotlin.KotlinVisitor;
 import org.openrewrite.kotlin.tree.K;
 
@@ -32,8 +31,6 @@ import org.openrewrite.kotlin.tree.K;
 @EqualsAndHashCode(callSuper = true)
 public class ReplaceCharToIntWithCode extends Recipe {
     private static final MethodMatcher CHAR_TO_INT_METHOD_MATCHER = new MethodMatcher("kotlin.Char toInt()");
-    @Nullable
-    private static J.FieldAccess charCodeTemplate;
 
     @Override
     public String getDisplayName() {
@@ -52,28 +49,16 @@ public class ReplaceCharToIntWithCode extends Recipe {
         return new KotlinVisitor<ExecutionContext>() {
             @Override
             public J visitMethodInvocation(J.MethodInvocation method,
-                                                            ExecutionContext executionContext) {
+                                           ExecutionContext executionContext) {
                 if (CHAR_TO_INT_METHOD_MATCHER.matches(method) && method.getSelect() != null) {
-                    J.FieldAccess codeTemplate = getCharCodeTemplate();
-                    return codeTemplate.withTarget(method.getSelect()).withPrefix(method.getPrefix());
+                    return KotlinTemplate.builder("#{any(Char)}.code;")
+                            .build()
+                            .apply(getCursor(), method.getCoordinates().replace(), method.getSelect())
+                            .withPrefix(method.getPrefix());
                 }
                 return super.visitMethodInvocation(method, executionContext);
             }
         };
     }
 
-    @SuppressWarnings("all")
-    private static J.FieldAccess getCharCodeTemplate() {
-        if (charCodeTemplate == null) {
-            K.CompilationUnit kcu = KotlinParser.builder().build()
-                .parse("fun method(c : Char) {c.code}")
-                .map(K.CompilationUnit.class::cast)
-                .findFirst()
-                .get();
-
-            charCodeTemplate = (J.FieldAccess) ((J.MethodDeclaration) kcu.getStatements().get(0)).getBody().getStatements().get(0);
-        }
-
-        return charCodeTemplate;
-    }
 }
