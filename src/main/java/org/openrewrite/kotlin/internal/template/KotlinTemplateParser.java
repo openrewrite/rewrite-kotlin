@@ -15,15 +15,15 @@
  */
 package org.openrewrite.kotlin.internal.template;
 
-import org.openrewrite.java.JvmParser;
 import org.openrewrite.java.internal.template.AnnotationTemplateGenerator;
 import org.openrewrite.java.internal.template.JavaTemplateParser;
+import org.openrewrite.kotlin.KotlinParser;
 
 import java.util.Set;
 import java.util.function.Consumer;
 
 public class KotlinTemplateParser extends JavaTemplateParser {
-    public KotlinTemplateParser(boolean contextSensitive, JvmParser.Builder<?, ?> parser, Consumer<String> onAfterVariableSubstitution, Consumer<String> onBeforeParseTemplate, Set<String> imports) {
+    public KotlinTemplateParser(boolean contextSensitive, KotlinParser.Builder parser, Consumer<String> onAfterVariableSubstitution, Consumer<String> onBeforeParseTemplate, Set<String> imports) {
         super(
                 parser,
                 onAfterVariableSubstitution,

@@ -58,7 +58,7 @@ import org.jetbrains.kotlin.resolve.jvm.platform.JvmPlatformAnalyzerServices;
 import org.jetbrains.kotlin.utils.PathUtil;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.JvmParser;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.kotlin.internal.CompiledSource;
@@ -87,14 +87,15 @@ import static java.util.stream.Collectors.toList;
 import static org.jetbrains.kotlin.cli.common.CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY;
 import static org.jetbrains.kotlin.cli.common.messages.MessageRenderer.PLAIN_FULL_PATHS;
 import static org.jetbrains.kotlin.cli.jvm.JvmArgumentsKt.*;
-import static org.jetbrains.kotlin.cli.jvm.compiler.pipeline.CompilerPipelineKt.createProjectEnvironment;
+import static org.jetbrains.kotlin.cli.jvm.compiler.pipeline.CompilerPipelineKt.*;
 import static org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt.*;
 import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
+import static org.jetbrains.kotlin.config.CommonConfigurationKeys.INCREMENTAL_COMPILATION;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class KotlinParser implements JvmParser {
+public class KotlinParser implements Parser {
     public static final String SKIP_SOURCE_SET_TYPE_GENERATION = "org.openrewrite.kotlin.skipSourceSetTypeGeneration";
 
     private String sourceSet = "main";
@@ -228,7 +229,10 @@ public class KotlinParser implements JvmParser {
     }
 
     @SuppressWarnings("unused")
-    public static class Builder extends JvmParser.Builder<KotlinParser, Builder> {
+    public static class Builder extends Parser.Builder {
+        @Nullable
+        private Collection<Path> classpath = JavaParser.runtimeClasspath();
+
         private JavaTypeCache typeCache = new JavaTypeCache();
         private boolean logCompilationWarningsAndErrors;
         private final List<NamedStyles> styles = new ArrayList<>();
@@ -240,6 +244,25 @@ public class KotlinParser implements JvmParser {
 
         public Builder logCompilationWarningsAndErrors(boolean logCompilationWarningsAndErrors) {
             this.logCompilationWarningsAndErrors = logCompilationWarningsAndErrors;
+            return this;
+        }
+
+        public Builder classpath(Collection<Path> classpath) {
+            this.classpath = classpath;
+            return this;
+        }
+
+        public Builder classpath(String... classpath) {
+            this.classpath = JavaParser.dependenciesFromClasspath(classpath);
+            return this;
+        }
+
+        Builder addClasspath(Path classpath) {
+            if (this.classpath.isEmpty()) {
+                this.classpath = Collections.singletonList(classpath);
+            } else {
+                this.classpath.add(classpath);
+            }
             return this;
         }
 

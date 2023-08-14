@@ -17,17 +17,32 @@ package org.openrewrite.kotlin;
 
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaTemplate;
-import org.openrewrite.java.JvmParser;
 import org.openrewrite.java.internal.template.Substitutions;
 import org.openrewrite.kotlin.internal.template.KotlinSubstitutions;
 import org.openrewrite.kotlin.internal.template.KotlinTemplateParser;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
 public class KotlinTemplate extends JavaTemplate {
-    private KotlinTemplate(boolean contextSensitive, JvmParser.Builder<?,?> parser, String code, Set<String> imports, Consumer<String> onAfterVariableSubstitution, Consumer<String> onBeforeParseTemplate) {
-        super(code, StringUtils.countOccurrences(code, "#{"), onAfterVariableSubstitution, new KotlinTemplateParser(contextSensitive, parser, onAfterVariableSubstitution, onBeforeParseTemplate, imports));
+    private KotlinTemplate(boolean contextSensitive, KotlinParser.Builder parser, String code, Set<String> imports, Consumer<String> onAfterVariableSubstitution, Consumer<String> onBeforeParseTemplate) {
+        super(
+                code,
+                StringUtils.countOccurrences(code, "#{"),
+                onAfterVariableSubstitution,
+                new KotlinTemplateParser(
+                        contextSensitive,
+                        augmentClasspath(parser),
+                        onAfterVariableSubstitution,
+                        onBeforeParseTemplate,
+                        imports
+                )
+        );
+    }
+
+    private static KotlinParser.Builder augmentClasspath(KotlinParser.Builder parserBuilder) {
+        return parserBuilder.addClasspath(TEMPLATE_CLASSPATH_DIR);
     }
 
     @Override
@@ -42,14 +57,56 @@ public class KotlinTemplate extends JavaTemplate {
     @SuppressWarnings("unused")
     public static class Builder extends JavaTemplate.Builder {
 
+        private final String code;
+        private final Set<String> imports = new HashSet<>();
+
+        private KotlinParser.Builder parser = KotlinParser.builder();
+
+        private Consumer<String> onAfterVariableSubstitution = s -> {
+        };
+        private Consumer<String> onBeforeParseTemplate = s -> {
+        };
+
         Builder(String code) {
             super(code);
-            parser = KotlinParser.builder();
+            this.code = code;
         }
 
-        @Override
+        public Builder imports(String... fullyQualifiedTypeNames) {
+            for (String typeName : fullyQualifiedTypeNames) {
+                validateImport(typeName);
+                this.imports.add("import " + typeName + "\n");
+            }
+            return this;
+        }
+
+        private void validateImport(String typeName) {
+            if (StringUtils.isBlank(typeName)) {
+                throw new IllegalArgumentException("Imports must not be blank");
+            } else if (typeName.startsWith("import ")) {
+                throw new IllegalArgumentException("Imports are expressed as fully-qualified names and should not include an \"import \" prefix");
+            } else if (typeName.endsWith(";") || typeName.endsWith("\n")) {
+                throw new IllegalArgumentException("Imports are expressed as fully-qualified names and should not include a suffixed terminator");
+            }
+        }
+
+        Builder parser(KotlinParser.Builder parser) {
+            this.parser = parser;
+            return this;
+        }
+
+        public Builder doAfterVariableSubstitution(Consumer<String> afterVariableSubstitution) {
+            this.onAfterVariableSubstitution = afterVariableSubstitution;
+            return this;
+        }
+
+        public Builder doBeforeParseTemplate(Consumer<String> beforeParseTemplate) {
+            this.onBeforeParseTemplate = beforeParseTemplate;
+            return this;
+        }
+
         public KotlinTemplate build() {
-            return new KotlinTemplate(contextSensitive, parser, code, imports,
+            return new KotlinTemplate(false, parser, code, imports,
                     onAfterVariableSubstitution, onBeforeParseTemplate);
         }
     }
