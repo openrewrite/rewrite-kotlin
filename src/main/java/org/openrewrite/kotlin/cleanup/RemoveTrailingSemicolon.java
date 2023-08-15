@@ -22,11 +22,9 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.Space;
-import org.openrewrite.java.tree.Statement;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.internal.KotlinPrinter;
 import org.openrewrite.kotlin.marker.Semicolon;
@@ -61,13 +59,14 @@ public class RemoveTrailingSemicolon extends Recipe {
             Set<Marker> semiColonRemovable;
 
             @Override
-            public K.@NotNull CompilationUnit visitCompilationUnit(@NotNull K.CompilationUnit cu, @NotNull ExecutionContext ctx) {
+            @NotNull
+            public K.CompilationUnit visitCompilationUnit(@NotNull K.CompilationUnit cu, @NotNull ExecutionContext ctx) {
                 semiColonRemovable = CollectSemicolonRemovableElements.collect(cu);
                 return super.visitCompilationUnit(cu, ctx);
             }
 
             @Override
-            public <M extends Marker> M visitMarker(Marker marker, ExecutionContext ctx) {
+            public <M extends Marker> M visitMarker(@NotNull Marker marker, @NotNull ExecutionContext ctx) {
                 return semiColonRemovable.remove(marker) ? null : super.visitMarker(marker, ctx);
             }
         };
@@ -88,34 +87,13 @@ public class RemoveTrailingSemicolon extends Recipe {
                 super(kp);
             }
 
-            @Override
-            public @Nullable J postVisit(J tree, PrintOutputCapture<Set<Marker>> p) {
-                if (mark != null && getCursor().pollMessage("marked") != null) {
-                    checkMark(p);
-                }
-                return tree;
-            }
-
             private void mark(Marker element, @NotNull PrintOutputCapture<Set<Marker>> p) {
-                if (getCursor().getParent() != null) {
-                    getCursor().getParentTreeCursor().putMessage("marked", true);
-                }
                 mark = p.out.length();
                 this.element = element;
             }
 
             @Override
-            protected void visitStatement(@Nullable JRightPadded<Statement> paddedStat, JRightPadded.Location location, PrintOutputCapture<Set<Marker>> p) {
-                if (paddedStat != null) {
-                    visit(paddedStat.getElement(), p);
-                    visitSpace(paddedStat.getAfter(), location.getAfterLocation(), p);
-                    visitMarkers(paddedStat.getMarkers(), p);
-                    paddedStat.getMarkers().getMarkers().stream().filter(m -> m instanceof Semicolon).findFirst().ifPresent(m -> mark(m, p));
-                }
-            }
-
-            @Override
-            public <M extends Marker> M visitMarker(Marker marker, PrintOutputCapture<Set<Marker>> p) {
+            public <M extends Marker> @NotNull M visitMarker(Marker marker, PrintOutputCapture<Set<Marker>> p) {
                 Marker m = super.visitMarker(marker, p);
                 if (marker instanceof Semicolon) {
                     mark(marker, p);
