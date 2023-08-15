@@ -56,7 +56,7 @@ public class RemoveTrailingSemicolon extends Recipe {
             Set<J> semiColonRemovable;
 
             @Override
-            public K.@NotNull CompilationUnit visitCompilationUnit(K.@NotNull CompilationUnit cu,
+            public K.@NotNull CompilationUnit visitCompilationUnit(@NotNull K.CompilationUnit cu,
                                                                    @NotNull ExecutionContext ctx) {
                 semiColonRemovable = new HashSet<>();
                 CollectSemicolonRemovableElements.collect(cu.print(getCursor()), cu, semiColonRemovable);
@@ -107,7 +107,7 @@ public class RemoveTrailingSemicolon extends Recipe {
         }
 
         @Override
-        public @NotNull J visitVariableDeclarations(J.@NotNull VariableDeclarations multiVariable,
+        public @NotNull J visitVariableDeclarations(@NotNull J.VariableDeclarations multiVariable,
                                                     @NotNull PrintOutputCapture<Set<J>> p) {
             J mv = super.visitVariableDeclarations(multiVariable, p);
             if (startsWithNewLineAfterOffset(sourceCode, p.out.length())) {
@@ -119,7 +119,7 @@ public class RemoveTrailingSemicolon extends Recipe {
         }
 
         @Override
-        public @NotNull J visitMethodInvocation(J.@NotNull MethodInvocation method, @NotNull PrintOutputCapture<Set<J>> p) {
+        public @NotNull J visitMethodInvocation(@NotNull J.MethodInvocation method, @NotNull PrintOutputCapture<Set<J>> p) {
             J m = super.visitMethodInvocation(method, p);
 
             if (startsWithNewLineAfterOffset(sourceCode, p.out.length())) {
@@ -130,7 +130,7 @@ public class RemoveTrailingSemicolon extends Recipe {
         }
 
         @Override
-        public @NotNull J visitBlock(J.@NotNull Block block, @NotNull PrintOutputCapture<Set<J>> p) {
+        public @NotNull J visitBlock(@NotNull J.Block block, @NotNull PrintOutputCapture<Set<J>> p) {
             J.Block b = (J.Block) super.visitBlock(block, p);
 
             b = b.getPadding().withStatements(ListUtils.map(b.getPadding().getStatements(), rp -> {
