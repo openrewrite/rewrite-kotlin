@@ -39,5 +39,10 @@ public class KotlinBlockStatementTemplateGenerator extends BlockStatementTemplat
         before.append("var o : Object = ");
         after.append(";");
         after.append("\n}");
+
+        before.insert(0, TEMPLATE_INTERNAL_IMPORTS);
+        for (String anImport : imports) {
+            before.insert(0, anImport);
+        }
     }
 }
