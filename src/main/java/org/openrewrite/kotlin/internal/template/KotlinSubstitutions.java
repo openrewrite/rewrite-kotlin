@@ -35,19 +35,23 @@ public class KotlinSubstitutions extends Substitutions {
 
     @Override
     protected String newArrayParameter(JavaType elemType, int dimensions, int index) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 1; i < dimensions; i++) {
-            builder.append("Array(0){");
+        // generate literal of the form: `arrayOf(arrayOf<String?>())`
+        StringBuilder builder = new StringBuilder("/*__p" + index + "__*/");
+        for (int i = 0; i < dimensions; i++) {
+            builder.append("arrayOf");
+            if (i < dimensions - 1) {
+                builder.append('(');
+            }
         }
-        builder.append("Array<");
+        builder.append('<');
         if (elemType instanceof JavaType.Primitive) {
             builder.append(((JavaType.Primitive) elemType).getKeyword());
         } else if (elemType instanceof JavaType.FullyQualified) {
             builder.append(((JavaType.FullyQualified) elemType).getFullyQualifiedName().replace("$", "."));
         }
-        builder.append(">(0){null}");
+        builder.append(">(");
         for (int i = 0; i < dimensions; i++) {
-            builder.append("}");
+            builder.append(')');
         }
         return builder.toString();
     }
