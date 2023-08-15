@@ -91,4 +91,19 @@ class ArrayTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void trailingComma() {
+        rewriteRun(
+          kotlin(
+            """
+              val integerArray: Array<Int> = arrayOf(
+                  1,
+                  2,
+                  3,
+              )
+              """
+          )
+        );
+    }
 }

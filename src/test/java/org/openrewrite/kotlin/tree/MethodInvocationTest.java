@@ -505,4 +505,17 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void trailingComma() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method ( s : String ) { }
+              val x = method ( "foo", )
+              val y = method ( if ( true ) "foo" else "bar" /*c1*/ , /*c2*/ )
+              """
+          )
+        );
+    }
 }

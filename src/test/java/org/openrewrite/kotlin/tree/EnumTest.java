@@ -71,4 +71,18 @@ class EnumTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void comma() {
+        rewriteRun(
+                kotlin(
+                        """
+                          enum class Scope {
+                              None,
+                              Compile,
+                          }
+                          """
+                )
+        );
+    }
 }

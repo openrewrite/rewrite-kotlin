@@ -20,13 +20,13 @@ import org.intellij.lang.annotations.Language;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.internal.KotlinParsingException;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.test.SourceSpec;
 import org.openrewrite.test.SourceSpecs;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import static org.openrewrite.java.Assertions.sourceSet;
@@ -99,10 +99,30 @@ public final class Assertions {
             new KotlinIsoVisitor<Integer>() {
                 @Override
                 public Space visitSpace(Space space, Space.Location loc, Integer integer) {
-                    if (!space.getWhitespace().trim().isEmpty()) {
+                    String trimmed = space.getWhitespace().trim();
+                    if (!trimmed.isEmpty() && (forbidsTrailingComma(loc) || !",".equals(trimmed))) {
                         throw new KotlinParsingException("Parsing error detected, whitespace contains non-whitespace characters: " + space.getWhitespace(), new RuntimeException());
                     }
+                    for (Comment comment : space.getComments()) {
+                        if (comment instanceof TextComment) {
+                            TextComment textComment = (TextComment) comment;
+                            trimmed = textComment.getSuffix().trim();
+                            if (!trimmed.isEmpty() && (forbidsTrailingComma(loc) || !",".equals(trimmed))) {
+                                throw new KotlinParsingException("Parsing error detected, whitespace contains non-whitespace characters: " + space.getWhitespace(), new RuntimeException());
+                            }
+                        }
+                    }
                     return super.visitSpace(space, loc, integer);
+                }
+
+                private boolean forbidsTrailingComma(Space.Location loc) {
+                    if (loc == Space.Location.METHOD_INVOCATION_ARGUMENT_SUFFIX) {
+                        return false;
+                    } else if (loc ==Space.Location.BLOCK_END) {
+                        List<Statement> statements = ((J.Block) getCursor().getValue()).getStatements();
+                        return statements.isEmpty() || !(statements.get(statements.size() - 1) instanceof J.EnumValueSet);
+                    }
+                    return true;
                 }
             }.visit(cu, 0);
 
