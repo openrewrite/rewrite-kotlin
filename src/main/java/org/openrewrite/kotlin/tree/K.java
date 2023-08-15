@@ -21,12 +21,13 @@ import lombok.experimental.NonFinal;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaPrinter;
+import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.internal.TypesInUse;
-import org.openrewrite.java.service.ImportService;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.AddImport;
 import org.openrewrite.kotlin.KotlinVisitor;
+import org.openrewrite.kotlin.format.AutoFormatVisitor;
 import org.openrewrite.kotlin.internal.KotlinPrinter;
-import org.openrewrite.kotlin.service.KotlinImportService;
 import org.openrewrite.marker.Markers;
 
 import java.beans.Transient;
@@ -277,12 +278,18 @@ public interface K extends J {
         }
 
         @Override
-        @SuppressWarnings("unchecked")
-        public <S> S service(Class<S> service) {
-            if (service == ImportService.class || service == KotlinImportService.class) {
-                return (S) new KotlinImportService();
-            }
-            return JavaSourceFile.super.service(service);
+        public Service getService() {
+            return new Service() {
+                @Override
+                public <P> JavaVisitor<P> getAddImportVisitor(@Nullable String packageName, String typeName, @Nullable String member, boolean onlyIfReferenced) {
+                    return new AddImport<>(packageName, typeName, member, null, onlyIfReferenced);
+                }
+
+                @Override
+                public <P> JavaVisitor<P> getAutoFormatter(@Nullable Tree stopAfter) {
+                    return new AutoFormatVisitor<>();
+                }
+            };
         }
     }
 
