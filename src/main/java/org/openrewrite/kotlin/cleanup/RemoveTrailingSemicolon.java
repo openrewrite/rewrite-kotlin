@@ -22,17 +22,22 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JRightPadded;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.Statement;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.internal.KotlinPrinter;
 import org.openrewrite.kotlin.marker.Semicolon;
 import org.openrewrite.kotlin.tree.K;
-import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.Marker;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 @Value
@@ -53,124 +58,109 @@ public class RemoveTrailingSemicolon extends Recipe {
     public @NotNull TreeVisitor<?, ExecutionContext> getVisitor() {
 
         return new KotlinIsoVisitor<ExecutionContext>() {
-            Set<J> semiColonRemovable;
+            Set<Marker> semiColonRemovable;
 
             @Override
-            public K.@NotNull CompilationUnit visitCompilationUnit(@NotNull K.CompilationUnit cu,
-                                                                   @NotNull ExecutionContext ctx) {
-                semiColonRemovable = new HashSet<>();
-                CollectSemicolonRemovableElements.collect(cu.print(getCursor()), cu, semiColonRemovable);
-                cu = cu.getPadding().withImports(removeSemiColon(cu.getPadding().getImports()));
+            public K.@NotNull CompilationUnit visitCompilationUnit(@NotNull K.CompilationUnit cu, @NotNull ExecutionContext ctx) {
+                semiColonRemovable = CollectSemicolonRemovableElements.collect(cu);
                 return super.visitCompilationUnit(cu, ctx);
             }
 
             @Override
-            public <T> @NotNull JRightPadded<T> visitRightPadded(@Nullable JRightPadded<T> right,
-                                                                 @NotNull JRightPadded.Location loc,
-                                                                 @NotNull ExecutionContext ctx) {
-                right = super.visitRightPadded(right, loc, ctx);
-
-                if (right.getElement() instanceof J && !semiColonRemovable.contains(right.getElement())) {
-                    return right;
-                }
-
-                Markers markers = right.getMarkers();
-                markers = markers.withMarkers(ListUtils.map(markers.getMarkers(), marker ->
-                        marker instanceof Semicolon ? null : marker
-                ));
-
-                return right.withMarkers(markers);
+            public <M extends Marker> M visitMarker(Marker marker, ExecutionContext ctx) {
+                return semiColonRemovable.remove(marker) ? null : super.visitMarker(marker, ctx);
             }
-
         };
-    }
-
-
-    private static <T> List<JRightPadded<T>> removeSemiColon(List<JRightPadded<T>> rps) {
-        return ListUtils.map(rps, RemoveTrailingSemicolon::removeSemiColon);
-    }
-
-    private static<T> JRightPadded<T> removeSemiColon(JRightPadded<T> rp) {
-        Markers markers = rp.getMarkers();
-        markers = markers.withMarkers(ListUtils.map(markers.getMarkers(), marker ->
-                marker instanceof Semicolon ? null : marker
-        ));
-        return rp.withMarkers(markers);
-    }
-
-    private static class MyKotlinJavaPrinter extends KotlinPrinter.KotlinJavaPrinter<Set<J>> {
-        private final String sourceCode;
-
-        MyKotlinJavaPrinter(KotlinPrinter kp, String sourceCode) {
-            super(kp);
-            this.sourceCode = sourceCode;
-        }
-
-        @Override
-        public @NotNull J visitVariableDeclarations(@NotNull J.VariableDeclarations multiVariable,
-                                                    @NotNull PrintOutputCapture<Set<J>> p) {
-            J mv = super.visitVariableDeclarations(multiVariable, p);
-            if (startsWithNewLineAfterOffset(sourceCode, p.out.length())) {
-                for (J.VariableDeclarations.NamedVariable v : multiVariable.getVariables()) {
-                    p.getContext().add(v);
-                }
-            }
-            return mv;
-        }
-
-        @Override
-        public @NotNull J visitMethodInvocation(@NotNull J.MethodInvocation method, @NotNull PrintOutputCapture<Set<J>> p) {
-            J m = super.visitMethodInvocation(method, p);
-
-            if (startsWithNewLineAfterOffset(sourceCode, p.out.length())) {
-                p.getContext().add(m);
-            }
-
-            return m;
-        }
-
-        @Override
-        public @NotNull J visitBlock(@NotNull J.Block block, @NotNull PrintOutputCapture<Set<J>> p) {
-            J.Block b = (J.Block) super.visitBlock(block, p);
-
-            b = b.getPadding().withStatements(ListUtils.map(b.getPadding().getStatements(), rp -> {
-                if (rp.getElement() instanceof J.If) {
-                    p.getContext().add(rp.getElement());
-                } else if (rp.getElement() instanceof K.KReturn) {
-                    p.getContext().add(rp.getElement());
-                }
-
-                return rp;
-            }));
-            return b;
-        }
-
-        public static boolean startsWithNewLineAfterOffset(String str, int offset) {
-            if (offset >= str.length()) {
-                return false;
-            }
-
-            for (int i = offset; i < str.length(); i++) {
-                char c = str.charAt(i);
-                if (c != ' ' && c != '\t' && c != ';') {
-                    return c == '\n';
-                }
-            }
-            return false;
-        }
     }
 
     @Value
     @EqualsAndHashCode(callSuper = true)
-    private static class CollectSemicolonRemovableElements extends KotlinPrinter<Set<J>> {
+    private static class CollectSemicolonRemovableElements extends KotlinPrinter<Set<Marker>> {
 
-        public static void collect(String sourceCode, J j, Set<J> SemicolonRemovable) {
-            new CollectSemicolonRemovableElements(sourceCode).visit(j, new PrintOutputCapture<>(SemicolonRemovable));
+        Pattern WS = Pattern.compile("^\\s+");
+
+        private class MyKotlinJavaPrinter extends KotlinPrinter.KotlinJavaPrinter<Set<Marker>> {
+
+            private Integer mark;
+            private Marker element;
+
+            MyKotlinJavaPrinter(KotlinPrinter kp) {
+                super(kp);
+            }
+
+            @Override
+            public @Nullable J postVisit(J tree, PrintOutputCapture<Set<Marker>> p) {
+                if (mark != null && getCursor().pollMessage("marked") != null) {
+                    checkMark(p);
+                }
+                return tree;
+            }
+
+            private void mark(Marker element, @NotNull PrintOutputCapture<Set<Marker>> p) {
+                if (getCursor().getParent() != null) {
+                    getCursor().getParentTreeCursor().putMessage("marked", true);
+                }
+                mark = p.out.length();
+                this.element = element;
+            }
+
+            @Override
+            protected void visitStatement(@Nullable JRightPadded<Statement> paddedStat, JRightPadded.Location location, PrintOutputCapture<Set<Marker>> p) {
+                if (paddedStat != null) {
+                    visit(paddedStat.getElement(), p);
+                    visitSpace(paddedStat.getAfter(), location.getAfterLocation(), p);
+                    visitMarkers(paddedStat.getMarkers(), p);
+                    paddedStat.getMarkers().getMarkers().stream().filter(m -> m instanceof Semicolon).findFirst().ifPresent(m -> mark(m, p));
+                }
+            }
+
+            @Override
+            public <M extends Marker> M visitMarker(Marker marker, PrintOutputCapture<Set<Marker>> p) {
+                Marker m = super.visitMarker(marker, p);
+                if (marker instanceof Semicolon) {
+                    mark(marker, p);
+                }
+                return (M) m;
+            }
+
+            @Override
+            public J visitVariableDeclarations(J.VariableDeclarations multiVariable, PrintOutputCapture<Set<Marker>> p) {
+                J vd = super.visitVariableDeclarations(multiVariable, p);
+                if (!multiVariable.getVariables().isEmpty()) {
+                    List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = multiVariable.getPadding().getVariables();
+                    variables.get(variables.size() - 1).getMarkers().getMarkers().stream().filter(m -> m instanceof Semicolon).findFirst().ifPresent(m -> mark(m, p));
+                }
+                return vd;
+            }
+
+            @Override
+            public Space visitSpace(Space space, Space.Location loc, PrintOutputCapture<Set<Marker>> p) {
+                if (mark != null) {
+                    checkMark(p);
+                }
+                return super.visitSpace(space, loc, p);
+            }
+
+            private void checkMark(PrintOutputCapture<Set<Marker>> p) {
+                String substring = p.out.substring(mark);
+                Matcher matcher = WS.matcher(substring);
+                if (matcher.find()) {
+                    if (matcher.group().indexOf('\n') != -1) {
+                        p.getContext().add(element);
+                    }
+                    mark = null;
+                }
+            }
         }
 
-        CollectSemicolonRemovableElements(String sourceCode) {
-            super();
-            setDelegate(new MyKotlinJavaPrinter(this, sourceCode));
+        public static Set<Marker> collect(J j) {
+            Set<Marker> removable = new HashSet<>();
+            new CollectSemicolonRemovableElements().visit(j, new PrintOutputCapture<>(removable));
+            return removable;
+        }
+
+        CollectSemicolonRemovableElements() {
+            setDelegate(new MyKotlinJavaPrinter(this));
         }
     }
 }

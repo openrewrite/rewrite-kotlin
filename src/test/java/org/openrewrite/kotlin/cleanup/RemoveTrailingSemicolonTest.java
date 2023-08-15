@@ -96,6 +96,34 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
     }
 
     @Test
+    void operators() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {
+                  fun method() {
+                      var i = 0;
+                      i++;
+                      --i;
+                      i++; ++i;
+                  };
+              }
+              """,
+            """
+              class Test {
+                  fun method() {
+                      var i = 0
+                      i++
+                      --i
+                      i++; ++i
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void doNotChangeIfMethodInvocationsAreInASameLine() {
         rewriteRun(
           kotlin(
@@ -118,10 +146,14 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
             """
               import java.util.List;
               import java.util.Map;
+              
+              class T
               """,
             """
               import java.util.List
               import java.util.Map
+
+              class T
               """
           )
         );
