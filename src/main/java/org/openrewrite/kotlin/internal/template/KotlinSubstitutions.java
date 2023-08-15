@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.internal.template;
 
 import org.openrewrite.java.internal.template.Substitutions;
+import org.openrewrite.java.tree.JavaType;
 
 public class KotlinSubstitutions extends Substitutions {
     public KotlinSubstitutions(String code, Object[] parameters) {
@@ -23,8 +24,31 @@ public class KotlinSubstitutions extends Substitutions {
     }
 
     @Override
-    public String substitute() {
-        // FIXME
-        return "__P__./*__p0__*/p<Char>().code";
+    protected String newObjectParameter(String fqn, int index) {
+        return "__P__./*__p" + index + "__*/p<" + fqn + ">()";
+    }
+
+    @Override
+    protected String newPrimitiveParameter(String fqn, int index) {
+        return newObjectParameter(fqn, index);
+    }
+
+    @Override
+    protected String newArrayParameter(JavaType elemType, int dimensions, int index) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 1; i < dimensions; i++) {
+            builder.append("Array(0){");
+        }
+        builder.append("Array<");
+        if (elemType instanceof JavaType.Primitive) {
+            builder.append(((JavaType.Primitive) elemType).getKeyword());
+        } else if (elemType instanceof JavaType.FullyQualified) {
+            builder.append(((JavaType.FullyQualified) elemType).getFullyQualifiedName().replace("$", "."));
+        }
+        builder.append(">(0){null}");
+        for (int i = 0; i < dimensions; i++) {
+            builder.append("}");
+        }
+        return builder.toString();
     }
 }

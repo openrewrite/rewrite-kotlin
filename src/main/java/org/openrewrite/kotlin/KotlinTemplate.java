@@ -15,9 +15,12 @@
  */
 package org.openrewrite.kotlin;
 
+import org.openrewrite.Cursor;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaTemplate;
 import org.openrewrite.java.internal.template.Substitutions;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaCoordinates;
 import org.openrewrite.kotlin.internal.template.KotlinSubstitutions;
 import org.openrewrite.kotlin.internal.template.KotlinTemplateParser;
 
@@ -50,8 +53,16 @@ public class KotlinTemplate extends JavaTemplate {
         return new KotlinSubstitutions(getCode(), parameters);
     }
 
+    public static <J2 extends J> J2 apply(String template, Cursor scope, JavaCoordinates coordinates, Object... parameters) {
+        return builder(template).build().apply(scope, coordinates, parameters);
+    }
+
     public static Builder builder(String code) {
         return new Builder(code);
+    }
+
+    public static boolean matches(String template, Cursor cursor) {
+        return builder(template).build().matches(cursor);
     }
 
     @SuppressWarnings("unused")

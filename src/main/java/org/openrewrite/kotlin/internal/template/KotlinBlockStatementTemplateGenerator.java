@@ -17,6 +17,7 @@ package org.openrewrite.kotlin.internal.template;
 
 import org.openrewrite.Cursor;
 import org.openrewrite.java.internal.template.BlockStatementTemplateGenerator;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaCoordinates;
 
@@ -29,7 +30,11 @@ public class KotlinBlockStatementTemplateGenerator extends BlockStatementTemplat
 
     @Override
     protected void contextFreeTemplate(Cursor cursor, J j, StringBuilder before, StringBuilder after, J insertionPoint, JavaCoordinates.Mode mode) {
-        // FIXME
+        if (!(j instanceof Expression)) {
+            throw new IllegalArgumentException(
+                    "Kotlin templating is currently only implemented for context-free expressions and not for `" + j.getClass() + "` instances.");
+        }
+
         before.insert(0, "class Template {\n");
         before.append("var o : Object = ");
         after.append(";");
