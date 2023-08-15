@@ -83,7 +83,7 @@ public class AddImportTest implements RewriteTest {
     }
 
     @Test
-    void starFold() {
+    void starFoldPackageTypes() {
         rewriteRun(
           spec -> spec.recipe(importTypeRecipe("java.io.OutputStream")),
           kotlin(
@@ -97,6 +97,69 @@ public class AddImportTest implements RewriteTest {
               """,
             """
               import java.io.*
+              
+              class A
+              """
+          )
+        );
+    }
+
+    @Test
+    void noStarFoldTypeMembers() {
+        rewriteRun(
+          spec -> spec.recipe(importMemberRecipe("java.util.regex.Pattern", "MULTILINE")),
+          kotlin(
+            """
+              import java.util.regex.Pattern.CASE_INSENSITIVE
+
+              class A
+              """,
+            """
+              import java.util.regex.Pattern.CASE_INSENSITIVE
+              import java.util.regex.Pattern.MULTILINE
+
+              class A
+              """
+          )
+        );
+    }
+
+    @Test
+    void starFoldTypeMembers() {
+        rewriteRun(
+          spec -> spec.recipe(importMemberRecipe("java.util.regex.Pattern", "MULTILINE")),
+          kotlin(
+            """
+              import java.util.regex.Pattern.CASE_INSENSITIVE
+              import java.util.regex.Pattern.COMMENTS
+
+              class A
+              """,
+            """
+              import java.util.regex.Pattern.*
+              
+              class A
+              """
+          )
+        );
+    }
+
+    @Test
+    void importAlias() {
+        rewriteRun(
+          spec -> spec.recipe(importMemberRecipe("java.util.regex.Pattern", "MULTILINE")),
+          kotlin(
+            """
+              import java.util.regex.Pattern.CASE_INSENSITIVE as i
+              import java.util.regex.Pattern.COMMENTS as x
+
+              class A
+              """,
+            """
+              import java.util.regex.Pattern.MULTILINE
+
+              import java.util.regex.Pattern.CASE_INSENSITIVE as i
+              import java.util.regex.Pattern.COMMENTS as x
               
               class A
               """

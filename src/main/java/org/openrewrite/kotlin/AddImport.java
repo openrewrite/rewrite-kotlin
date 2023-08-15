@@ -35,6 +35,7 @@ import org.openrewrite.style.GeneralFormatStyle;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.java.format.AutodetectGeneralFormatStyle.autodetectGeneralFormatStyle;
 import static org.openrewrite.java.tree.TypeUtils.isOfClassType;
@@ -135,10 +136,23 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
             J.Import importToAdd = new J.Import(randomId(),
                     Space.EMPTY,
                     Markers.EMPTY,
-                    new JLeftPadded<>(Space.EMPTY,false, Markers.EMPTY),
+                    new JLeftPadded<>(Space.EMPTY, member != null, Markers.EMPTY),
                     TypeTree.build(fullyQualifiedName +
                                    (member == null ? "" : "." + member)).withPrefix(Space.SINGLE_SPACE),
-                    null /* TODO */);
+                    alias != null ? new JLeftPadded<>(
+                            Space.SINGLE_SPACE,
+                            new J.Identifier(
+                                    randomId(),
+                                    Space.SINGLE_SPACE,
+                                    Markers.EMPTY,
+                                    emptyList(),
+                                    alias,
+                                    null,
+                                    null
+                            ),
+                            Markers.EMPTY
+                    ) : null
+            );
 
             List<JRightPadded<J.Import>> imports = new ArrayList<>(cu.getPadding().getImports());
 
@@ -162,7 +176,7 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
 
             List<JavaType.FullyQualified> classpath = cu.getMarkers().findFirst(JavaSourceSet.class)
                     .map(JavaSourceSet::getClasspath)
-                    .orElse(Collections.emptyList());
+                    .orElse(emptyList());
 
             List<JRightPadded<J.Import>> newImports = layoutStyle.addImport(cu.getPadding().getImports(), importToAdd, cu.getPackageDeclaration(), classpath);
 

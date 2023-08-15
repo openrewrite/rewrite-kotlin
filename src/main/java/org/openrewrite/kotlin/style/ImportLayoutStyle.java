@@ -645,7 +645,7 @@ public class ImportLayoutStyle implements KotlinStyle {
 
             @Override
             public boolean accept(JRightPadded<J.Import> anImport) {
-                return packageWildcard.matcher(anImport.getElement().getQualid().printTrimmed()).matches();
+                return anImport.getElement().getAlias() == null && packageWildcard.matcher(anImport.getElement().getQualid().printTrimmed()).matches();
             }
 
             @Override
@@ -759,7 +759,7 @@ public class ImportLayoutStyle implements KotlinStyle {
                         return false;
                     }
                 }
-                return true;
+                return anImport.getElement().getAlias() != null;
             }
 
             @Override
