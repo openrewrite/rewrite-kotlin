@@ -78,7 +78,7 @@ public class RemoveTrailingSemicolon extends Recipe {
 
         private class MyKotlinJavaPrinter extends KotlinPrinter.KotlinJavaPrinter<Set<Marker>> {
 
-            @org.openrewrite.internal.lang.Nullable
+            @Nullable
             private Integer mark;
             @Nullable
             private Marker semicolonMarker;
