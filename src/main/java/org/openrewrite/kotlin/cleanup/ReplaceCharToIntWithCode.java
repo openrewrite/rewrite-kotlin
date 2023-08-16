@@ -24,7 +24,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.KotlinTemplate;
 import org.openrewrite.kotlin.KotlinVisitor;
-import org.openrewrite.kotlin.tree.K;
 
 
 @Value
