@@ -21,6 +21,7 @@ import lombok.With;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
@@ -41,7 +42,8 @@ import static org.openrewrite.Tree.randomId;
 @Value
 @EqualsAndHashCode(callSuper = true)
 public class EqualsMethodUsage extends Recipe {
-    private static J.Binary equalsBinaryTemplate = null;
+    @Nullable
+    private static J.Binary equalsBinaryTemplate;
 
     @Override
     public String getDisplayName() {
@@ -89,6 +91,7 @@ public class EqualsMethodUsage extends Recipe {
                                            ExecutionContext ctx) {
                 method = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 if ("equals".equals(method.getSimpleName()) &&
+                    method.getMethodType() != null &&
                     method.getArguments().size() == 1 &&
                     TypeUtils.isOfClassType(method.getMethodType().getReturnType(), "kotlin.Boolean") &&
                     method.getSelect() != null
@@ -106,10 +109,10 @@ public class EqualsMethodUsage extends Recipe {
     private static J.Binary buildEqualsBinary(Expression left, Expression right) {
         if (equalsBinaryTemplate == null) {
             K.CompilationUnit kcu = KotlinParser.builder().build()
-                .parse("fun method(a : String, b : String) {val isSame = a == b}")
-                .map(K.CompilationUnit.class::cast)
-                .findFirst()
-                .get();
+                    .parse("fun method(a : String, b : String) {val isSame = a == b}")
+                    .map(K.CompilationUnit.class::cast)
+                    .findFirst()
+                    .get();
 
             equalsBinaryTemplate = new KotlinVisitor<AtomicReference<J.Binary>>() {
                 @Override
