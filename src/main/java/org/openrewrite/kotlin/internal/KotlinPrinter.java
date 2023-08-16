@@ -39,12 +39,12 @@ import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
-    private KotlinJavaPrinter delegate;
+    private KotlinJavaPrinter<P> delegate;
     public KotlinPrinter() {
-        delegate = new KotlinJavaPrinter(this);
+        delegate = new KotlinJavaPrinter<>(this);
     }
 
-    public void setDelegate(KotlinJavaPrinter kotlinJavaPrinter) {
+    protected void setDelegate(KotlinJavaPrinter<P> kotlinJavaPrinter) {
         delegate = kotlinJavaPrinter;
     }
 
@@ -313,9 +313,9 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     public static class KotlinJavaPrinter<P> extends JavaPrinter<P> {
-        KotlinPrinter kotlinPrinter;
+        KotlinPrinter<P> kotlinPrinter;
 
-        public KotlinJavaPrinter(KotlinPrinter kp) {
+        public KotlinJavaPrinter(KotlinPrinter<P> kp) {
             kotlinPrinter = kp;
         }
 
@@ -979,9 +979,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                     p.append(")");
                 }
 
-                if (variable.getMarkers().findFirst(Semicolon.class).isPresent()) {
-                    p.append(";");
-                }
+                variable.getMarkers().findFirst(Semicolon.class).ifPresent(m -> visitMarker(m, p));
             }
 
             afterSyntax(multiVariable, p);

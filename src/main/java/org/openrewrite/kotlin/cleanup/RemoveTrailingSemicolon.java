@@ -17,13 +17,12 @@ package org.openrewrite.kotlin.cleanup;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JRightPadded;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.internal.KotlinPrinter;
@@ -32,7 +31,6 @@ import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Marker;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,32 +40,32 @@ import java.util.regex.Pattern;
 @EqualsAndHashCode(callSuper = true)
 public class RemoveTrailingSemicolon extends Recipe {
     @Override
-    public @NotNull String getDisplayName() {
+    public String getDisplayName() {
         return "Remove unnecessary trailing semicolon";
     }
 
     @Override
-    public @NotNull String getDescription() {
+    public String getDescription() {
         return "Some Java programmers may mistakenly add semicolons at the end when writing Kotlin code, but in " +
                "reality, they are not necessary.";
     }
 
     @Override
-    public @NotNull TreeVisitor<?, ExecutionContext> getVisitor() {
+    public TreeVisitor<?, ExecutionContext> getVisitor() {
 
         return new KotlinIsoVisitor<ExecutionContext>() {
+            @Nullable
             Set<Marker> semiColonRemovable;
 
             @Override
-            @NotNull
-            public K.CompilationUnit visitCompilationUnit(@NotNull K.CompilationUnit cu, @NotNull ExecutionContext ctx) {
+            public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext ctx) {
                 semiColonRemovable = CollectSemicolonRemovableElements.collect(cu);
                 return super.visitCompilationUnit(cu, ctx);
             }
 
-            @SuppressWarnings("NullableProblems")
             @Override
-            public <M extends Marker> M visitMarker(@NotNull Marker marker, @NotNull ExecutionContext ctx) {
+            @SuppressWarnings("DataFlowIssue")
+            public <M extends Marker> M visitMarker(Marker marker, ExecutionContext ctx) {
                 return semiColonRemovable.remove(marker) ? null : super.visitMarker(marker, ctx);
             }
         };
@@ -80,16 +78,18 @@ public class RemoveTrailingSemicolon extends Recipe {
 
         private class MyKotlinJavaPrinter extends KotlinPrinter.KotlinJavaPrinter<Set<Marker>> {
 
+            @org.openrewrite.internal.lang.Nullable
             private Integer mark;
+            @Nullable
             private Marker semicolonMarker;
 
-            MyKotlinJavaPrinter(KotlinPrinter kp) {
+            MyKotlinJavaPrinter(KotlinPrinter<Set<Marker>> kp) {
                 super(kp);
             }
 
             @SuppressWarnings("unchecked")
             @Override
-            public <M extends Marker> @NotNull M visitMarker(@NotNull Marker marker, @NotNull PrintOutputCapture<Set<Marker>> p) {
+            public <M extends Marker> M visitMarker(Marker marker, PrintOutputCapture<Set<Marker>> p) {
                 Marker m = super.visitMarker(marker, p);
                 if (marker instanceof Semicolon) {
                     mark(marker, p);
@@ -98,38 +98,27 @@ public class RemoveTrailingSemicolon extends Recipe {
             }
 
             @Override
-            @NotNull
-            public J visitVariableDeclarations(@NotNull J.VariableDeclarations multiVariable, @NotNull PrintOutputCapture<Set<Marker>> p) {
-                J vd = super.visitVariableDeclarations(multiVariable, p);
-                if (!multiVariable.getVariables().isEmpty()) {
-                    List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = multiVariable.getPadding().getVariables();
-                    variables.get(variables.size() - 1).getMarkers().getMarkers().stream().filter(m -> m instanceof Semicolon).findFirst().ifPresent(m -> mark(m, p));
-                }
-                return vd;
+            public Space visitSpace(Space space, Space.Location loc, PrintOutputCapture<Set<Marker>> p) {
+                p.append(space.getWhitespace());
+                checkMark(p);
+                return space;
             }
 
-            @Override
-            @NotNull
-            public Space visitSpace(@NotNull Space space, @NotNull Space.Location loc, @NotNull PrintOutputCapture<Set<Marker>> p) {
-                if (mark != null) {
-                    checkMark(p);
-                }
-                return super.visitSpace(space, loc, p);
-            }
-
-            private void mark(Marker semicolonMarker, @NotNull PrintOutputCapture<Set<Marker>> p) {
+            private void mark(Marker semicolonMarker, PrintOutputCapture<Set<Marker>> p) {
                 mark = p.out.length();
                 this.semicolonMarker = semicolonMarker;
             }
 
             private void checkMark(PrintOutputCapture<Set<Marker>> p) {
-                String substring = p.out.substring(mark);
-                Matcher matcher = WS.matcher(substring);
-                if (matcher.find()) {
-                    if (matcher.group().indexOf('\n') != -1) {
-                        p.getContext().add(semicolonMarker);
+                if (mark != null) {
+                    String substring = p.out.substring(mark);
+                    Matcher matcher = WS.matcher(substring);
+                    if (matcher.find()) {
+                        if (matcher.group().indexOf('\n') != -1) {
+                            p.getContext().add(semicolonMarker);
+                        }
+                        mark = null;
                     }
-                    mark = null;
                 }
             }
         }
