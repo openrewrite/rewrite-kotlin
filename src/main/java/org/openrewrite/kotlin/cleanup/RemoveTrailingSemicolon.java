@@ -65,6 +65,7 @@ public class RemoveTrailingSemicolon extends Recipe {
                 return super.visitCompilationUnit(cu, ctx);
             }
 
+            @SuppressWarnings("NullableProblems")
             @Override
             public <M extends Marker> M visitMarker(@NotNull Marker marker, @NotNull ExecutionContext ctx) {
                 return semiColonRemovable.remove(marker) ? null : super.visitMarker(marker, ctx);
@@ -75,25 +76,20 @@ public class RemoveTrailingSemicolon extends Recipe {
     @Value
     @EqualsAndHashCode(callSuper = true)
     private static class CollectSemicolonRemovableElements extends KotlinPrinter<Set<Marker>> {
-
         Pattern WS = Pattern.compile("^\\s+");
 
         private class MyKotlinJavaPrinter extends KotlinPrinter.KotlinJavaPrinter<Set<Marker>> {
 
             private Integer mark;
-            private Marker element;
+            private Marker semicolonMarker;
 
             MyKotlinJavaPrinter(KotlinPrinter kp) {
                 super(kp);
             }
 
-            private void mark(Marker element, @NotNull PrintOutputCapture<Set<Marker>> p) {
-                mark = p.out.length();
-                this.element = element;
-            }
-
+            @SuppressWarnings("unchecked")
             @Override
-            public <M extends Marker> @NotNull M visitMarker(Marker marker, PrintOutputCapture<Set<Marker>> p) {
+            public <M extends Marker> @NotNull M visitMarker(@NotNull Marker marker, @NotNull PrintOutputCapture<Set<Marker>> p) {
                 Marker m = super.visitMarker(marker, p);
                 if (marker instanceof Semicolon) {
                     mark(marker, p);
@@ -102,7 +98,8 @@ public class RemoveTrailingSemicolon extends Recipe {
             }
 
             @Override
-            public J visitVariableDeclarations(J.VariableDeclarations multiVariable, PrintOutputCapture<Set<Marker>> p) {
+            @NotNull
+            public J visitVariableDeclarations(@NotNull J.VariableDeclarations multiVariable, @NotNull PrintOutputCapture<Set<Marker>> p) {
                 J vd = super.visitVariableDeclarations(multiVariable, p);
                 if (!multiVariable.getVariables().isEmpty()) {
                     List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = multiVariable.getPadding().getVariables();
@@ -112,11 +109,17 @@ public class RemoveTrailingSemicolon extends Recipe {
             }
 
             @Override
-            public Space visitSpace(Space space, Space.Location loc, PrintOutputCapture<Set<Marker>> p) {
+            @NotNull
+            public Space visitSpace(@NotNull Space space, @NotNull Space.Location loc, @NotNull PrintOutputCapture<Set<Marker>> p) {
                 if (mark != null) {
                     checkMark(p);
                 }
                 return super.visitSpace(space, loc, p);
+            }
+
+            private void mark(Marker semicolonMarker, @NotNull PrintOutputCapture<Set<Marker>> p) {
+                mark = p.out.length();
+                this.semicolonMarker = semicolonMarker;
             }
 
             private void checkMark(PrintOutputCapture<Set<Marker>> p) {
@@ -124,7 +127,7 @@ public class RemoveTrailingSemicolon extends Recipe {
                 Matcher matcher = WS.matcher(substring);
                 if (matcher.find()) {
                     if (matcher.group().indexOf('\n') != -1) {
-                        p.getContext().add(element);
+                        p.getContext().add(semicolonMarker);
                     }
                     mark = null;
                 }
