@@ -1089,7 +1089,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         }
     }
 
-    public void trailingMarkers(Markers markers, PrintOutputCapture<P> p) {
+    private void trailingMarkers(Markers markers, PrintOutputCapture<P> p) {
         for (Marker marker : markers.getMarkers()) {
             if (marker instanceof CheckNotNull) {
                 KotlinPrinter.this.visitSpace(((CheckNotNull) marker).getPrefix(), KSpace.Location.CHECK_NOT_NULL_PREFIX, p);
@@ -1135,7 +1135,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
     @Override
     public <M extends Marker> M visitMarker(Marker marker, PrintOutputCapture<P> p) {
-        return (M) delegate.visitMarker(marker, p);
+        return delegate.visitMarker(marker, p);
     }
 
     private static final UnaryOperator<String> JAVA_MARKER_WRAPPER =
