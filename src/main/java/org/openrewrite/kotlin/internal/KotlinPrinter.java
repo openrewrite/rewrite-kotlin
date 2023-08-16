@@ -39,13 +39,13 @@ import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
-    private KotlinJavaPrinter<P> delegate;
+    private final KotlinJavaPrinter<P> delegate;
     public KotlinPrinter() {
-        delegate = new KotlinJavaPrinter<>(this);
+        delegate = delegate();
     }
 
-    protected void setDelegate(KotlinJavaPrinter<P> kotlinJavaPrinter) {
-        delegate = kotlinJavaPrinter;
+    protected KotlinJavaPrinter<P> delegate() {
+        return new KotlinJavaPrinter<>(this);
     }
 
     @Override

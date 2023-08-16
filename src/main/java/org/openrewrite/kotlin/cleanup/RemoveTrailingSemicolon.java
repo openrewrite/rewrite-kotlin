@@ -129,8 +129,9 @@ public class RemoveTrailingSemicolon extends Recipe {
             return removable;
         }
 
-        CollectSemicolonRemovableElements() {
-            setDelegate(new MyKotlinJavaPrinter(this));
+        @Override
+        protected KotlinJavaPrinter<Set<Marker>> delegate() {
+            return new MyKotlinJavaPrinter(this);
         }
     }
 }
