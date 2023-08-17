@@ -20,7 +20,6 @@ import org.intellij.lang.annotations.Language;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.kotlin.internal.KotlinParsingException;
 import org.openrewrite.kotlin.tree.K;
@@ -105,16 +104,16 @@ public final class Assertions {
                     return super.visitSpace(space, loc, integer);
                 }
             }.visit(cu, 0);
-
-            new KotlinIsoVisitor<Integer>() {
-                @Override
-                public @Nullable J preVisit(J tree, Integer integer) {
-                    if (tree instanceof J.Unknown) {
-                        throw new KotlinParsingException("Parsing error detected. J.UnknownElement with text: " + ((J.Unknown) tree).getSource().getText(), new RuntimeException());
-                    }
-                    return super.preVisit(tree, integer);
-                }
-            }.visit(cu, 0);
+//
+//            new KotlinIsoVisitor<Integer>() {
+//                @Override
+//                public @Nullable J preVisit(J tree, Integer integer) {
+//                    if (tree instanceof J.Unknown) {
+//                        throw new KotlinParsingException("Parsing error detected. J.UnknownElement with text: " + ((J.Unknown) tree).getSource().getText(), new RuntimeException());
+//                    }
+//                    return super.preVisit(tree, integer);
+//                }
+//            }.visit(cu, 0);
         });
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2023 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,54 +16,39 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.test.RewriteTest;
-import org.openrewrite.test.SourceSpec;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-class CompilationUnitTest implements RewriteTest {
+class JUnknownTest implements RewriteTest {
 
     @Test
-    void emptyFile() {
-        rewriteRun(
-          kotlin("")
-        );
-    }
-
-    @Test
-    void packageDecl() {
-        rewriteRun(
-          kotlin("package kotlin")
-        );
-    }
-
-    @Test
-    void imports() {
+    void fileDeclaration() {
         rewriteRun(
           kotlin(
             """
-              import java.util.List
-              import java.io.*
-              class A
+              val s = ""
+              // comment
+              
+              // comment
+              val n: WrongType = WrongType()
               """
           )
         );
     }
 
     @Test
-    void packageAndComments() {
+    void expression() {
         rewriteRun(
           kotlin(
             """
-              /* Comment */
-              package a
-              import java.util.List
-              
-              class A
-              // comment
-              """,
-            SourceSpec::noTrim
+              fun method(s: String,
+                         // comment
+                         
+                         // comment
+                         n: WrongType) {
+              }
+              """
           )
         );
     }
