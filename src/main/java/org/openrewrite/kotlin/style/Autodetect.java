@@ -24,14 +24,7 @@ import org.openrewrite.Tree;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
-
-// todo. remove
 import org.openrewrite.java.JavaIsoVisitor;
-// import org.openrewrite.java.style.ImportLayoutStyle;
-// import org.openrewrite.kotlin.style.IntelliJ;
-// import org.openrewrite.java.style.SpacesStyle;
-// import org.openrewrite.java.style.TabsAndIndentsStyle;
-// import org.openrewrite.java.style.WrappingAndBracesStyle;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.style.GeneralFormatStyle;
 import org.openrewrite.style.NamedStyles;
@@ -515,8 +508,7 @@ public class Autodetect extends NamedStyles {
         }
 
         enum BlockType {
-            Import,
-            ImportStatic
+            Import
         }
 
         @SuppressWarnings("DuplicatedCode")
@@ -534,99 +526,47 @@ public class Autodetect extends NamedStyles {
                     .map(longestBlocks -> {
                         ImportLayoutStyle.Builder builder = ImportLayoutStyle.builder();
                         boolean insertAllOthers = false;
-                        boolean insertStaticAllOthers = false;
                         boolean containsJava = false;
                         boolean containsJavax = false;
 
                         int insertAllOtherAtIndex = 0;
-                        int insertStaticAllOtherAtIndex = 0;
                         int nonStaticMaxCount = Integer.MIN_VALUE;
-                        int staticMaxCount = Integer.MIN_VALUE;
                         int nonStaticCountPos = 0;
-                        int staticCountPos = 0;
                         int nonStaticPos = 0;
-                        int staticPos = 0;
 
                         List<Block> nonStaticBlocks = new ArrayList<>(); // Isolate static imports to add at top or bottom of layout.
-                        List<Block> staticBlocks = new ArrayList<>(); // Isolate static imports to add at top or bottom of layout.
                         List<Integer> countOfBlocksInNonStaticGroups = new ArrayList<>();
-                        List<Integer> countOfBlocksInStaticGroups = new ArrayList<>();
 
                         for (Block block : longestBlocks) {
-                            if (BlockType.ImportStatic.equals(block.type)) {
-                                staticBlocks.add(block);
-                                countOfBlocksInStaticGroups.add(0);
-                                countOfBlocksInStaticGroups.set(staticCountPos, countOfBlocksInStaticGroups.get(staticCountPos) + 1);
-                                if (staticMaxCount < countOfBlocksInStaticGroups.get(staticCountPos)) {
-                                    staticMaxCount = countOfBlocksInStaticGroups.get(staticCountPos);
-                                    insertStaticAllOtherAtIndex = staticCountPos;
-                                    insertStaticAllOthers = true;
-                                }
-
-                                if (block.addBlankLine) {
-                                    staticCountPos = staticPos + 1;
-                                }
-                                staticPos++;
-                            } else {
-                                if (!containsJava && "java.*".equals(block.pattern)) {
-                                    containsJava = true;
-                                }
-
-                                if (!containsJavax && "javax.*".equals(block.pattern)) {
-                                    containsJavax = true;
-                                }
-
-                                nonStaticBlocks.add(block);
-                                countOfBlocksInNonStaticGroups.add(0);
-                                countOfBlocksInNonStaticGroups.set(nonStaticCountPos, countOfBlocksInNonStaticGroups.get(nonStaticCountPos) + 1);
-                                if (nonStaticMaxCount < countOfBlocksInNonStaticGroups.get(nonStaticCountPos)) {
-                                    nonStaticMaxCount = countOfBlocksInNonStaticGroups.get(nonStaticCountPos);
-                                    insertAllOtherAtIndex = nonStaticCountPos;
-                                    insertAllOthers = true;
-                                }
-
-                                if (block.addBlankLine) {
-                                    nonStaticCountPos = nonStaticPos + 1;
-                                }
-                                nonStaticPos++;
+                            if (!containsJava && "java.*".equals(block.pattern)) {
+                                containsJava = true;
                             }
+
+                            if (!containsJavax && "javax.*".equals(block.pattern)) {
+                                containsJavax = true;
+                            }
+
+                            nonStaticBlocks.add(block);
+                            countOfBlocksInNonStaticGroups.add(0);
+                            countOfBlocksInNonStaticGroups.set(nonStaticCountPos,
+                                    countOfBlocksInNonStaticGroups.get(nonStaticCountPos) + 1);
+                            if (nonStaticMaxCount < countOfBlocksInNonStaticGroups.get(nonStaticCountPos)) {
+                                nonStaticMaxCount = countOfBlocksInNonStaticGroups.get(nonStaticCountPos);
+                                insertAllOtherAtIndex = nonStaticCountPos;
+                                insertAllOthers = true;
+                            }
+
+                            if (block.addBlankLine) {
+                                nonStaticCountPos = nonStaticPos + 1;
+                            }
+                            nonStaticPos++;
                         }
 
                         // Add static imports at the top if it's the standard.
                         boolean addNewLine = false;
                         if (!isStaticImportsAtBot()) {
-                            // There are no static imports, add an all other import block.
-                            if (!insertStaticAllOthers) {
-                                builder = builder.importStaticAllOthers();
-                            }
-
-                            for (int i = 0; i < staticBlocks.size(); i++) {
-                                // Insert the static all others block.
-                                if (insertStaticAllOthers) {
-                                    if (i == insertStaticAllOtherAtIndex) {
-                                        builder = builder.importStaticAllOthers();
-                                        addNewLine = true;
-                                        continue;
-                                    } else if (i > insertStaticAllOtherAtIndex) {
-                                        if (countOfBlocksInStaticGroups.get(i) == 0) {
-                                            continue;
-                                        } else {
-                                            insertStaticAllOthers = false;
-                                        }
-                                    }
-                                }
-
-                                if (addNewLine) {
-                                    builder = builder.blankLine();
-                                    addNewLine = false;
-                                }
-
-                                Block block = staticBlocks.get(i);
-                                builder.staticImportPackage(block.pattern);
-                                if (block.addBlankLine && i != staticBlocks.size() - 1) {
-                                    builder = builder.blankLine();
-                                }
-                            }
+                            // There are no static imports in Kotlin, add an all other import block.
+                            builder = builder.importAllOthers();
                         }
                         addNewLine = !isStaticImportsAtBot();
 
@@ -740,37 +680,9 @@ public class Autodetect extends NamedStyles {
                         // Add statics at bottom.
                         if (isStaticImportsAtBot()) {
                             builder = builder.blankLine();
-                            addNewLine = false;
 
                             // There are no static imports, add an all other import block.
-                            if (!insertStaticAllOthers) {
-                                builder = builder.importStaticAllOthers();
-                            }
-
-                            for (int i = 0; i < staticBlocks.size(); i++) {
-                                // Insert the static all others block.
-                                if (insertStaticAllOthers) {
-                                    if (i == insertStaticAllOtherAtIndex) {
-                                        builder = builder.importStaticAllOthers();
-                                        continue;
-                                    } else if (i > insertStaticAllOtherAtIndex) {
-                                        if (countOfBlocksInStaticGroups.get(i) == 0) {
-                                            continue;
-                                        } else {
-                                            insertStaticAllOthers = false;
-                                            addNewLine = true;
-                                        }
-                                    }
-                                }
-
-                                Block block = staticBlocks.get(i);
-                                if (addNewLine || i > 0 && staticBlocks.get(i - 1).addBlankLine) {
-                                    builder = builder.blankLine();
-                                    addNewLine = false;
-                                }
-
-                                builder = builder.staticImportPackage(block.pattern);
-                            }
+                            builder = builder.importAllOthers();
                         }
 
                         if (longestBlocks.isEmpty()) {
@@ -784,13 +696,13 @@ public class Autodetect extends NamedStyles {
                                 builder = builder.importPackage("javax.*");
                             }
                             builder.blankLine();
-                            builder.importStaticAllOthers();
+                            builder.importAllOthers();
                         }
 
                         // set lower limits in case type attribution is really messed up on the project
                         // and we can't effectively count star imports
-                        builder.classCountToUseStarImport(Math.max(minimumFoldedImports, 5));
-                        builder.nameCountToUseStarImport(Math.max(minimumFoldedStaticImports, 3));
+                        builder.topLevelSymbolsToUseStarImport(Math.max(minimumFoldedImports, 5));
+                        builder.javaStaticsAndEnumsToUseStarImport(Math.max(minimumFoldedStaticImports, 3));
 
                         return builder.build();
                     })
@@ -901,9 +813,7 @@ public class Autodetect extends NamedStyles {
                         !previousPkg.equals(importLayoutStatistics.pkgToBlockPattern.get(anImport.getPackageName() + "."))) {
                         if (i - blockStart > 0) {
                             ImportLayoutStatistics.Block block = new ImportLayoutStatistics.Block(
-                                    staticBlock ?
-                                            ImportLayoutStatistics.BlockType.ImportStatic :
-                                            ImportLayoutStatistics.BlockType.Import,
+                                    ImportLayoutStatistics.BlockType.Import,
                                     previousPkg,
                                     containsNewLine);
 
@@ -928,9 +838,7 @@ public class Autodetect extends NamedStyles {
 
                 if (i - blockStart > 0) {
                     ImportLayoutStatistics.Block block = new ImportLayoutStatistics.Block(
-                            staticBlock ?
-                                    ImportLayoutStatistics.BlockType.ImportStatic :
-                                    ImportLayoutStatistics.BlockType.Import,
+                            ImportLayoutStatistics.BlockType.Import,
                             previousPkg,
                             false);
 
@@ -1025,48 +933,17 @@ public class Autodetect extends NamedStyles {
             return spaces
                     .withBeforeParentheses(
                             new SpacesStyle.BeforeParentheses(
-                                    beforeMethodDeclaration > 0,
-                                    beforeMethodCall > 0,
                                     beforeIf > 0,
                                     beforeFor > 0 || beforeWhile > 0,
                                     beforeWhile > 0 || beforeFor > 0,
-                                    beforeSwitch > 0,
                                     beforeTry > 0 || beforeCatch > 0,
-                                    beforeTry > 0 || beforeCatch > 0,
-                                    beforeSynchronized > 0,
-                                    false
+                                    true
                             )
                     )
-                    .withWithin(new SpacesStyle.Within(
-                            spaces.getWithin().getCodeBraces(),
-                            spaces.getWithin().getBrackets(),
-                            spaces.getWithin().getArrayInitializerBraces(),
-                            spaces.getWithin().getEmptyArrayInitializerBraces(),
-                            spaces.getWithin().getGroupingParentheses(),
-                            spaces.getWithin().getMethodDeclarationParentheses(),
-                            spaces.getWithin().getEmptyMethodDeclarationParentheses(),
-                            withinMethodCallParentheses > 0,
-                            spaces.getWithin().getEmptyMethodCallParentheses(),
-                            spaces.getWithin().getIfParentheses(),
-                            spaces.getWithin().getForParentheses(),
-                            spaces.getWithin().getWhileParentheses(),
-                            spaces.getWithin().getSwitchParentheses(),
-                            spaces.getWithin().getTryParentheses(),
-                            spaces.getWithin().getCatchParentheses(),
-                            spaces.getWithin().getSynchronizedParentheses(),
-                            spaces.getWithin().getTypeCastParentheses(),
-                            spaces.getWithin().getAnnotationParentheses(),
-                            spaces.getWithin().getAngleBrackets(),
-                            spaces.getWithin().getRecordHeader()
-                    ))
                     .withOther(new SpacesStyle.Other(
                             beforeComma > 0,
                             afterComma >= 1,
-                            beforeForSemiColon > 0,
-                            afterForSemiColon >= 0,
-                            afterTypeCast > 0,
-                            beforeColonInForEach > 0,
-                            false
+                            false, true, true, true, true, true, true, true
                     ));
         }
     }
@@ -1251,7 +1128,7 @@ public class Autodetect extends NamedStyles {
             WrappingAndBracesStyle wrappingAndBracesStyle = IntelliJ.wrappingAndBraces();
             return wrappingAndBracesStyle
                     .withIfStatement(new WrappingAndBracesStyle.IfStatement(
-                            elseOnNewLine > 0)
+                            elseOnNewLine > 0, true, false)
                     );
         }
     }
