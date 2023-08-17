@@ -24,8 +24,8 @@ import org.openrewrite.Tree;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.style.GeneralFormatStyle;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.style.Style;
@@ -278,7 +278,7 @@ public class Autodetect extends NamedStyles {
                 .orElse(0);
     }
 
-    private static class FindLineFormatJavaVisitor extends JavaIsoVisitor<GeneralFormatStatistics> {
+    private static class FindLineFormatJavaVisitor extends KotlinIsoVisitor<GeneralFormatStatistics> {
 
         @Override
         public @Nullable J visit(@Nullable Tree tree, GeneralFormatStatistics generalFormatStatistics) {
@@ -309,7 +309,7 @@ public class Autodetect extends NamedStyles {
         }
     }
 
-    private static class FindIndentJavaVisitor extends JavaIsoVisitor<IndentStatistics> {
+    private static class FindIndentJavaVisitor extends KotlinIsoVisitor<IndentStatistics> {
 
         @Override
         public @Nullable J visit(@Nullable Tree tree, IndentStatistics indentStatistics) {
@@ -780,7 +780,7 @@ public class Autodetect extends NamedStyles {
         String prefix;
     }
 
-    private static class FindImportLayout extends JavaIsoVisitor<Integer> {
+    private static class FindImportLayout extends KotlinIsoVisitor<Integer> {
         private final List<List<ImportAttributes>> importsBySourceFile = new ArrayList<>();
         private final NavigableSet<String> importedPackages = new TreeSet<>();
         private final ImportLayoutStatistics importLayoutStatistics = new ImportLayoutStatistics();
@@ -948,7 +948,7 @@ public class Autodetect extends NamedStyles {
         }
     }
 
-    private static class FindSpacesStyle extends JavaIsoVisitor<SpacesStatistics> {
+    private static class FindSpacesStyle extends KotlinIsoVisitor<SpacesStatistics> {
 
         @Override
         public @Nullable J visit(@Nullable Tree tree, SpacesStatistics spacesStatistics) {
@@ -1133,7 +1133,7 @@ public class Autodetect extends NamedStyles {
         }
     }
 
-    private static class FindWrappingAndBracesStyle extends JavaIsoVisitor<WrappingAndBracesStatistics> {
+    private static class FindWrappingAndBracesStyle extends KotlinIsoVisitor<WrappingAndBracesStatistics> {
         @Override
         public J.If.Else visitElse(J.If.Else else_, WrappingAndBracesStatistics stats) {
             stats.elseOnNewLine += hasNewLine(else_.getPrefix());
