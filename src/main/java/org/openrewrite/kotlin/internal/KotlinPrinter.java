@@ -771,17 +771,19 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             visitSpace(argContainer.getBefore(), Space.Location.METHOD_INVOCATION_ARGUMENTS, p);
             List<JRightPadded<Expression>> args = argContainer.getPadding().getElements();
             boolean omitParensOnMethod = method.getMarkers().findFirst(OmitParentheses.class).isPresent();
-            boolean isTrailingLambda = !args.isEmpty() && args.get(args.size() - 1).getElement().getMarkers().findFirst(TrailingLambdaArgument.class).isPresent();
+
+            int argCount = args.size();
+            boolean isTrailingLambda = !args.isEmpty() && args.get(argCount - 1).getElement().getMarkers().findFirst(TrailingLambdaArgument.class).isPresent();
 
             if (!omitParensOnMethod) {
                 p.append('(');
             }
 
-            for (int i = 0; i < args.size(); i++) {
+            for (int i = 0; i < argCount; i++) {
                 JRightPadded<Expression> arg = args.get(i);
 
                 // Print trailing lambda.
-                if (i == args.size() - 1 && isTrailingLambda) {
+                if (i == argCount - 1 && isTrailingLambda) {
                     visitSpace(arg.getAfter(), JRightPadded.Location.METHOD_INVOCATION_ARGUMENT.getAfterLocation(), p);
                     p.append(")");
                     visit(arg.getElement(), p);
@@ -803,7 +805,9 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                 }
                 visitRightPadded(arg, JRightPadded.Location.METHOD_INVOCATION_ARGUMENT, p);
 
-                kotlinPrinter.trailingMarkers(arg.getElement().getMarkers(), p);
+                if (i == argCount - 1 || isTrailingLambda && i == argCount - 2) {
+                    kotlinPrinter.trailingMarkers(arg.getElement().getMarkers(), p);
+                }
             }
 
             if (!omitParensOnMethod && !isTrailingLambda) {
