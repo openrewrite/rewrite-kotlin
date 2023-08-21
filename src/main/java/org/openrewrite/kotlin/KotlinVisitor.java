@@ -20,8 +20,10 @@ import org.openrewrite.SourceFile;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.service.AutoFormatService;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.marker.*;
+import org.openrewrite.kotlin.service.KotlinAutoFormatService;
 import org.openrewrite.kotlin.tree.*;
 import org.openrewrite.marker.Marker;
 
@@ -61,37 +63,36 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
 
     @Override
     public <J2 extends J> J2 autoFormat(J2 j, P p) {
-        // FIXME, use Kotlin auto format instead
-        return j;
+        return autoFormat(j, p, getCursor().getParentTreeCursor());
     }
 
+    @SuppressWarnings({"ConstantConditions", "unchecked"})
     @Override
     public <J2 extends J> J2 autoFormat(J2 j, @Nullable J stopAfter, P p, Cursor cursor) {
-        // FIXME, use Kotlin auto format instead
-        return j;
+        KotlinAutoFormatService service = getCursor().firstEnclosingOrThrow(JavaSourceFile.class).service(KotlinAutoFormatService.class);
+        return (J2) service.autoFormatVisitor(stopAfter).visit(j, p, cursor);
     }
 
     @Override
     public <J2 extends J> J2 autoFormat(J2 j, P p, Cursor cursor) {
-        // FIXME, use Kotlin auto format instead
-        return j;
+        return autoFormat(j, null, p, cursor);
     }
 
     @Override
     public <J2 extends J> J2 maybeAutoFormat(J2 before, J2 after, P p) {
-        // FIXME, use Kotlin auto format instead
-        return after;
+        return maybeAutoFormat(before, after, p, getCursor().getParentTreeCursor());
     }
 
     @Override
     public <J2 extends J> J2 maybeAutoFormat(J2 before, J2 after, P p, Cursor cursor) {
-        // FIXME, use Kotlin auto format instead
-        return after;
+        return maybeAutoFormat(before, after, null, p, cursor);
     }
 
     @Override
     public <J2 extends J> J2 maybeAutoFormat(J2 before, J2 after, @Nullable J stopAfter, P p, Cursor cursor) {
-        // FIXME, use Kotlin auto format instead
+        if (before != after) {
+            return autoFormat(after, stopAfter, p, cursor);
+        }
         return after;
     }
 

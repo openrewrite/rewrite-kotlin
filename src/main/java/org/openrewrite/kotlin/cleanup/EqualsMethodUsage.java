@@ -17,7 +17,6 @@ package org.openrewrite.kotlin.cleanup;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import lombok.With;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
@@ -29,20 +28,17 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.KotlinVisitor;
 import org.openrewrite.kotlin.tree.K;
-import org.openrewrite.marker.Marker;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.openrewrite.Tree.randomId;
 
 @Value
 @EqualsAndHashCode(callSuper = true)
 public class EqualsMethodUsage extends Recipe {
-    private static J.Binary equalsBinaryTemplate = null;
+    @Nullable
+    private static J.Binary equalsBinaryTemplate;
 
     @Override
     public String getDisplayName() {
@@ -65,7 +61,7 @@ public class EqualsMethodUsage extends Recipe {
     }
 
     @Override
-    public @Nullable Duration getEstimatedEffortPerOccurrence() {
+    public Duration getEstimatedEffortPerOccurrence() {
         return Duration.ofMinutes(3);
     }
 
@@ -76,7 +72,7 @@ public class EqualsMethodUsage extends Recipe {
             public J visitUnary(J.Unary unary, ExecutionContext ctx) {
                 unary = (J.Unary) super.visitUnary(unary, ctx);
                 if (unary.getExpression() instanceof J.Binary &&
-                    replacedWithEqual.hasMarker(unary.getExpression())) {
+                    getCursor().pollMessage("replaced") != null) {
                     J.Binary binary = (J.Binary) unary.getExpression();
                     if (binary.getOperator().equals(J.Binary.Type.Equal)) {
                         return binary.withOperator(J.Binary.Type.NotEqual);
@@ -90,13 +86,15 @@ public class EqualsMethodUsage extends Recipe {
                                            ExecutionContext ctx) {
                 method = (J.MethodInvocation) super.visitMethodInvocation(method, ctx);
                 if ("equals".equals(method.getSimpleName()) &&
+                    method.getMethodType() != null &&
                     method.getArguments().size() == 1 &&
                     TypeUtils.isOfClassType(method.getMethodType().getReturnType(), "kotlin.Boolean") &&
                     method.getSelect() != null
                 ) {
                     Expression lhs = method.getSelect();
                     Expression rhs = method.getArguments().get(0);
-                    return replacedWithEqual.withMarker(buildEqualsBinary(lhs, rhs));
+                    getCursor().getParentTreeCursor().putMessage("replaced", true);
+                    return buildEqualsBinary(lhs, rhs);
                 }
                 return method;
             }
@@ -107,10 +105,10 @@ public class EqualsMethodUsage extends Recipe {
     private static J.Binary buildEqualsBinary(Expression left, Expression right) {
         if (equalsBinaryTemplate == null) {
             K.CompilationUnit kcu = KotlinParser.builder().build()
-                .parse("fun method(a : String, b : String) {val isSame = a == b}")
-                .map(K.CompilationUnit.class::cast)
-                .findFirst()
-                .get();
+                    .parse("fun method(a : String, b : String) {val isSame = a == b}")
+                    .map(K.CompilationUnit.class::cast)
+                    .findFirst()
+                    .get();
 
             equalsBinaryTemplate = new KotlinVisitor<AtomicReference<J.Binary>>() {
                 @Override
@@ -126,19 +124,5 @@ public class EqualsMethodUsage extends Recipe {
             rhsPrefix = rhsPrefix.withWhitespace(" ");
         }
         return equalsBinaryTemplate.withLeft(left.withPrefix(left.getPrefix())).withRight(right.withPrefix(rhsPrefix));
-    }
-
-    @Value
-    @With
-    private static class replacedWithEqual implements Marker {
-        UUID id;
-
-        static <J2 extends J> J2 withMarker(J2 j) {
-            return j.withMarkers(j.getMarkers().addIfAbsent(new EqualsMethodUsage.replacedWithEqual(randomId())));
-        }
-
-        static boolean hasMarker(J j) {
-            return j.getMarkers().findFirst(EqualsMethodUsage.replacedWithEqual.class).isPresent();
-        }
     }
 }

@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
-
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.style.BlankLinesStyle;
 import org.openrewrite.kotlin.style.IntelliJ;
@@ -541,7 +540,6 @@ class BlankLinesTest implements RewriteTest {
     @Test
     void minimumBeforePackage() {
         rewriteRun(
-          // blankLines(style -> style.withMinimum(style.getMinimum().withBeforePackage(1))),
           blankLines(),
           kotlin(
             """
@@ -568,7 +566,6 @@ class BlankLinesTest implements RewriteTest {
     void minimumBeforeImportsWithPackage() {
         rewriteRun(
           // no blank lines if nothing preceding package
-          // blankLines(style -> style.withMinimum(style.getMinimum().withBeforeImports(1))),
           blankLines(),
           kotlin(
             """

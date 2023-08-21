@@ -101,7 +101,21 @@ class EnumTest implements RewriteTest {
             """
               enum class A {
                   B , C ,
-                  D ,
+                  D , // trailing comma
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingCommaTerminatingSemicolon() {
+        rewriteRun(
+          kotlin(
+            """
+              enum class A {
+                  B , C ,
+                  D , /* trailing comma */ ; /*terminating semicolon*/
               }
               """
           )
