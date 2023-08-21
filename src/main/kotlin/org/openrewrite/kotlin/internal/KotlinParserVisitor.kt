@@ -158,13 +158,13 @@ class KotlinParserVisitor(
             try {
                 statement = visitElement(declaration, data) as Statement
             } catch (e: Exception) {
-                if (declaration.source == null && getRealPsiElement(declaration) == null) {
+                if (declaration.source == null || getRealPsiElement(declaration) == null) {
                     throw KotlinParsingException("Failed to parse declaration", e)
                 }
                 cursor = savedCursor
                 val prefix = whitespace()
                 var text = getRealPsiElement(declaration)!!.text
-                if (!prefix.comments.isEmpty()) {
+                if (prefix.comments.isNotEmpty()) {
                     val lastComment = prefix.comments[prefix.comments.size - 1]
                     val prefixText = lastComment.printComment(Cursor(null, lastComment)) + lastComment.suffix
                     text = text.substring(prefixText.length)
@@ -601,7 +601,6 @@ class KotlinParserVisitor(
             )
         }
 
-        // FIXME: check if dispatcher should be used.
         val receiverExpr = callableReferenceAccess.explicitReceiver?.let {
             convertToExpression<Expression>(callableReferenceAccess.explicitReceiver!!, data)!!
         }
@@ -865,7 +864,6 @@ class KotlinParserVisitor(
     override fun <T> visitConstExpression(constExpression: FirConstExpression<T>, data: ExecutionContext): J {
         var prefix = Space.EMPTY
         val psiElement = getRealPsiElement(constExpression)
-        // FIXME
         if (constExpression.kind !is ConstantValueKind.String || ((psiElement != null) && psiElement.text.contains("\""))) {
             prefix = whitespace()
         }
@@ -1122,6 +1120,7 @@ class KotlinParserVisitor(
                     var selectExpr =
                         convertToExpression<Expression>(receiver, data)!!
                     val after = whitespace()
+                    @Suppress("ControlFlowWithEmptyBody")
                     if (skip(".")) {
                     } else if (skip("?.")) {
                         selectExpr = selectExpr.withMarkers(
@@ -1569,6 +1568,7 @@ class KotlinParserVisitor(
                     typeMapping.type(typeMapping.type(functionCall.argumentList.arguments[1]))
                 )
                 val before = whitespace()
+                @Suppress("ControlFlowWithEmptyBody")
                 if (skip("=")) {
                 } else {
                     // Check for syntax de-sugaring.
@@ -1690,17 +1690,19 @@ class KotlinParserVisitor(
                 val p = parameters[i]
                 val expr: J? = visitElement(p, data)
                 var param: JRightPadded<J?>
-                if (i < parameters.size - 1) {
-                    param = JRightPadded.build(expr).withAfter(whitespace())
-                    skip(",")
-                } else {
-                    val after = if (parenthesized) whitespace() else Space.EMPTY
-                    param = JRightPadded.build(expr).withAfter(after)
-                    if (parenthesized && skip(",")) {
-                        param = param.withMarkers(Markers.build(listOf(TrailingComma(randomId(), whitespace()))))
+                if (expr != null) {
+                    if (i < parameters.size - 1) {
+                        param = JRightPadded.build(expr).withAfter(whitespace())
+                        skip(",")
+                    } else {
+                        val after = if (parenthesized) whitespace() else Space.EMPTY
+                        param = JRightPadded.build(expr).withAfter(after)
+                        if (parenthesized && skip(",")) {
+                            param = param.withMarkers(Markers.build(listOf(TrailingComma(randomId(), whitespace()))))
+                        }
                     }
+                    refParams.add(param)
                 }
-                refParams.add(param)
             }
             skip(")")
         }
@@ -2086,6 +2088,7 @@ class KotlinParserVisitor(
             val target = convertToExpression<Expression>(propertyAccessExpression.explicitReceiver!!, data)!!
             val before = whitespace()
             var markers = Markers.EMPTY
+            @Suppress("ControlFlowWithEmptyBody")
             if (skip(".")) {
             } else if (skip("?.")) {
                 markers = markers.addIfAbsent(IsNullSafe(randomId(), Space.EMPTY))
@@ -3218,6 +3221,7 @@ class KotlinParserVisitor(
 
     override fun visitWhenBranch(whenBranch: FirWhenBranch, data: ExecutionContext): J {
         val prefix = whitespace()
+        @Suppress("ControlFlowWithEmptyBody")
         if (skip("if")) {
         } else require(
             whenBranch.condition is FirElseIfTrueCondition ||
@@ -4958,7 +4962,7 @@ class KotlinParserVisitor(
         skip("for")
         val controlPrefix = sourceBefore("(")
         val variable: J.VariableDeclarations?
-        var additionalVariables = 0
+        var additionalVariables: Int
         if ("<destruct>" == receiver.name.asString()) {
             additionalVariables =
                 source.substring(cursor, source.indexOf(')', cursor) + 1).split(",".toRegex())
@@ -5154,13 +5158,13 @@ class KotlinParserVisitor(
                 try {
                     j = convertToExpression(element, data)
                 } catch (e: Exception) {
-                    if (element.source == null && getRealPsiElement(element) == null) {
+                    if (element.source == null || getRealPsiElement(element) == null) {
                         throw KotlinParsingException("Failed to parse declaration", e)
                     }
                     cursor = saveCursor
                     val prefix = whitespace()
                     var text = getRealPsiElement(element)!!.text
-                    if (!prefix.comments.isEmpty()) {
+                    if (prefix.comments.isNotEmpty()) {
                         val lastComment = prefix.comments[prefix.comments.size - 1]
                         val prefixText = lastComment.printComment(Cursor(null, lastComment)) + lastComment.suffix
                         text = text.substring(prefixText.length)
@@ -5216,7 +5220,6 @@ class KotlinParserVisitor(
             }
             converted.add(rightPadded)
         }
-        // FIXME
         return if (converted.isEmpty()) mutableListOf() else converted
     }
 

@@ -277,7 +277,7 @@ public class KotlinParser implements Parser {
             return this;
         }
 
-        public Builder moduleName(KotlinLanguageLevel languageLevel) {
+        public Builder languageLevel(KotlinLanguageLevel languageLevel) {
             this.languageLevel = languageLevel;
             return this;
         }
