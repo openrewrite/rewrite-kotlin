@@ -52,6 +52,7 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.types.ConstantValueKind
 import org.jetbrains.kotlin.types.Variance
+import org.openrewrite.Cursor
 import org.openrewrite.ExecutionContext
 import org.openrewrite.FileAttributes
 import org.openrewrite.ParseExceptionResult
@@ -158,12 +159,17 @@ class KotlinParserVisitor(
             try {
                 statement = visitElement(declaration, data) as Statement
             } catch (e: Exception) {
-                if (declaration.source == null) {
+                if (declaration.source == null && getRealPsiElement(declaration) == null) {
                     throw KotlinParsingException("Failed to parse declaration", e)
                 }
                 cursor = savedCursor
                 val prefix = whitespace()
-                val text: String = declaration.source!!.lighterASTNode.toString()
+                var text = getRealPsiElement(declaration)!!.text
+                if (!prefix.comments.isEmpty()) {
+                    val lastComment = prefix.comments[prefix.comments.size - 1]
+                    val prefixText = lastComment.printComment(Cursor(null, lastComment)) + lastComment.suffix
+                    text = text.substring(prefixText.length)
+                }
                 skip(text)
                 statement = J.Unknown(
                     randomId(),
@@ -199,7 +205,7 @@ class KotlinParserVisitor(
             paddedPkg,
             imports,
             statements,
-            Space.format(source.substring(cursor))
+            Space.format(source, cursor, source.length)
         )
     }
 
@@ -223,7 +229,7 @@ class KotlinParserVisitor(
             val fullName: String = errorNamedReference.source!!.lighterASTNode.toString()
             val prefix = whitespace()
             skip(fullName)
-            return (build(fullName) as J).withPrefix(prefix)
+            (build(fullName) as J).withPrefix(prefix)
         } else if (errorNamedReference.source is KtFakeSourceElement) {
             val psi = (errorNamedReference.source as KtFakeSourceElement).psi as KtNameReferenceExpression
             skip(psi.getReferencedName())
@@ -286,7 +292,7 @@ class KotlinParserVisitor(
             null -> {
             }
         }
-        val name = visitElement(annotationCall.calleeReference, data) as J.Identifier
+        val name = visitElement(annotationCall.annotationTypeRef, data) as NameTree
         var args: JContainer<Expression>? = null
         if (annotationCall.argumentList.arguments.isNotEmpty()) {
             val argsPrefix = sourceBefore("(")
@@ -295,34 +301,21 @@ class KotlinParserVisitor(
                     val varargArgumentsExpression =
                         annotationCall.argumentList.arguments[0] as FirVarargArgumentsExpression
                     convertAllToExpressions(
-                        varargArgumentsExpression.arguments, commaDelim,
-                        {
-                            sourceBefore(
-                                ")"
-                            )
-                        }, data
+                        varargArgumentsExpression.arguments, ",", ")", data
                     )
                 } else {
                     val arg = annotationCall.argumentList.arguments[0]
                     listOf(
                         convertToExpression(
                             arg,
-                            {
-                                sourceBefore(
-                                    ")"
-                                )
-                            }, data
+                            { sourceBefore(")") },
+                            data
                         )!!
                     )
                 }
             } else {
                 convertAllToExpressions(
-                    annotationCall.argumentList.arguments, commaDelim,
-                    {
-                        sourceBefore(
-                            ")"
-                        )
-                    }, data
+                    annotationCall.argumentList.arguments, ",", ")", data
                 )
             }
             args = JContainer.build(argsPrefix, expressions, Markers.EMPTY)
@@ -394,12 +387,14 @@ class KotlinParserVisitor(
                         J.Lambda.Parameters(randomId(), destructPrefix, Markers.EMPTY, true, destructParams)
                     valueParams.add(JRightPadded.build(destructParamsExpr))
                 } else {
-                    val j = visitElement(p, data)
-                    if (j != null) {
-                        var param = JRightPadded.build(j)
-                        if (i != parameters.size - 1) {
-                            param = param.withAfter(sourceBefore(","))
-                        }
+                    val lambda = visitElement(p, data)
+                    if (lambda != null) {
+                        val param: JRightPadded<J> =
+                            if (i != parameters.size - 1) {
+                                JRightPadded(lambda, sourceBefore(","), Markers.EMPTY)
+                            } else {
+                                maybeTrailingComma(lambda)
+                            }
                         valueParams.add(param)
                     }
                 }
@@ -408,8 +403,7 @@ class KotlinParserVisitor(
         var params = J.Lambda.Parameters(randomId(), Space.EMPTY, Markers.EMPTY, false, valueParams)
         val saveCursor = cursor
         val arrowPrefix = whitespace()
-        if (source.startsWith("->", cursor)) {
-            skip("->")
+        if (skip("->")) {
             params = if (params.parameters.isEmpty()) {
                 params.padding.withParams(
                     listOf(
@@ -539,8 +533,7 @@ class KotlinParserVisitor(
         saveCursor = cursor
         var body: J.Block? = null
         val bodyPrefix = whitespace()
-        if (source.startsWith("{", cursor)) {
-            skip("{")
+        if (skip("{")) {
             val declarations: MutableList<FirElement> = ArrayList(anonymousObject.declarations.size)
             for (declaration in anonymousObject.declarations) {
                 if (declaration.source != null && declaration.source!!.kind is KtFakeSourceElementKind) {
@@ -619,7 +612,7 @@ class KotlinParserVisitor(
             typeArgs = mapTypeArguments(callableReferenceAccess.typeArguments, data)
         }
 
-        val paddedExr: JRightPadded<Expression> = if (receiverExpr == null) {
+        val paddedExpr: JRightPadded<Expression> = if (receiverExpr == null) {
             padRight(J.Empty(randomId(), Space.EMPTY, Markers.EMPTY), sourceBefore("::"))
         } else {
             padRight(receiverExpr, sourceBefore("::"))
@@ -629,7 +622,7 @@ class KotlinParserVisitor(
             randomId(),
             prefix,
             Markers.EMPTY,
-            paddedExr,
+            paddedExpr,
             typeArgs,
             padLeft(whitespace(), visitElement(callableReferenceAccess.calleeReference, data) as J.Identifier),
             typeMapping.type(callableReferenceAccess.calleeReference),
@@ -651,9 +644,7 @@ class KotlinParserVisitor(
                 )
             ) else JContainer.build(
                 Space.EMPTY, convertAllToExpressions(
-                    arrayOfCall.argumentList.arguments, commaDelim,
-                    { sourceBefore("]") }, data
-                ), Markers.EMPTY
+                    arrayOfCall.argumentList.arguments, ",", "]", data), Markers.EMPTY
             ),
             typeMapping.type(arrayOfCall)
         )
@@ -675,8 +666,7 @@ class KotlinParserVisitor(
         var prefix = whitespace()
         var beforeParens = Space.EMPTY
         var includeParentheses = false
-        if (source.startsWith("(", cursor)) {
-            skip("(")
+        if (skip("(")) {
             beforeParens = prefix
             prefix = whitespace()
             includeParentheses = true
@@ -690,8 +680,7 @@ class KotlinParserVisitor(
             skip("&&")
             op = J.Binary.Type.And
         } else if (LogicOperationKind.OR == binaryLogicExpression.kind) {
-            if (source.startsWith(",", cursor)) {
-                skip(",")
+            if (skip(",")) {
                 markers = Markers.build(listOf(LogicalComma(randomId())))
             } else {
                 skip("||")
@@ -790,10 +779,9 @@ class KotlinParserVisitor(
             var stat = JRightPadded.build(j as Statement)
             saveCursor = cursor
             val beforeSemicolon = whitespace()
-            if (cursor < source.length && source[cursor] == ';') {
+            if (cursor < source.length && skip(";")) {
                 stat = stat.withMarkers(stat.markers.add(Semicolon(randomId())))
                     .withAfter(beforeSemicolon)
-                skip(";")
             } else {
                 cursor(saveCursor)
             }
@@ -884,7 +872,7 @@ class KotlinParserVisitor(
         }
         val valueSource =
             source.substring(cursor, cursor + constExpression.source!!.endOffset - constExpression.source!!.startOffset)
-        skip(valueSource)
+        cursor += valueSource.length
         val value: T = constExpression.value
         val type: JavaType.Primitive = if (constExpression.typeRef is FirResolvedTypeRef &&
             (constExpression.typeRef as FirResolvedTypeRef).type is ConeClassLikeType
@@ -1004,7 +992,7 @@ class KotlinParserVisitor(
     override fun visitEnumEntry(enumEntry: FirEnumEntry, data: ExecutionContext): J {
         val prefix = whitespace()
         val annotations: List<J.Annotation?>? = mapAnnotations(enumEntry.annotations)
-        val j = J.EnumValue(
+        return J.EnumValue(
             randomId(),
             prefix,
             Markers.EMPTY,
@@ -1016,7 +1004,6 @@ class KotlinParserVisitor(
                 null
             }
         )
-        return j
     }
 
     override fun visitSuperReference(superReference: FirSuperReference, data: ExecutionContext): J {
@@ -1136,10 +1123,8 @@ class KotlinParserVisitor(
                     var selectExpr =
                         convertToExpression<Expression>(receiver, data)!!
                     val after = whitespace()
-                    if (source.startsWith(".", cursor)) {
-                        skip(".")
-                    } else if (source.startsWith("?.", cursor)) {
-                        skip("?.")
+                    if (skip(".")) {
+                    } else if (skip("?.")) {
                         selectExpr = selectExpr.withMarkers(
                             selectExpr.markers.addIfAbsent(
                                 IsNullSafe(
@@ -1374,23 +1359,14 @@ class KotlinParserVisitor(
                             J.Empty(randomId(), sourceBefore(")"), Markers.EMPTY), Space.EMPTY
                         )
                     ) else convertAllToExpressions(
-                        argumentsExpression.arguments, commaDelim,
-                        { _: FirElement ->
-                            sourceBefore(
-                                ")"
-                            )
-                        }, data
-                    ), Markers.EMPTY
+                        argumentsExpression.arguments, ",", ")", data
+                    ),
+                    Markers.EMPTY
                 )
             } else {
                 val before = sourceBefore("(")
                 val expressions = convertAllToExpressions<Expression>(
-                    listOf(firExpression), commaDelim,
-                    { _: FirElement ->
-                        sourceBefore(
-                            ")"
-                        )
-                    }, data
+                    listOf(firExpression), ",", ")", data
                 )
                 JContainer.build(
                     before, expressions, Markers.EMPTY
@@ -1428,41 +1404,41 @@ class KotlinParserVisitor(
                 val containerPrefix = sourceBefore("(")
                 val flattenedExpressions = firExpressions.stream()
                     .map { e: FirExpression ->
-                        if (e is FirVarargArgumentsExpression) e.arguments else listOf(
-                            e
-                        )
+                        if (e is FirVarargArgumentsExpression) e.arguments else listOf(e)
                     }
                     .flatMap { obj: List<FirExpression> -> obj.stream() }
                     .collect(Collectors.toList())
+                val argumentCount = flattenedExpressions.size
                 val expressions: MutableList<JRightPadded<Expression>> = ArrayList(flattenedExpressions.size)
-                var isTrailingComma = false
+                val isLastArgumentLambda = flattenedExpressions[argumentCount - 1] is FirLambdaArgumentExpression
+                var isTrailingLambda = false
                 for (i in flattenedExpressions.indices) {
                     val expression = flattenedExpressions[i]
-                    var expr =
-                        convertToExpression<Expression>(expression, data)!!
-                    if (isTrailingComma) {
+                    var expr = convertToExpression<Expression>(expression, data)!!
+                    if (isTrailingLambda) {
                         expr = expr.withMarkers(expr.markers.addIfAbsent(TrailingLambdaArgument(randomId())))
                         expressions.add(padRight(expr, Space.EMPTY))
                         break
                     }
                     val padding = whitespace()
-                    if (i < flattenedExpressions.size - 1) {
-                        if (source.startsWith(",", cursor)) {
-                            skip(",")
-                        } else if (source.startsWith(
-                                ")",
-                                cursor
-                            ) && flattenedExpressions[i + 1] is FirLambdaArgumentExpression
-                        ) {
-                            // Trailing comma: https://kotlinlang.org/docs/coding-conventions.html#trailing-commas
-                            isTrailingComma = true
-                            skip(")")
+                    var trailingComma: TrailingComma? = null
+                    if (isLastArgumentLambda && i == argumentCount - 2) {
+                        trailingComma = if (skip(",")) TrailingComma(randomId(), whitespace()) else null
+                        if (skip(")")) {
+                            // Trailing lambda: https://kotlinlang.org/docs/lambdas.html#passing-trailing-lambdas
+                            isTrailingLambda = true
                         }
+                    } else if (i == argumentCount - 1) {
+                        trailingComma = if (skip(",")) TrailingComma(randomId(), whitespace()) else null
                     } else {
-                        skip(")")
+                        skip(",")
                     }
-                    expressions.add(padRight(expr, padding))
+                    var padded = padRight(expr, padding)
+                    padded =
+                        if (trailingComma != null) padded.withMarkers(padded.markers.addIfAbsent(trailingComma)) else padded
+                    expressions.add(padded)
                 }
+                skip(")")
                 args = JContainer.build(containerPrefix, expressions, Markers.EMPTY)
             }
         }
@@ -1471,9 +1447,7 @@ class KotlinParserVisitor(
 
     private fun mapTypeArguments(types: List<FirElement>, data: ExecutionContext): JContainer<Expression> {
         val prefix = whitespace()
-        if (source.startsWith("<", cursor)) {
-            skip("<")
-        }
+        skip("<")
         val parameters: MutableList<JRightPadded<Expression>> = ArrayList(types.size)
         for (i in types.indices) {
             val type = types[i]
@@ -1481,9 +1455,7 @@ class KotlinParserVisitor(
                 .withAfter(if (i < types.size - 1) sourceBefore(",") else whitespace())
             parameters.add(padded)
         }
-        if (source.startsWith(">", cursor)) {
-            skip(">")
-        }
+        skip(">")
         return JContainer.build(prefix, parameters, Markers.EMPTY)
     }
 
@@ -1493,8 +1465,7 @@ class KotlinParserVisitor(
         val op: JLeftPadded<J.Unary.Type>
         val expr: Expression
         when (name) {
-            "dec" -> if (source.startsWith("--", cursor)) {
-                skip("--")
+            "dec" -> if (skip("--")) {
                 op = padLeft(Space.EMPTY, J.Unary.Type.PreDecrement)
                 expr = convertToExpression(functionCall.dispatchReceiver, data)!!
             } else {
@@ -1505,8 +1476,7 @@ class KotlinParserVisitor(
                 op = padLeft(sourceBefore("--"), J.Unary.Type.PostDecrement)
             }
 
-            "inc" -> if (source.startsWith("++", cursor)) {
-                skip("++")
+            "inc" -> if (skip("++")) {
                 op = padLeft(Space.EMPTY, J.Unary.Type.PreIncrement)
                 expr = convertToExpression(functionCall.dispatchReceiver, data)!!
             } else {
@@ -1600,8 +1570,7 @@ class KotlinParserVisitor(
                     typeMapping.type(typeMapping.type(functionCall.argumentList.arguments[1]))
                 )
                 val before = whitespace()
-                if (source.startsWith("=", cursor)) {
-                    skip("=")
+                if (skip("=")) {
                 } else {
                     // Check for syntax de-sugaring.
                     throw UnsupportedOperationException("Unsupported set operator type.")
@@ -1721,14 +1690,20 @@ class KotlinParserVisitor(
             for (i in parameters.indices) {
                 val p = parameters[i]
                 val expr: J? = visitElement(p, data)
-                if (expr != null) {
-                    var param = JRightPadded.build(expr)
-                    val after =
-                        if (i < parameters.size - 1) sourceBefore(",") else if (parenthesized) sourceBefore(")") else Space.EMPTY
-                    param = param.withAfter(after)
-                    refParams.add(param)
+                var param: JRightPadded<J?>
+                if (i < parameters.size - 1) {
+                    param = JRightPadded.build(expr).withAfter(whitespace())
+                    skip(",")
+                } else {
+                    val after = if (parenthesized) whitespace() else Space.EMPTY
+                    param = JRightPadded.build(expr).withAfter(after)
+                    if (parenthesized && skip(",")) {
+                        param = param.withMarkers(Markers.build(listOf(TrailingComma(randomId(), whitespace()))))
+                    }
                 }
+                refParams.add(param)
             }
+            skip(")")
         }
         var params = J.Lambda.Parameters(randomId(), Space.EMPTY, Markers.EMPTY, parenthesized, refParams)
         if (parenthesized && functionTypeRef.parameters.isEmpty()) {
@@ -1774,13 +1749,14 @@ class KotlinParserVisitor(
 
     override fun visitImport(import: FirImport, data: ExecutionContext): J {
         val prefix = sourceBefore("import")
-        val static = padLeft(Space.EMPTY, false)
+        val hasParentClassId = (import is FirResolvedImport && import.resolvedParentClassId != null)
+        val static = padLeft(Space.EMPTY, hasParentClassId)
         val space = whitespace()
         val packageName =
             if (import.importedFqName == null) "" else if (import.isAllUnder) import.importedFqName!!.asString() + ".*" else import.importedFqName!!.asString()
         val qualid = if (packageName.contains(".")) (build(packageName) as J)
             .withPrefix(space) else
-        // Kotlin allows methods to be imported directly, so we need to create a fake field access to fit into J.Import.
+            // Kotlin allows methods to be imported directly, so we need to create a fake field access to fit into J.Import.
             J.FieldAccess(
                 randomId(),
                 Space.EMPTY,
@@ -1793,12 +1769,10 @@ class KotlinParserVisitor(
         var alias: JLeftPadded<J.Identifier>? = null
         if (import.aliasName != null) {
             val asPrefix = sourceBefore("as")
-            val aliasPrefix = whitespace()
             val aliasText = import.aliasName!!.asString()
             skip(aliasText)
             // FirImport does not contain type attribution information, so we cannot use the type mapping here.
             val aliasId = createIdentifier(aliasText)
-                .withPrefix(aliasPrefix)
             alias = padLeft(asPrefix, aliasId)
         }
         return J.Import(
@@ -2113,10 +2087,8 @@ class KotlinParserVisitor(
             val target = convertToExpression<Expression>(propertyAccessExpression.explicitReceiver!!, data)!!
             val before = whitespace()
             var markers = Markers.EMPTY
-            if (source.startsWith(".", cursor)) {
-                skip(".")
-            } else if (source.startsWith("?.", cursor)) {
-                skip("?.")
+            if (skip(".")) {
+            } else if (skip("?.")) {
                 markers = markers.addIfAbsent(IsNullSafe(randomId(), Space.EMPTY))
             }
             val name = padLeft(before, visitElement(propertyAccessExpression.calleeReference, data) as J.Identifier)
@@ -2207,8 +2179,7 @@ class KotlinParserVisitor(
             val nextPrefix = whitespace()
             var returnTypeExpression: TypeTree? = null
             // Only add the type reference if it exists in source code.
-            if (propertyAccessor.returnTypeRef !is FirImplicitUnitTypeRef && source.startsWith(":", cursor)) {
-                skip(":")
+            if (propertyAccessor.returnTypeRef !is FirImplicitUnitTypeRef && skip(":")) {
                 markers = markers.addIfAbsent(TypeReferencePrefix(randomId(), nextPrefix))
                 returnTypeExpression = visitElement(propertyAccessor.returnTypeRef, data) as TypeTree?
             } else {
@@ -2218,8 +2189,7 @@ class KotlinParserVisitor(
             saveCursor = cursor
             val blockPrefix = whitespace()
             if (propertyAccessor.body is FirSingleExpressionBlock) {
-                if (source.startsWith("=", cursor)) {
-                    skip("=")
+                if (skip("=")) {
                     val singleExpressionBlock = SingleExpressionBlock(randomId())
                     body = visitElement(propertyAccessor.body!!, data) as J.Block?
                     body = body!!.withPrefix(blockPrefix)
@@ -2341,14 +2311,13 @@ class KotlinParserVisitor(
             if (symbol != null) {
                 val prefix = whitespace()
                 val name = symbol.name.asString()
-                val pos = source.substring(cursor).indexOf(name)
+                val pos = source.indexOf(name, cursor)
                 val fullName = source.substring(cursor, cursor + pos + name.length)
-                skip(fullName)
+                cursor += fullName.length
                 var typeTree: TypeTree = (build(fullName) as J).withPrefix(prefix)
                 val saveCursor = cursor
                 val nextPrefix = whitespace()
-                if (source.startsWith("?", cursor)) {
-                    skip("?")
+                if (skip("?")) {
                     typeTree = if (typeTree is J.FieldAccess) {
                         val fa = typeTree
                         fa.withName(
@@ -2395,14 +2364,12 @@ class KotlinParserVisitor(
         for (i in split.indices) {
             val part = split[i]
             name.append(whitespace().whitespace)
-            if (source.startsWith(part, cursor)) {
-                skip(part)
+            if (skip(part)) {
                 name.append(part)
             }
             if (i < split.size - 1) {
                 name.append(whitespace().whitespace)
-                if (source.startsWith(".", cursor)) {
-                    skip(".")
+                if (skip(".")) {
                     name.append(".")
                 }
             }
@@ -2538,10 +2505,7 @@ class KotlinParserVisitor(
         var before = sourceBefore("(")
         var params = if (simpleFunction.valueParameters.isNotEmpty()) JContainer.build(
             before,
-            convertAllToExpressions<Statement>(
-                simpleFunction.valueParameters, commaDelim,
-                { _: FirElement? -> sourceBefore(")") }, data
-            ),
+            convertAllToExpressions<Statement>(simpleFunction.valueParameters, ",", ")", data),
             Markers.EMPTY
         ) else JContainer.build(
             before, listOf(
@@ -2579,8 +2543,7 @@ class KotlinParserVisitor(
         var saveCursor = cursor
         var returnTypeExpression: TypeTree? = null
         before = whitespace()
-        if (source.startsWith(":", cursor)) {
-            skip(":")
+        if (skip(":")) {
             markers = markers.addIfAbsent(TypeReferencePrefix(randomId(), before))
             returnTypeExpression = visitElement(simpleFunction.returnTypeRef, data) as TypeTree?
             saveCursor = cursor
@@ -2757,16 +2720,14 @@ class KotlinParserVisitor(
             Markers.EMPTY,
             name.withPrefix(Space.EMPTY),
             JContainer.build(
-                sourceBefore("<"), convertAllToExpressions(
-                    typeAlias.typeParameters, commaDelim,
-                    { sourceBefore(">") }, data
-                ), Markers.EMPTY
+                sourceBefore("<"),
+                convertAllToExpressions(typeAlias.typeParameters, ",", ">", data),
+                Markers.EMPTY
             ),
             name.type
         )
         val initializerPrefix = sourceBefore("=")
-        val expr =
-            convertToExpression<Expression>(typeAlias.expandedTypeRef, data)!!
+        val expr = convertToExpression<Expression>(typeAlias.expandedTypeRef, data)!!
         val namedVariable = padRight(
             J.VariableDeclarations.NamedVariable(
                 randomId(),
@@ -3111,8 +3072,7 @@ class KotlinParserVisitor(
             val typeRef = valueParameter.returnTypeRef as FirResolvedTypeRef
             if (typeRef.delegatedTypeRef != null) {
                 val delimiterPrefix = whitespace()
-                val addTypeReferencePrefix = source.startsWith(":", cursor)
-                skip(":")
+                val addTypeReferencePrefix = skip(":")
                 if (addTypeReferencePrefix) {
                     markers = markers.addIfAbsent(TypeReferencePrefix(randomId(), delimiterPrefix))
                 }
@@ -3133,8 +3093,7 @@ class KotlinParserVisitor(
             } else if ("_" == valueName) {
                 val savedCursor = cursor
                 val delimiterPrefix = whitespace()
-                if (source.startsWith(":", cursor)) {
-                    skip(":")
+                if (skip(":")) {
                     markers = markers.addIfAbsent(TypeReferencePrefix(randomId(), delimiterPrefix))
                     val j: J = visitElement(typeRef, data)!!
                     typeExpression = if (j is TypeTree) {
@@ -3260,8 +3219,7 @@ class KotlinParserVisitor(
 
     override fun visitWhenBranch(whenBranch: FirWhenBranch, data: ExecutionContext): J {
         val prefix = whitespace()
-        if (source.substring(cursor).startsWith("if")) {
-            skip("if")
+        if (skip("if")) {
         } else require(
             whenBranch.condition is FirElseIfTrueCondition ||
                     whenBranch.condition is FirEqualityOperatorCall
@@ -3294,9 +3252,8 @@ class KotlinParserVisitor(
     override fun visitWhenExpression(whenExpression: FirWhenExpression, data: ExecutionContext): J {
         val saveCursor = cursor
         val prefix = whitespace()
-        if (source.startsWith("when", cursor)) {
+        if (skip("when")) {
             // Create the entire when expression here to simplify visiting `WhenBranch`, since `if` and `when` share the same data structure.
-            skip("when")
             var controlParentheses: J.ControlParentheses<Expression>? = null
             if (whenExpression.subject != null) {
                 controlParentheses = J.ControlParentheses(
@@ -3337,7 +3294,14 @@ class KotlinParserVisitor(
                         expressions.add(padRight(expr, sourceBefore("->")))
                     }
                 } else {
-                    expressions.add(padRight(convertToExpression(whenBranch.condition, data)!!, sourceBefore("->")))
+                    val expr: Expression = convertToExpression(whenBranch.condition, data)!!
+                    var padded = maybeTrailingComma(expr)
+                    if (padded.markers.markers.isEmpty()) {
+                        padded = padded.withAfter(sourceBefore("->"))
+                    } else {
+                        skip("->")
+                    }
+                    expressions.add(padded)
                 }
                 val expressionContainer = JContainer.build(Space.EMPTY, expressions, Markers.EMPTY)
                 val body: J = visitElement(whenBranch.result, data)!!
@@ -3525,8 +3489,7 @@ class KotlinParserVisitor(
         params = if (constructor.valueParameters.isNotEmpty()) JContainer.build(
             before,
             convertAllToExpressions(
-                constructor.valueParameters, commaDelim,
-                { sourceBefore(")") }, data
+                constructor.valueParameters, ",", ")", data
             ),
             Markers.EMPTY
         ) else JContainer.build(
@@ -3565,8 +3528,7 @@ class KotlinParserVisitor(
         saveCursor = cursor
         var returnTypeExpression: TypeTree? = null
         before = whitespace()
-        if (source.startsWith(":", cursor)) {
-            skip(":")
+        if (skip(":")) {
             markers = markers.addIfAbsent(TypeReferencePrefix(randomId(), before))
             returnTypeExpression = if (constructor.delegatedConstructor != null &&
                 (constructor.delegatedConstructor!!.isThis || constructor.delegatedConstructor!!.isSuper)
@@ -3575,9 +3537,10 @@ class KotlinParserVisitor(
                 // The delegate constructor call is de-sugared during the backend phase of the compiler.
                 val delegateName: TypeTree =
                     createIdentifier(if (constructor.delegatedConstructor!!.isThis) "this" else "super")
+                val argsPrefix = whitespace()
                 val args = mapFunctionalCallArguments(
                     constructor.delegatedConstructor!!.argumentList.arguments
-                ).withBefore(before)
+                ).withBefore(argsPrefix)
                 val type = typeMapping.type(constructor)
                 val newClass = J.NewClass(
                     randomId(),
@@ -3610,8 +3573,7 @@ class KotlinParserVisitor(
         saveCursor = cursor
         before = whitespace()
         if (constructor.body is FirSingleExpressionBlock) {
-            if (source.startsWith("=", cursor)) {
-                skip("=")
+            if (skip("=")) {
                 val singleExpressionBlock = SingleExpressionBlock(randomId())
                 body = visitElement(constructor.body!!, data) as J.Block?
                 body = body!!.withPrefix(before)
@@ -3945,9 +3907,7 @@ class KotlinParserVisitor(
         var superTypes: MutableList<JRightPadded<TypeTree>>? = null
         var saveCursor = cursor
         val before = whitespace()
-        if (source.startsWith(":", cursor)) {
-            skip(":")
-        }
+        skip(":")
 
         // Kotlin declared super class and interfaces differently than java. All types declared after the `:` are added into implementings.
         // This should probably exist on a K.ClassDeclaration view where the getters return the appropriate types.
@@ -4003,7 +3963,7 @@ class KotlinParserVisitor(
         val bodyPrefix = whitespace()
         val omitBraces: OmitBraces
         var body: J.Block
-        if (source.substring(cursor).isEmpty() || !source.substring(cursor).startsWith("{")) {
+        if (cursor == source.length || !source.startsWith("{", cursor)) {
             cursor(saveCursor)
             omitBraces = OmitBraces(randomId())
             body = J.Block(
@@ -4024,19 +3984,33 @@ class KotlinParserVisitor(
                 for (i in jcEnums.indices) {
                     val jcEnum = jcEnums[i]
                     val enumValue = visitElement(jcEnum, data) as J.EnumValue
-                    val paddedEnumValue: JRightPadded<J.EnumValue> = if (i == jcEnums.size - 1) {
-                        val enumCursor = cursor
-                        val after = whitespace()
-                        if (source.startsWith(",", cursor)) {
-                            skip(",")
-                            val padded = padRight(enumValue, after)
-                            padded.withMarkers(padded.markers.addIfAbsent(TrailingComma(randomId(), Space.EMPTY)))
-                        } else {
-                            cursor(enumCursor)
-                            maybeSemicolon(enumValue)
-                        }
+                    var paddedEnumValue: JRightPadded<J.EnumValue>
+                    if (i == jcEnums.size - 1) {
+                        // special whitespace handling for last enum constant, as it can have a trailing comma, semicolon, both, or neither...
+                        // further, any trailing whitespace is expected to be saved as the `BLOCK_END` location on the block
+                        var saveCursor1 = cursor
+                        val padding1 = whitespace()
+                        val trailingComma = skip(",")
+                        saveCursor1 = if (trailingComma) cursor else saveCursor1
+                        val padding2 = if (trailingComma) whitespace() else Space.EMPTY
+                        val trailingSemicolon = skip(";")
+                        saveCursor1 = if (trailingSemicolon) cursor else saveCursor1
+                        paddedEnumValue = JRightPadded(
+                            enumValue,
+                            if (trailingComma || trailingSemicolon) padding1 else Space.EMPTY,
+                            if (trailingComma) Markers.build(
+                                listOf(
+                                    TrailingComma(
+                                        randomId(),
+                                        if (trailingSemicolon) padding2 else Space.EMPTY
+                                    )
+                                )
+                            ) else Markers.EMPTY
+                        )
+                        semicolonPresent.set(trailingSemicolon)
+                        cursor(saveCursor1)
                     } else {
-                        padRight(enumValue, sourceBefore(","))
+                        paddedEnumValue = padRight(enumValue, sourceBefore(","))
                     }
                     enumValues.add(paddedEnumValue)
                 }
@@ -4134,8 +4108,7 @@ class KotlinParserVisitor(
         val params = if (primaryConstructor!!.valueParameters.isNotEmpty()) JContainer.build(
             before,
             convertAllToExpressions<Statement>(
-                primaryConstructor.valueParameters, commaDelim,
-                { _: FirElement? -> sourceBefore(")") }, data
+                primaryConstructor.valueParameters, ",", ")", data
             ),
             Markers.EMPTY
         ) else JContainer.build(
@@ -4900,13 +4873,11 @@ class KotlinParserVisitor(
     ): J.Identifier {
         val prefix = whitespace()
         val isQuotedSymbol = source.startsWith("`", cursor)
-        var value: String
+        val value: String
         if (isQuotedSymbol) {
-            skip("`")
-            value = source.substring(cursor, cursor + source.substring(cursor).indexOf('`'))
-            skip(value)
-            skip("`")
-            value = "`$value`"
+            val closingQuoteIdx = source.indexOf('`', cursor + 1)
+            value = source.substring(cursor, closingQuoteIdx + 1)
+            cursor += value.length
         } else {
             value = name
             skip(value)
@@ -4991,7 +4962,7 @@ class KotlinParserVisitor(
         var additionalVariables = 0
         if ("<destruct>" == receiver.name.asString()) {
             additionalVariables =
-                source.substring(cursor, cursor + source.substring(cursor).indexOf(")") + 1).split(",".toRegex())
+                source.substring(cursor, source.indexOf(')', cursor) + 1).split(",".toRegex())
                     .dropLastWhile { it.isEmpty() }
                     .toTypedArray().size
             val variablePrefix = sourceBefore("(")
@@ -5098,17 +5069,12 @@ class KotlinParserVisitor(
         return if (currentFile == null) null else currentFile!!.symbol
     }
 
-    private val commaDelim =
-        Function { _: FirElement ->
-            sourceBefore(
-                ","
-            )
-        }
-
-    private fun skip(token: String?) {
+    private fun skip(token: String?): Boolean {
         if (token != null && source.startsWith(token, cursor)) {
             cursor += token.length
+            return true
         }
+        return false
     }
 
     private fun cursor(n: Int) {
@@ -5176,14 +5142,15 @@ class KotlinParserVisitor(
 
     private fun <J2 : J> convertAllToExpressions(
         elements: List<FirElement>,
-        innerSuffix: Function<FirElement, Space>,
-        suffix: Function<FirElement, Space>,
+        innerDelim: String,
+        delim: String,
         data: ExecutionContext
     ): MutableList<JRightPadded<J2>> {
         if (elements.isEmpty()) {
             return mutableListOf()
         }
-        val converted: MutableList<JRightPadded<J2>> = ArrayList(elements.size)
+        val elementCount = elements.size
+        val converted: MutableList<JRightPadded<J2>> = ArrayList(elementCount)
         for (i in elements.indices) {
             val element = elements[i]
             var j: J2?
@@ -5192,10 +5159,17 @@ class KotlinParserVisitor(
                 try {
                     j = convertToExpression(element, data)
                 } catch (e: Exception) {
+                    if (element.source == null && getRealPsiElement(element) == null) {
+                        throw KotlinParsingException("Failed to parse declaration", e)
+                    }
                     cursor = saveCursor
                     val prefix = whitespace()
-                    val text: String = element.source!!.lighterASTNode.toString()
-                    skip(text)
+                    var text = getRealPsiElement(element)!!.text
+                    if (!prefix.comments.isEmpty()) {
+                        val lastComment = prefix.comments[prefix.comments.size - 1]
+                        val prefixText = lastComment.printComment(Cursor(null, lastComment)) + lastComment.suffix
+                        text = text.substring(prefixText.length)
+                    }
                     @Suppress("UNCHECKED_CAST")
                     j = J.Unknown(
                         randomId(),
@@ -5219,15 +5193,32 @@ class KotlinParserVisitor(
             } else {
                 j = convertToExpression(element, data)
             }
-            val after = if (i == elements.size - 1) suffix.apply(element) else innerSuffix.apply(element)
-            if (j == null && i < elements.size - 1) {
-                continue
+            var rightPadded: JRightPadded<J2>
+            if (i < elementCount - 1) {
+                rightPadded = if (j != null) {
+                    padRight(j, sourceBefore(innerDelim))
+                } else {
+                    continue
+                }
+            } else {
+                val space = whitespace()
+                if (j != null) {
+                    rightPadded = if (skip(",")) padRight(j, space).withMarkers(
+                        Markers.build(
+                            listOf(
+                                TrailingComma(
+                                    randomId(), whitespace()
+                                )
+                            )
+                        )
+                    ) else padRight(j, space)
+                } else {
+                    @Suppress("UNCHECKED_CAST")
+                    j = J.Empty(randomId(), Space.EMPTY, Markers.EMPTY) as J2
+                    rightPadded = padRight(j, space)
+                }
+                skip(delim)
             }
-            if (j == null) {
-                @Suppress("UNCHECKED_CAST")
-                j = J.Empty(randomId(), Space.EMPTY, Markers.EMPTY) as J2
-            }
-            val rightPadded = padRight(j, after)
             converted.add(rightPadded)
         }
         // FIXME
@@ -5238,9 +5229,8 @@ class KotlinParserVisitor(
         val saveCursor = cursor
         var beforeSemi: Space = whitespace()
         var semicolon: Semicolon? = null
-        if (cursor < source.length && source[cursor] == ';') {
+        if (cursor < source.length && skip(";")) {
             semicolon = Semicolon(randomId())
-            cursor++
         } else {
             beforeSemi = Space.EMPTY
             cursor(saveCursor)
@@ -5248,6 +5238,23 @@ class KotlinParserVisitor(
         var padded = JRightPadded.build(k).withAfter(beforeSemi)
         if (semicolon != null) {
             padded = padded.withMarkers(padded.markers.add(semicolon))
+        }
+        return padded
+    }
+
+    private fun <K2 : J> maybeTrailingComma(k: K2): JRightPadded<K2> {
+        val saveCursor = cursor
+        var beforeComma: Space = whitespace()
+        var comma: TrailingComma? = null
+        if (cursor < source.length && skip(",")) {
+            comma = TrailingComma(randomId(), whitespace())
+        } else {
+            beforeComma = Space.EMPTY
+            cursor(saveCursor)
+        }
+        var padded = JRightPadded.build(k).withAfter(beforeComma)
+        if (comma != null) {
+            padded = padded.withMarkers(padded.markers.add(comma))
         }
         return padded
     }
@@ -5304,14 +5311,18 @@ class KotlinParserVisitor(
         if (delimIndex < 0) {
             return Space.EMPTY // unable to find this delimiter
         }
-        val prefix = source.substring(cursor, delimIndex)
-        cursor += prefix.length + untilDelim.length // advance past the delimiter
-        return Space.format(prefix)
+        val space = Space.format(source, cursor, delimIndex)
+        cursor = delimIndex + untilDelim.length // advance past the delimiter
+        return space
     }
 
     private fun whitespace(): Space {
-        val prefix = source.substring(cursor, StringUtils.indexOfNextNonWhitespace(cursor, source))
-        cursor += prefix.length
-        return Space.format(prefix)
+        val nextNonWhitespace = StringUtils.indexOfNextNonWhitespace(cursor, source)
+        if (nextNonWhitespace == cursor) {
+            return Space.EMPTY
+        }
+        val space = Space.format(source, cursor, nextNonWhitespace)
+        cursor = nextNonWhitespace
+        return space
     }
 }
