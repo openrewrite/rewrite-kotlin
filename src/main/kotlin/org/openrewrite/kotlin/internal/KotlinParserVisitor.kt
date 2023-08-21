@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package internal
+package org.openrewrite.kotlin.internal
 
 import org.jetbrains.kotlin.KtFakeSourceElement
 import org.jetbrains.kotlin.KtFakeSourceElementKind
@@ -67,7 +67,6 @@ import org.openrewrite.java.tree.*
 import org.openrewrite.java.tree.TypeTree.build
 import org.openrewrite.kotlin.KotlinParser
 import org.openrewrite.kotlin.KotlinTypeMapping
-import org.openrewrite.kotlin.internal.KotlinParsingException
 import org.openrewrite.kotlin.marker.*
 import org.openrewrite.kotlin.tree.K.*
 import org.openrewrite.marker.Markers

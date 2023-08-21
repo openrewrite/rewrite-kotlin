@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.internal;
 
-import internal.KotlinSource;
 import lombok.Value;
 import org.jetbrains.kotlin.fir.FirSession;
 
