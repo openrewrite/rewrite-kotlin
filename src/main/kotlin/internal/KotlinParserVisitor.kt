@@ -5008,12 +5008,8 @@ class KotlinParserVisitor(
             padRight(expression, afterExpression)
         )
         val body: JRightPadded<Statement> = if (forLoop.block.statements.isNotEmpty()) {
-            val skip = Collections.newSetFromMap(IdentityHashMap<FirElement, Boolean>())
-            val statements = forLoop.block.statements
-            for (i in 0 until 1 + additionalVariables) {
-                skip.add(statements[i])
-            }
-            val block = visitBlock(forLoop.block, skip, data) as Statement
+            // actual loop body is contained as a nested block of the second statement
+            val block = visitBlock(forLoop.block.statements[1] as FirBlock, emptySet(), data) as Statement
             padRight(block, Space.EMPTY)
         } else {
             padRight(J.Empty(randomId(), Space.EMPTY, Markers.EMPTY), Space.EMPTY)
