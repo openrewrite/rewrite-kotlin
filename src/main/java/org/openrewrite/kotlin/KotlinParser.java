@@ -22,7 +22,9 @@ import kotlin.jvm.functions.Function1;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.intellij.lang.annotations.Language;
+import org.jetbrains.kotlin.KtRealPsiSourceElement;
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments;
+import org.jetbrains.kotlin.cli.common.messages.AnalyzerWithCompilerReport;
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector;
 import org.jetbrains.kotlin.cli.common.messages.PrintingMessageCollector;
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles;
@@ -33,6 +35,7 @@ import org.jetbrains.kotlin.com.intellij.openapi.Disposable;
 import org.jetbrains.kotlin.com.intellij.openapi.util.Disposer;
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.kotlin.com.intellij.psi.FileViewProvider;
+import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.PsiManager;
 import org.jetbrains.kotlin.com.intellij.psi.SingleRootFileViewProvider;
 import org.jetbrains.kotlin.com.intellij.testFramework.LightVirtualFile;
@@ -87,10 +90,9 @@ import static java.util.stream.Collectors.toList;
 import static org.jetbrains.kotlin.cli.common.CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY;
 import static org.jetbrains.kotlin.cli.common.messages.MessageRenderer.PLAIN_FULL_PATHS;
 import static org.jetbrains.kotlin.cli.jvm.JvmArgumentsKt.*;
-import static org.jetbrains.kotlin.cli.jvm.compiler.pipeline.CompilerPipelineKt.*;
+import static org.jetbrains.kotlin.cli.jvm.compiler.pipeline.CompilerPipelineKt.createProjectEnvironment;
 import static org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt.*;
 import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
-import static org.jetbrains.kotlin.config.CommonConfigurationKeys.INCREMENTAL_COMPILATION;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
 
@@ -174,6 +176,13 @@ public class KotlinParser implements Parser {
                                         );
 
                                         assert kotlinSource.getFirFile() != null;
+                                        PsiElement psi = ((KtRealPsiSourceElement) kotlinSource.getFirFile().getSource()).getPsi();
+                                        AnalyzerWithCompilerReport.SyntaxErrorReport report =
+                                                AnalyzerWithCompilerReport.Companion.reportSyntaxErrors(psi, MessageCollector.Companion.getNONE());
+                                        if (report.isHasErrors()) {
+                                            return ParseError.build(KotlinParser.this, kotlinSource.getInput(), relativeTo, ctx, new RuntimeException());
+                                        }
+
                                         SourceFile kcu = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), new InMemoryExecutionContext());
                                         parsingListener.parsed(kotlinSource.getInput(), kcu);
                                         return requirePrintEqualsInput(kcu, kotlinSource.getInput(), relativeTo, ctx);
@@ -400,16 +409,16 @@ public class KotlinParser implements Parser {
     }
 
     public enum KotlinLanguageLevel {
-       KOTLIN_1_0,
-       KOTLIN_1_1,
-       KOTLIN_1_2,
-       KOTLIN_1_3,
-       KOTLIN_1_4,
-       KOTLIN_1_5,
-       KOTLIN_1_6,
-       KOTLIN_1_7,
-       KOTLIN_1_8,
-       KOTLIN_1_9
+        KOTLIN_1_0,
+        KOTLIN_1_1,
+        KOTLIN_1_2,
+        KOTLIN_1_3,
+        KOTLIN_1_4,
+        KOTLIN_1_5,
+        KOTLIN_1_6,
+        KOTLIN_1_7,
+        KOTLIN_1_8,
+        KOTLIN_1_9
     }
 
     private CompilerConfiguration compilerConfiguration() {
