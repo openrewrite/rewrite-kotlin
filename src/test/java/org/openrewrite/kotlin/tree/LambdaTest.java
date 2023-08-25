@@ -164,6 +164,7 @@ class LambdaTest implements RewriteTest {
             spec -> spec.afterRecipe(cu -> {
                 Expression initializer = ((J.VariableDeclarations) cu.getStatements().get(0)).getVariables().get(0).getInitializer();
                 J.Lambda l = (J.Lambda) initializer;
+                assertThat(l.getParameters().getPadding().getParams().get(0).getAfter().getWhitespace()).isEqualTo("   ");
                 assertThat(l.getArrow().getWhitespace()).isEqualTo("     ");
               }
             )
