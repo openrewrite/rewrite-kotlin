@@ -320,7 +320,9 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     @Override
     public J visitWhenBranch(K.WhenBranch whenBranch, PrintOutputCapture<P> p) {
         beforeSyntax(whenBranch, KSpace.Location.WHEN_BRANCH_PREFIX, p);
-        visitContainer("", whenBranch.getPadding().getExpressions(), KContainer.Location.WHEN_BRANCH_EXPRESSION, "->", p);
+        visitContainer("", whenBranch.getPadding().getExpressions(), KContainer.Location.WHEN_BRANCH_EXPRESSION, null, p);
+        visitSpace(whenBranch.getArrow(), KSpace.Location.WHEN_BRANCH_ARROW_PREFIX, p);
+        p.append("->");
         visit(whenBranch.getBody(), p);
         afterSyntax(whenBranch, p);
         return whenBranch;

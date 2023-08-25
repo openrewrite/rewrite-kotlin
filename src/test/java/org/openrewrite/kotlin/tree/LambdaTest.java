@@ -17,8 +17,11 @@ package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
+import org.openrewrite.java.tree.Expression;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("RemoveRedundantQualifierName")
@@ -146,6 +149,24 @@ class LambdaTest implements RewriteTest {
             """
               val sum: (Int, Int, ) -> Int = { x, y, -> x + y }
               """
+          )
+        );
+    }
+
+    @SuppressWarnings({"ResultOfMethodCallIgnored", "CodeBlock2Expr"})
+    @Test
+    void trailingComma2() {
+        rewriteRun(
+          kotlin(
+            """
+              var double: (Int, ) -> Int = {  x   ,     -> x * 2}
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                Expression initializer = ((J.VariableDeclarations) cu.getStatements().get(0)).getVariables().get(0).getInitializer();
+                J.Lambda l = (J.Lambda) initializer;
+                assertThat(l.getArrow().getWhitespace()).isEqualTo("     ");
+              }
+            )
           )
         );
     }

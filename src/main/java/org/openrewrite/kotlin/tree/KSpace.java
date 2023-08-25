@@ -47,6 +47,7 @@ public class KSpace {
         TYPE_REFERENCE_PREFIX,
         WHEN_PREFIX,
         WHEN_BRANCH_EXPRESSION,
-        WHEN_BRANCH_PREFIX
+        WHEN_BRANCH_PREFIX,
+        WHEN_BRANCH_ARROW_PREFIX
     }
 }

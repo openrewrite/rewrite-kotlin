@@ -412,23 +412,14 @@ class KotlinParserVisitor(
         val saveCursor = cursor
         val arrowPrefix = whitespace()
         if (skip("->")) {
-            params = if (params.parameters.isEmpty()) {
-                params.padding.withParams(
+            if (params.parameters.isEmpty()) {
+                params = params.padding.withParams(
                     listOf(
                         JRightPadded
                             .build(J.Empty(randomId(), Space.EMPTY, Markers.EMPTY) as J)
-                            .withAfter(arrowPrefix)
+                            .withAfter(Space.EMPTY)
                     )
                 )
-            } else {
-                params.padding.withParams(
-                    ListUtils.mapLast(
-                        params.padding.params
-                    ) { param: JRightPadded<J> ->
-                        param.withAfter(
-                            arrowPrefix
-                        )
-                    })
             }
         } else {
             cursor(saveCursor)
@@ -469,7 +460,7 @@ class KotlinParserVisitor(
             prefix,
             markers,
             params,
-            Space.EMPTY,
+            arrowPrefix,
             body,
             null
         )
@@ -3258,6 +3249,7 @@ class KotlinParserVisitor(
                     if (whenBranch.condition is FirEqualityOperatorCall) (whenBranch.condition as FirEqualityOperatorCall).argumentList.arguments.size - 1 else 1
                 val expressions: MutableList<JRightPadded<Expression>> = ArrayList(exprSize)
                 val branchPrefix = whitespace()
+                var beforeArrow = Space.EMPTY
                 if (whenBranch.condition is FirElseIfTrueCondition) {
                     expressions.add(padRight(createIdentifier("else"), sourceBefore("->")))
                 } else if (whenBranch.condition is FirEqualityOperatorCall) {
@@ -3287,7 +3279,7 @@ class KotlinParserVisitor(
                     if (padded.markers.markers.isEmpty()) {
                         padded = padded.withAfter(sourceBefore("->"))
                     } else {
-                        skip("->")
+                        beforeArrow = sourceBefore("->");
                     }
                     expressions.add(padded)
                 }
@@ -3298,6 +3290,7 @@ class KotlinParserVisitor(
                     branchPrefix,
                     Markers.EMPTY,
                     expressionContainer,
+                    beforeArrow,
                     padRight(body, Space.EMPTY)
                 )
                 statements.add(padRight(branch, Space.EMPTY))
@@ -4868,9 +4861,7 @@ class KotlinParserVisitor(
                     rightPadded = if (skip(",")) padRight(j, space).withMarkers(
                         Markers.build(
                             listOf(
-                                TrailingComma(
-                                    randomId(), whitespace()
-                                )
+                                TrailingComma(randomId(), whitespace())
                             )
                         )
                     ) else padRight(j, space)
@@ -4908,7 +4899,7 @@ class KotlinParserVisitor(
         var beforeComma: Space = whitespace()
         var comma: TrailingComma? = null
         if (cursor < source.length && skip(",")) {
-            comma = TrailingComma(randomId(), whitespace())
+            comma = TrailingComma(randomId(), Space.EMPTY)
         } else {
             beforeComma = Space.EMPTY
             cursor(saveCursor)

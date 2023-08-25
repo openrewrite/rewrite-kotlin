@@ -1243,11 +1243,16 @@ public interface K extends J {
 
         JContainer<Expression> expressions;
 
-        public WhenBranch(UUID id, Space prefix, Markers markers, JContainer<Expression> expressions, JRightPadded<J> body) {
+        @With
+        @Getter
+        Space arrow;
+
+        public WhenBranch(UUID id, Space prefix, Markers markers, JContainer<Expression> expressions, Space arrow, JRightPadded<J> body) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
             this.expressions = expressions;
+            this.arrow = arrow;
             this.body = body;
         }
 
@@ -1309,7 +1314,7 @@ public interface K extends J {
             }
 
             public WhenBranch withBody(JRightPadded<J> body) {
-                return t.body == body ? t : new WhenBranch(t.id, t.prefix, t.markers, t.expressions, body);
+                return t.body == body ? t : new WhenBranch(t.id, t.prefix, t.markers, t.expressions, t.arrow, body);
             }
 
             public JContainer<Expression> getExpressions() {
@@ -1317,7 +1322,7 @@ public interface K extends J {
             }
 
             public WhenBranch withExpressions(JContainer<Expression> expressions) {
-                return t.expressions == expressions ? t : new WhenBranch(t.id, t.prefix, t.markers, expressions, t.body);
+                return t.expressions == expressions ? t : new WhenBranch(t.id, t.prefix, t.markers, expressions, t.arrow, t.body);
             }
         }
     }

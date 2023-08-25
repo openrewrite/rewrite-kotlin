@@ -255,6 +255,21 @@ class WhenTest implements RewriteTest {
     }
 
     @Test
+    void trailingComma2() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method(i : Int) {
+                   when (i) {
+                      1,2   ,     -> "+"
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/240")
     void subjectVariable() {
         rewriteRun(
