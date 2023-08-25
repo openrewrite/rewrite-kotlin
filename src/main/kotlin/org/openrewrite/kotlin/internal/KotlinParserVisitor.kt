@@ -1301,7 +1301,7 @@ class KotlinParserVisitor(
         val isLastArgumentLambda = flattenedExpressions.isNotEmpty() && flattenedExpressions[argumentCount - 1] is FirLambdaArgumentExpression
         val isInfix = firCall is FirFunctionCall && firCall.origin == FirFunctionCallOrigin.Infix
 
-        var markers = Markers.EMPTY
+        val markers = Markers.EMPTY
         val args: JContainer<Expression>
         var saveCursor = cursor
         var containerPrefix = whitespace()
@@ -3275,12 +3275,8 @@ class KotlinParserVisitor(
                     }
                 } else {
                     val expr: Expression = convertToExpression(whenBranch.condition, data)!!
-                    var padded = maybeTrailingComma(expr)
-                    if (padded.markers.markers.isEmpty()) {
-                        padded = padded.withAfter(sourceBefore("->"))
-                    } else {
-                        beforeArrow = sourceBefore("->");
-                    }
+                    val padded = maybeTrailingComma(expr)
+                    beforeArrow = sourceBefore("->");
                     expressions.add(padded)
                 }
                 val expressionContainer = JContainer.build(Space.EMPTY, expressions, Markers.EMPTY)
