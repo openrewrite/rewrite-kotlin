@@ -74,6 +74,26 @@ class LambdaTest implements RewriteTest {
     }
 
     @Test
+    void destructuredLambdaParamsTrailingComma() {
+        rewriteRun(
+          kotlin(
+            """
+              abstract class SomeClass {
+                  
+                  private val defaults = emptySet < String > ( )
+                  
+                  abstract fun fields ( ) : List < Pair < String , Any ? > >
+                  
+                  fun inputValues ( ) : List < Pair < String , Any ? > > {
+                      return fields ( ) . filter { ( k , _    ,     )      -> ! defaults . contains ( k ) }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void multipleDestructuredLambdaParams() {
         rewriteRun(
           kotlin(
