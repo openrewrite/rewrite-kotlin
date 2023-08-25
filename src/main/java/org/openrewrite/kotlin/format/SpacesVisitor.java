@@ -353,13 +353,18 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         J.MethodInvocation m = super.visitMethodInvocation(method, p);
 
         boolean noParens = m.getMarkers().findFirst(OmitParentheses.class).isPresent();
-        if (noParens && m.getPadding().getSelect() != null) {
+        boolean isExtension = m.getMarkers().findFirst(Extension.class).isPresent();
+        if (noParens && isExtension && m.getPadding().getSelect() != null) {
             m = m.getPadding().withSelect(
                     spaceAfter(m.getPadding().getSelect(), true)
             );
         }
-        // Defaulted to `false` if parens exist and to `true` if parens are omitted in Kotlin's formatting.
-        m = m.getPadding().withArguments(spaceBefore(m.getPadding().getArguments(), noParens, false));
+
+        if (!noParens) {
+            // Defaulted to `false` if parens exist and to `true` if parens are omitted in Kotlin's formatting.
+            m = m.getPadding().withArguments(spaceBefore(m.getPadding().getArguments(), noParens, false));
+        }
+
         if (m.getArguments().isEmpty() || m.getArguments().iterator().next() instanceof J.Empty) {
             // withInEmptyMethodCallParentheses is defaulted to `false` in IntelliJ's Kotlin formatting.
             m = m.getPadding().withArguments(
@@ -372,13 +377,13 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         } else {
             final int argsSize = m.getArguments().size();
 
-            // Defaulted to `false` in IntelliJ's Kotlin formatting IFF parens exist.
+            // Defaulted to `false` in IntelliJ's Kotlin formatting if parens exist.
             m = m.getPadding().withArguments(
                     m.getPadding().getArguments().getPadding().withElements(
                             ListUtils.map(m.getPadding().getArguments().getPadding().getElements(),
                                     (index, arg) -> {
                                         if (index == 0) {
-                                            arg = arg.withElement(spaceBefore(arg.getElement(), false));
+                                            arg = arg.withElement(spaceBefore(arg.getElement(), noParens));
                                         } else {
                                             arg = arg.withElement(
                                                     spaceBefore(arg.getElement(), style.getOther().getAfterComma())
@@ -944,26 +949,32 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
             return lambda;
         }
 
-        // handle space before Lambda arrow
-        boolean useSpaceBeforeLambdaArrow = style.getOther().getBeforeLambdaArrow();
-        boolean lastParamHasSpace = false;
-        List<JRightPadded<J>> parameters = l.getParameters().getPadding().getParams();
-        if (!parameters.isEmpty()) {
-            Space after = parameters.get(parameters.size() - 1).getAfter();
-            lastParamHasSpace = after.getComments().isEmpty() && onlySpacesAndNotEmpty(after.getWhitespace());
-        }
+        boolean hasArrow = !lambda.getParameters().getParameters().isEmpty();
+        if (hasArrow) {
+            // handle space before Lambda arrow
+            boolean useSpaceBeforeLambdaArrow = style.getOther().getBeforeLambdaArrow();
+            boolean lastParamHasSpace = false;
+            List<JRightPadded<J>> parameters = l.getParameters().getPadding().getParams();
+            if (!parameters.isEmpty()) {
+                Space after = parameters.get(parameters.size() - 1).getAfter();
+                lastParamHasSpace = after.getComments().isEmpty() && onlySpacesAndNotEmpty(after.getWhitespace());
+            }
 
-        if (lastParamHasSpace) {
-            parameters = ListUtils.mapLast(parameters, rp  -> spaceAfter(rp, useSpaceBeforeLambdaArrow));
-            l = l.withParameters(l.getParameters().getPadding().withParams(parameters));
-        } else {
-            l = l.withArrow(updateSpace(l.getArrow(), useSpaceBeforeLambdaArrow));
-        }
+            if (lastParamHasSpace) {
+                parameters = ListUtils.mapLast(parameters, rp -> spaceAfter(rp, useSpaceBeforeLambdaArrow));
+                l = l.withParameters(l.getParameters().getPadding().withParams(parameters));
+            } else {
+                l = l.withArrow(updateSpace(l.getArrow(), useSpaceBeforeLambdaArrow));
+            }
 
-        // handle space after Lambda arrow
-        // Intellij has a specific setting for Space before Lambda arrow, but no setting for space after Lambda arrow, default to true.
-        boolean useSpaceAfterLambdaArrow = true;
-        l = l.withBody(spaceBefore(l.getBody(), useSpaceAfterLambdaArrow));
+            // handle space after Lambda arrow
+            // Intellij has a specific setting for Space before Lambda arrow, but no setting for space after Lambda arrow, default to true.
+            boolean useSpaceAfterLambdaArrow = true;
+
+
+
+            // l = l.withBody(spaceBefore(l.getBody(), useSpaceAfterLambdaArrow));
+        }
 
         if (!(l.getParameters().getParameters().isEmpty() || l.getParameters().getParameters().iterator().next() instanceof J.Empty)) {
             int parametersSize = l.getParameters().getParameters().size();

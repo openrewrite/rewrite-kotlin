@@ -24,6 +24,21 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 @SuppressWarnings("RemoveRedundantQualifierName")
 class LambdaTest implements RewriteTest {
 
+
+    @Test
+    void trailingLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = "foo"   .     let {
+                  it.length
+              }
+              """
+          )
+        );
+    }
+
+
     @Test
     void binaryExpressionAsBody() {
         rewriteRun(

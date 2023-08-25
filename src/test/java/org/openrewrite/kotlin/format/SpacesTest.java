@@ -40,6 +40,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
+import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
@@ -818,6 +819,23 @@ class SpacesTest implements RewriteTest {
                       for (i in 10 .. 42) {
                       }
                   }
+                  """
+              )
+            );
+        }
+
+        @Test
+        void aroundOperatorsLambdaArrow() {
+            rewriteRun(
+              spaces(),
+              kotlin(
+                """
+                  val double: (Int)->Int = { it * 2 }
+                  val r: ()   ->   Unit = {}
+                  """,
+                """
+                  val double: (Int) -> Int = { it * 2 }
+                  val r: () -> Unit = {}
                   """
               )
             );

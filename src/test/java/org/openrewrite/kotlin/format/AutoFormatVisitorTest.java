@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.format;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -237,6 +238,52 @@ class AutoFormatVisitorTest implements RewriteTest {
                       val GRANT_TYPE = "password"
                   }
               }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = "foo".let {
+                  it.length
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingLambdaWithParam() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = listOf(1).forEach { e -> println(e) }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingLambdaWithParamTrailingComment() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = listOf(1).forEach { e, -> println(e) }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingLambdaWithMethodRefParam() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = listOf(1).forEach(::println)
               """
           )
         );

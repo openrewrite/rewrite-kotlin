@@ -345,4 +345,17 @@ class MinimumViableSpacingTest implements RewriteTest {
         );
     }
 
+    @Test
+    void trailingLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = "foo".let {}
+              """,
+            """
+              val x="foo".let{}
+              """
+          )
+        );
+    }
 }
