@@ -614,7 +614,7 @@ class KotlinParserVisitor(
         }
 
         var typeArgs: JContainer<Expression>? = null
-        if (callableReferenceAccess.typeArguments.isNotEmpty()) {
+        if (getReceiver(callableReferenceAccess) != null && callableReferenceAccess.typeArguments.isNotEmpty()) {
             typeArgs = mapTypeArguments(callableReferenceAccess.typeArguments, data)
         }
 
@@ -1107,10 +1107,7 @@ class KotlinParserVisitor(
                 markers = markers.addIfAbsent(Extension(randomId()))
             }
             if (functionCall !is FirImplicitInvokeCall) {
-                var receiver = getReceiver(functionCall.explicitReceiver)
-                if (receiver == null) {
-                    receiver = getReceiver(functionCall.dispatchReceiver)
-                }
+                val receiver = getReceiver(functionCall)
                 if (receiver != null) {
                     val selectExpr =
                         convertToExpression<Expression>(receiver, data)
@@ -1176,6 +1173,18 @@ class KotlinParserVisitor(
                 type
             )
         }
+    }
+
+    private fun getReceiver(expression: FirQualifiedAccessExpression?): FirElement? {
+        if (expression?.source == null) {
+            return null
+        }
+
+        var receiver: FirElement? = getReceiver(expression.explicitReceiver)
+        if (receiver == null) {
+            receiver = getReceiver(expression.dispatchReceiver)
+        }
+        return receiver
     }
 
     private fun getReceiver(firElement: FirElement?): FirElement? {
