@@ -750,10 +750,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             afterSyntax(params.getMarkers(), p);
             p.append(")");
 
-            if (method.getReturnTypeExpression() != null) {
-                method.getMarkers().findFirst(TypeReferencePrefix.class).ifPresent(typeReferencePrefix ->
-                        kotlinPrinter.visitSpace(typeReferencePrefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p));
+            method.getMarkers().findFirst(TypeReferencePrefix.class).ifPresent(typeReferencePrefix -> {
+                kotlinPrinter.visitSpace(typeReferencePrefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p);
                 p.append(":");
+            });
+            if (method.getReturnTypeExpression() != null) {
                 visit(method.getReturnTypeExpression(), p);
             }
             visit(method.getBody(), p);

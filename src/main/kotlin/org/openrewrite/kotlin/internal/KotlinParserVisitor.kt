@@ -3542,8 +3542,10 @@ class KotlinParserVisitor(
             newStatements.addAll(params.padding.elements)
             params = params.padding.withElements(newStatements)
         }
+
         saveCursor = cursor
         var returnTypeExpression: TypeTree? = null
+        var body: J.Block? = null
         before = whitespace()
         if (skip(":")) {
             markers = markers.addIfAbsent(TypeReferencePrefix(randomId(), before))
@@ -3552,23 +3554,30 @@ class KotlinParserVisitor(
             ) {
                 val thisPrefix = whitespace()
                 // The delegate constructor call is de-sugared during the backend phase of the compiler.
-                val delegateName: TypeTree =
+                val delegateName =
                     createIdentifier(if (constructor.delegatedConstructor!!.isThis) "this" else "super")
                 val argsPrefix = whitespace()
                 val args = mapFunctionalCallArguments(constructor.delegatedConstructor!!).withBefore(argsPrefix)
                 val type = typeMapping.type(constructor)
-                val newClass = J.NewClass(
+                val call = J.MethodInvocation(
                     randomId(),
                     thisPrefix,
                     Markers.EMPTY,
                     null,
-                    Space.EMPTY,
+                    null,
                     delegateName,
                     args,
-                    null,
                     if (type is JavaType.Method) type else null
                 )
-                K.FunctionType(randomId(), Space.EMPTY, Markers.EMPTY, newClass, emptyList(), emptyList(), null)
+                body = J.Block(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY.addIfAbsent(OmitBraces(randomId())),
+                    JRightPadded(false, Space.EMPTY, Markers.EMPTY),
+                    listOf(JRightPadded.build(call)),
+                    Space.EMPTY
+                )
+                null
             } else {
                 visitElement(constructor.returnTypeRef, data) as TypeTree?
             }
@@ -3584,7 +3593,7 @@ class KotlinParserVisitor(
         } else {
             cursor(saveCursor)
         }
-        val body: J.Block?
+
         saveCursor = cursor
         before = whitespace()
         if (constructor.body is FirSingleExpressionBlock) {
@@ -3598,7 +3607,6 @@ class KotlinParserVisitor(
             body = visitElement(constructor.body!!, data) as J.Block?
         } else if (constructor.body == null) {
             cursor(saveCursor)
-            body = null
         } else {
             throw IllegalStateException("Unexpected constructor body.")
         }
@@ -3933,9 +3941,9 @@ class KotlinParserVisitor(
                     superTypes = ArrayList(regularClass.superTypeRefs.size)
                 }
                 var element = visitElement(typeRef, data) as TypeTree
-                if (symbol != null && ClassKind.CLASS == symbol.fir.classKind) {
+                if (firPrimaryConstructor != null && symbol != null && ClassKind.CLASS == symbol.fir.classKind) {
                     // Wrap the element in a J.NewClass to preserve the whitespace and container of `( )`
-                    val args = mapFunctionalCallArguments(firPrimaryConstructor!!.delegatedConstructor!!)
+                    val args = mapFunctionalCallArguments(firPrimaryConstructor.delegatedConstructor!!)
                     val newClass = J.NewClass(
                         randomId(),
                         element.prefix,

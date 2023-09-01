@@ -480,7 +480,6 @@ class ClassDeclarationTest implements RewriteTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
-    @ExpectedToFail
     void onlySecondaryConstructors() {
         rewriteRun(
           kotlin(
