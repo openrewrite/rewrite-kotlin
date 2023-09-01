@@ -3548,7 +3548,7 @@ class KotlinParserVisitor(
         var body: J.Block? = null
         before = whitespace()
         if (skip(":")) {
-            markers = markers.addIfAbsent(TypeReferencePrefix(randomId(), before))
+            markers = markers.addIfAbsent(ConstructorDelegation(randomId(), before))
             returnTypeExpression = if (constructor.delegatedConstructor != null &&
                 (constructor.delegatedConstructor!!.isThis || constructor.delegatedConstructor!!.isSuper)
             ) {
