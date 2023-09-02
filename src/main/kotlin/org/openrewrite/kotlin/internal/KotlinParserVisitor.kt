@@ -3544,44 +3544,30 @@ class KotlinParserVisitor(
         }
 
         saveCursor = cursor
-        var body: J.Block? = null
+        var delegationCall: J.MethodInvocation? = null
         before = whitespace()
         if (skip(":") && constructor.delegatedConstructor != null) {
-            markers = markers.addIfAbsent(ConstructorDelegation(randomId(), before))
             val thisPrefix = whitespace()
             // The delegate constructor call is de-sugared during the backend phase of the compiler.
             val delegateName =
                 createIdentifier(if (constructor.delegatedConstructor!!.isThis) "this" else "super")
             val argsPrefix = whitespace()
             val args = mapFunctionalCallArguments(constructor.delegatedConstructor!!).withBefore(argsPrefix)
-            val type = typeMapping.type(constructor)
-            val call = J.MethodInvocation(
+            delegationCall = J.MethodInvocation(
                 randomId(),
                 thisPrefix,
-                Markers.EMPTY,
+                Markers.EMPTY.addIfAbsent(ConstructorDelegation(randomId(), before)),
                 null,
                 null,
                 delegateName,
                 args,
-                if (type is JavaType.Method) type else null
-            )
-            // FIXME the `ConstructorDelegation` marker should possibly be moved to the `call`
-            // FIXME since a constructor using delegation can still have a block and the delegation
-            // FIXME is then just the first statement in that block which needs special treatment
-            // FIXME when printing
-            body = J.Block(
-                randomId(),
-                Space.EMPTY,
-                Markers.EMPTY.addIfAbsent(OmitBraces(randomId())),
-                JRightPadded(false, Space.EMPTY, Markers.EMPTY),
-                listOf(JRightPadded.build(call)),
-                Space.EMPTY
+                typeMapping.type(constructor) as JavaType.Method
             )
         } else {
             cursor(saveCursor)
         }
 
-        // FIXME add delegation call to block
+        var body: J.Block? = null
         saveCursor = cursor
         before = whitespace()
         if (constructor.body is FirSingleExpressionBlock) {
@@ -3597,6 +3583,21 @@ class KotlinParserVisitor(
             cursor(saveCursor)
         } else {
             throw IllegalStateException("Unexpected constructor body.")
+        }
+
+        if (delegationCall != null) {
+            body = if (body == null) {
+                J.Block(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY.addIfAbsent(OmitBraces(randomId())),
+                    JRightPadded(false, Space.EMPTY, Markers.EMPTY),
+                    listOf(JRightPadded.build(delegationCall)),
+                    Space.EMPTY
+                )
+            } else {
+                body.withStatements(ListUtils.insert(body.statements, delegationCall, 0))
+            }
         }
 
         return J.MethodDeclaration(
