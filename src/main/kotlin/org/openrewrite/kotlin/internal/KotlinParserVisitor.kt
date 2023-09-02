@@ -3544,56 +3544,44 @@ class KotlinParserVisitor(
         }
 
         saveCursor = cursor
-        var returnTypeExpression: TypeTree? = null
         var body: J.Block? = null
         before = whitespace()
-        if (skip(":")) {
+        if (skip(":") && constructor.delegatedConstructor != null) {
             markers = markers.addIfAbsent(ConstructorDelegation(randomId(), before))
-            returnTypeExpression = if (constructor.delegatedConstructor != null &&
-                (constructor.delegatedConstructor!!.isThis || constructor.delegatedConstructor!!.isSuper)
-            ) {
-                val thisPrefix = whitespace()
-                // The delegate constructor call is de-sugared during the backend phase of the compiler.
-                val delegateName =
-                    createIdentifier(if (constructor.delegatedConstructor!!.isThis) "this" else "super")
-                val argsPrefix = whitespace()
-                val args = mapFunctionalCallArguments(constructor.delegatedConstructor!!).withBefore(argsPrefix)
-                val type = typeMapping.type(constructor)
-                val call = J.MethodInvocation(
-                    randomId(),
-                    thisPrefix,
-                    Markers.EMPTY,
-                    null,
-                    null,
-                    delegateName,
-                    args,
-                    if (type is JavaType.Method) type else null
-                )
-                body = J.Block(
-                    randomId(),
-                    Space.EMPTY,
-                    Markers.EMPTY.addIfAbsent(OmitBraces(randomId())),
-                    JRightPadded(false, Space.EMPTY, Markers.EMPTY),
-                    listOf(JRightPadded.build(call)),
-                    Space.EMPTY
-                )
-                null
-            } else {
-                visitElement(constructor.returnTypeRef, data) as TypeTree?
-            }
-            saveCursor = cursor
-            before = whitespace()
-            if (source[cursor] == '?') {
-                returnTypeExpression = returnTypeExpression!!.withMarkers(
-                    returnTypeExpression.markers.addIfAbsent(IsNullable(randomId(), before))
-                )
-            } else {
-                cursor(saveCursor)
-            }
+            val thisPrefix = whitespace()
+            // The delegate constructor call is de-sugared during the backend phase of the compiler.
+            val delegateName =
+                createIdentifier(if (constructor.delegatedConstructor!!.isThis) "this" else "super")
+            val argsPrefix = whitespace()
+            val args = mapFunctionalCallArguments(constructor.delegatedConstructor!!).withBefore(argsPrefix)
+            val type = typeMapping.type(constructor)
+            val call = J.MethodInvocation(
+                randomId(),
+                thisPrefix,
+                Markers.EMPTY,
+                null,
+                null,
+                delegateName,
+                args,
+                if (type is JavaType.Method) type else null
+            )
+            // FIXME the `ConstructorDelegation` marker should possibly be moved to the `call`
+            // FIXME since a constructor using delegation can still have a block and the delegation
+            // FIXME is then just the first statement in that block which needs special treatment
+            // FIXME when printing
+            body = J.Block(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY.addIfAbsent(OmitBraces(randomId())),
+                JRightPadded(false, Space.EMPTY, Markers.EMPTY),
+                listOf(JRightPadded.build(call)),
+                Space.EMPTY
+            )
         } else {
             cursor(saveCursor)
         }
 
+        // FIXME add delegation call to block
         saveCursor = cursor
         before = whitespace()
         if (constructor.body is FirSingleExpressionBlock) {
@@ -3618,7 +3606,7 @@ class KotlinParserVisitor(
             if (leadingAnnotations.isEmpty()) emptyList() else leadingAnnotations,
             modifiers,
             null,
-            returnTypeExpression,
+            null,
             J.MethodDeclaration.IdentifierWithAnnotations(name, emptyList()),
             params,
             null,
