@@ -24,8 +24,10 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.marker.*;
 import org.openrewrite.kotlin.service.KotlinAutoFormatService;
 import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.kotlin.tree.KRightPadded;
 import org.openrewrite.kotlin.tree.KSpace;
 import org.openrewrite.marker.Marker;
+import org.openrewrite.marker.Markers;
 
 /**
  * Visit K types.
@@ -156,7 +158,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         f = f.withParameters(
                 f.getParameters().getPadding().withParams(
                         ListUtils.map(f.getParameters().getPadding().getParams(),
-                                param -> visitRightPadded(param, JRightPadded.Location.TYPE_PARAMETER, p)
+                                param -> visitRightPadded(param, KRightPadded.Location.FUNCTION_TYPE_PARAM, p)
                         )
                 )
         );
@@ -307,6 +309,32 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
 
     public <J2 extends J> JContainer<J2> visitContainer(JContainer<J2> container, P p) {
         return super.visitContainer(container, JContainer.Location.LANGUAGE_EXTENSION, p);
+    }
+
+    public <T> JRightPadded<T> visitRightPadded(@Nullable JRightPadded<T> right, KRightPadded.Location loc, P p) {
+        if (right == null) {
+            //noinspection ConstantConditions
+            return null;
+        }
+
+        setCursor(new Cursor(getCursor(), right));
+
+        T t = right.getElement();
+        if (t instanceof J) {
+            //noinspection unchecked
+            t = visitAndCast((J) right.getElement(), p);
+        }
+
+        setCursor(getCursor().getParent());
+        if (t == null) {
+            //noinspection ConstantConditions
+            return null;
+        }
+
+        Space after = visitSpace(right.getAfter(), loc.getAfterLocation(), p);
+        Markers markers = visitMarkers(right.getMarkers(), p);
+        return (after == right.getAfter() && t == right.getElement() && markers == right.getMarkers()) ?
+                right : new JRightPadded<>(t, after, markers);
     }
 
     @Override
