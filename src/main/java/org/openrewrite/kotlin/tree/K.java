@@ -320,6 +320,66 @@ public interface K extends J {
         }
     }
 
+    /**
+     * In Kotlin all expressions can be annotated with annotations with the corresponding annotation target.
+     */
+    @Getter
+    @SuppressWarnings("unchecked")
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    final class AnnotatedExpression implements K, Expression {
+
+        @With
+        UUID id;
+
+        @With
+        Space prefix;
+
+        @With
+        Markers markers;
+
+        @With
+        List<J.Annotation> annotations;
+
+        @With
+        Expression expression;
+
+        public AnnotatedExpression(UUID id, Space prefix, Markers markers, List<J.Annotation> annotations, Expression expression) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.annotations = annotations;
+            this.expression = expression;
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitAnnotatedExpression(this, p);
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            return expression.getType();
+        }
+
+        @Override
+        public <T extends J> T withType(@Nullable JavaType type) {
+            // type must be changed on expression
+            return (T) this;
+        }
+
+        @Transient
+        @Override
+        public CoordinateBuilder.Expression getCoordinates() {
+            return new CoordinateBuilder.Expression(this);
+        }
+
+        @Override
+        public String toString() {
+            return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
+        }
+    }
+
     @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
@@ -669,14 +729,11 @@ public interface K extends J {
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @Data
-    final class KReturn implements K, Statement {
+    final class KReturn implements K, Statement, Expression {
 
         @With
         @EqualsAndHashCode.Include
         UUID id;
-
-        @With
-        List<J.Annotation> annotations;
 
         @With
         J.Return expression;
@@ -685,9 +742,8 @@ public interface K extends J {
         @Nullable
         J.Identifier label;
 
-        public KReturn(UUID id, List<Annotation> annotations, Return expression, @Nullable J.Identifier label) {
+        public KReturn(UUID id, Return expression, @Nullable J.Identifier label) {
             this.id = id;
-            this.annotations = annotations;
             this.expression = expression;
             this.label = label;
         }
@@ -715,6 +771,18 @@ public interface K extends J {
         }
 
         @Override
+        public @Nullable JavaType getType() {
+            //noinspection DataFlowIssue
+            return expression.getExpression().getType();
+        }
+
+        @Override
+        public <T extends J> T withType(@Nullable JavaType type) {
+            // to change the expression of a return, change the type of its expression
+            return (T) this;
+        }
+
+        @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
             return v.visitKReturn(this, p);
         }
@@ -735,7 +803,7 @@ public interface K extends J {
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @Data
     @With
-    final class KString implements K, Statement, Expression {
+    final class KString implements K, Expression {
         UUID id;
         Space prefix;
         Markers markers;
@@ -761,8 +829,8 @@ public interface K extends J {
 
         @Transient
         @Override
-        public CoordinateBuilder.Statement getCoordinates() {
-            return new CoordinateBuilder.Statement(this);
+        public CoordinateBuilder.Expression getCoordinates() {
+            return new CoordinateBuilder.Expression(this);
         }
 
         @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)

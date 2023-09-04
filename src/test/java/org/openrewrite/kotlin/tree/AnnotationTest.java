@@ -350,7 +350,7 @@ class AnnotationTest implements RewriteTest {
                       }
               
                   @Ann inline fun < @Ann reified T > m ( @Ann s : @Ann String ) : String {
-                      @Ann return s
+                      @Ann return @Ann s
                   }
               }
               @Ann typealias Other = @Ann String
@@ -376,7 +376,6 @@ class AnnotationTest implements RewriteTest {
 
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/267")
-    @ExpectedToFail
     void expressionAnnotationInsideLambda() {
         rewriteRun(
           kotlin(
