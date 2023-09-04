@@ -17,8 +17,8 @@ package org.openrewrite.kotlin.tree;
 
 public class KSpace {
     public enum Location {
-        ANNOTATION_CALL_SITE_PREFIX,
         ANNOTATED_EXPRESSION_PREFIX,
+        ANNOTATION_CALL_SITE_PREFIX,
         BINARY_PREFIX,
         BINARY_OPERATOR,
         BINARY_SUFFIX,
