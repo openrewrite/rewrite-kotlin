@@ -1705,7 +1705,7 @@ class KotlinParserVisitor(
             }
             skip(")")
         }
-        var params = J.Lambda.Parameters(randomId(), Space.EMPTY, Markers.EMPTY, parenthesized, refParams)
+        var params = K.FunctionType.Parameters(randomId(), Space.EMPTY, Markers.EMPTY, parenthesized, refParams)
         if (parenthesized && functionTypeRef.parameters.isEmpty()) {
             params = params.padding.withParams(
                 listOf(
@@ -1720,30 +1720,20 @@ class KotlinParserVisitor(
         whitespace()
         val omitBraces = source[cursor] != '{'
         cursor(saveCursor)
-        var body: J = visitElement(functionTypeRef.returnTypeRef, data)!!
-        if (body is J.Block) {
-            body = body.withEnd(sourceBefore("}"))
-        }
-        if (functionTypeRef.parameters.isEmpty()) {
-            body = body.withMarkers(body.markers.removeByType(OmitBraces::class.java))
-        }
-        val lambda = J.Lambda(
-            randomId(),
-            before,
-            if (omitBraces) Markers.EMPTY.addIfAbsent(OmitBraces(randomId())) else Markers.EMPTY,
-            params,
-            arrow,
-            body,
-            closureType
-        )
+        var body: TypeTree = visitElement(functionTypeRef.returnTypeRef, data) as TypeTree
+//        if (body is J.Block) {
+//            body = body.withEnd(sourceBefore("}"))
+//        }
         return K.FunctionType(
             randomId(),
             prefix,
-            Markers.EMPTY,
-            lambda,
+            if (omitBraces) Markers.EMPTY.addIfAbsent(OmitBraces(randomId())) else Markers.EMPTY,
             leadingAnnotations,
             modifiers,
-            receiver
+            receiver,
+            params,
+            arrow,
+            body //closureType
         )
     }
 
@@ -2091,9 +2081,11 @@ class KotlinParserVisitor(
                             randomId(),
                             Space.EMPTY,
                             Markers.EMPTY,
-                            j as TypedTree,
                             emptyList(),
                             emptyList(),
+                            null,
+                            null!!, //j,
+                            null!!,
                             null
                     )
                 }
@@ -3132,9 +3124,11 @@ class KotlinParserVisitor(
                         randomId(),
                         Space.EMPTY,
                         Markers.EMPTY,
-                        j as TypedTree,
                         emptyList(),
                         emptyList(),
+                        null,
+                        null!!, //j as TypedTree,
+                        null,
                         null
                     )
                 }
@@ -3151,9 +3145,11 @@ class KotlinParserVisitor(
                             randomId(),
                             Space.EMPTY,
                             Markers.EMPTY,
-                            j as TypedTree,
                             emptyList(),
                             emptyList(),
+                            null,
+                            null!!, //j as TypedTree,
+                            null,
                             null
                         )
                     }

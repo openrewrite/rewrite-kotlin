@@ -145,16 +145,22 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         K.FunctionType f = functionType;
         f = f.withPrefix(visitSpace(f.getPrefix(), KSpace.Location.FUNCTION_TYPE_PREFIX, p));
         f = f.withMarkers(visitMarkers(f.getMarkers(), p));
-        Expression temp = (Expression) visitExpression(f, p);
-        if (!(temp instanceof K.FunctionType)) {
-            return temp;
-        } else {
-            f = (K.FunctionType) temp;
-        }
         f = f.withLeadingAnnotations(ListUtils.map(f.getLeadingAnnotations(), a -> visitAndCast(a, p)));
         f = f.withModifiers(ListUtils.map(f.getModifiers(), e -> visitAndCast(e, p)));
         f = f.withReceiver(visitRightPadded(f.getReceiver(), p));
-        f = f.withTypedTree(visitAndCast(f.getTypedTree(), p));
+        f = f.withParameters(
+                f.getParameters().withPrefix(
+                        visitSpace(f.getParameters().getPrefix(), KSpace.Location.FUNCTION_TYPE_PARAMETERS_PREFIX, p)
+                )
+        );
+        f = f.withParameters(
+                f.getParameters().getPadding().withParams(
+                        ListUtils.map(f.getParameters().getPadding().getParams(),
+                                param -> visitRightPadded(param, JRightPadded.Location.TYPE_PARAMETER, p)
+                        )
+                )
+        );
+        f = f.withParameters(visitAndCast(f.getParameters(), p));
         return f;
     }
 

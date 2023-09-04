@@ -174,9 +174,41 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             visitRightPadded(functionType.getReceiver(), p);
             p.append(".");
         }
-        visit(functionType.getTypedTree(), p);
+        visitFunctionTypeParameters(functionType.getParameters(), p);
+        if (!functionType.getParameters().getParameters().isEmpty()) {
+            visitSpace(functionType.getArrow(), KSpace.Location.FUNCTION_TYPE_ARROW_PREFIX, p);
+            p.append("->");
+        }
+        visit(functionType.getParameters(), p);
+        visit(functionType.getReturnType(), p);
         afterSyntax(functionType, p);
         return functionType;
+    }
+
+    private void visitFunctionTypeParameters(K.FunctionType.Parameters parameters, PrintOutputCapture<P> p) {
+        visitMarkers(parameters.getMarkers(), p);
+        if (parameters.isParenthesized()) {
+            visitSpace(parameters.getPrefix(), KSpace.Location.FUNCTION_TYPE_PARAMETERS_PREFIX, p);
+            p.append('(');
+            visitRightPadded(parameters.getPadding().getParams(), KRightPadded.Location.FUNCTION_TYPE_PARAM, p);
+            p.append(')');
+        } else {
+            List<JRightPadded<J>> params = parameters.getPadding().getParams();
+            for (int i = 0; i < params.size(); i++) {
+                JRightPadded<J> param = params.get(i);
+                if (param.getElement() instanceof K.FunctionType.Parameters) {
+                    visitFunctionTypeParameters((K.FunctionType.Parameters) param.getElement(), p);
+                    visitSpace(param.getAfter(), KRightPadded.Location.FUNCTION_TYPE_PARAM.getAfterLocation(), p);
+                } else {
+                    visit(param.getElement(), p);
+                    visitSpace(param.getAfter(), KRightPadded.Location.FUNCTION_TYPE_PARAM.getAfterLocation(), p);
+                    visitMarkers(param.getMarkers(), p);
+                    if (i < params.size() - 1) {
+                        p.append(',');
+                    }
+                }
+            }
+        }
     }
 
     @Override

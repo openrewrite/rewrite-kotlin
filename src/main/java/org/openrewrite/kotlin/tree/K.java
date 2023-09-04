@@ -656,29 +656,30 @@ public interface K extends J {
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
-    class FunctionType implements K, Expression, Statement, TypeTree {
+    class FunctionType implements K, TypeTree {
 
         UUID id;
         Space prefix;
 
-        public FunctionType(UUID id, Space prefix, Markers markers, TypedTree typedTree, List<Annotation> leadingAnnotations, List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver) {
+        public FunctionType(UUID id, Space prefix, Markers markers, List<Annotation> leadingAnnotations, List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver, Parameters parameters, Space arrow, TypeTree returnType) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
-            this.typedTree = typedTree;
             this.leadingAnnotations = leadingAnnotations;
             this.modifiers = modifiers;
             this.receiver = receiver;
+            this.parameters = parameters;
+            this.arrow = arrow;
+            this.returnType = returnType;
         }
 
         public Space getPrefix() {
             // For backwards compatibility with older LST before there was a prefix field
             //noinspection ConstantConditions
-            return prefix == null ? typedTree.getPrefix() : prefix;
+            return prefix == null ? parameters.getPrefix() : prefix;
         }
 
         Markers markers;
@@ -686,10 +687,8 @@ public interface K extends J {
         public Markers getMarkers() {
             // For backwards compatibility with older LST before there was a prefix field
             //noinspection ConstantConditions
-            return markers == null ? typedTree.getMarkers() : markers;
+            return markers == null ? parameters.getMarkers() : markers;
         }
-
-        TypedTree typedTree;
 
         List<J.Annotation> leadingAnnotations;
 
@@ -710,27 +709,97 @@ public interface K extends J {
         @Nullable
         JRightPadded<NameTree> receiver;
 
+        Parameters parameters;
+
+        Space arrow;
+
+        TypeTree returnType;
+
         @Override
         public @Nullable JavaType getType() {
-            return typedTree.getType();
+            return returnType.getType();
         }
 
-        @Override
-        public <J2 extends J> J2 withType(@Nullable JavaType type) {
-            if (typedTree instanceof FunctionType) {
-                return (J2) withTypedTree(typedTree.withType(type));
-            }
-            return (J2) this;
-        }
-
-        @Override
-        public CoordinateBuilder.Statement getCoordinates() {
-            return new CoordinateBuilder.Statement(this);
+        public <T extends J> T withType(@Nullable JavaType type) {
+            return (T) withReturnType(returnType.withType(type));
         }
 
         @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
             return v.visitFunctionType(this, p);
+        }
+
+        @ToString
+        @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+        @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+        @AllArgsConstructor(access = AccessLevel.PRIVATE)
+        public static final class Parameters implements K {
+            @Nullable
+            @NonFinal
+            transient WeakReference<FunctionType.Parameters.Padding> padding;
+
+            @With
+            @EqualsAndHashCode.Include
+            @Getter
+            UUID id;
+
+            @With
+            @Getter
+            Space prefix;
+
+            @With
+            @Getter
+            Markers markers;
+
+            @With
+            @Getter
+            boolean parenthesized;
+
+            List<JRightPadded<J>> parameters;
+
+            public Parameters(UUID id, Space prefix, Markers markers, boolean parenthesized, List<JRightPadded<J>> parameters) {
+                this.id = id;
+                this.prefix = prefix;
+                this.markers = markers;
+                this.parenthesized = parenthesized;
+                this.parameters = parameters;
+            }
+
+            public List<J> getParameters() {
+                return JRightPadded.getElements(parameters);
+            }
+
+            public FunctionType.Parameters withParameters(List<J> parameters) {
+                return getPadding().withParams(JRightPadded.withElements(this.parameters, parameters));
+            }
+
+            public FunctionType.Parameters.Padding getPadding() {
+                FunctionType.Parameters.Padding p;
+                if (this.padding == null) {
+                    p = new FunctionType.Parameters.Padding(this);
+                    this.padding = new WeakReference<>(p);
+                } else {
+                    p = this.padding.get();
+                    if (p == null || p.t != this) {
+                        p = new FunctionType.Parameters.Padding(this);
+                        this.padding = new WeakReference<>(p);
+                    }
+                }
+                return p;
+            }
+
+            @RequiredArgsConstructor
+            public static class Padding {
+                private final FunctionType.Parameters t;
+
+                public List<JRightPadded<J>> getParams() {
+                    return t.parameters;
+                }
+
+                public FunctionType.Parameters withParams(List<JRightPadded<J>> parameters) {
+                    return t.parameters == parameters ? t : new FunctionType.Parameters(t.id, t.prefix, t.markers, t.parenthesized, parameters);
+                }
+            }
         }
     }
 
