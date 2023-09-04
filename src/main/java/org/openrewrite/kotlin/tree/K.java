@@ -751,17 +751,12 @@ public interface K extends J {
             @Getter
             Markers markers;
 
-            @With
-            @Getter
-            boolean parenthesized;
-
             List<JRightPadded<J>> parameters;
 
-            public Parameters(UUID id, Space prefix, Markers markers, boolean parenthesized, List<JRightPadded<J>> parameters) {
+            public Parameters(UUID id, Space prefix, Markers markers, List<JRightPadded<J>> parameters) {
                 this.id = id;
                 this.prefix = prefix;
                 this.markers = markers;
-                this.parenthesized = parenthesized;
                 this.parameters = parameters;
             }
 
@@ -797,7 +792,7 @@ public interface K extends J {
                 }
 
                 public FunctionType.Parameters withParams(List<JRightPadded<J>> parameters) {
-                    return t.parameters == parameters ? t : new FunctionType.Parameters(t.id, t.prefix, t.markers, t.parenthesized, parameters);
+                    return t.parameters == parameters ? t : new FunctionType.Parameters(t.id, t.prefix, t.markers, parameters);
                 }
             }
         }

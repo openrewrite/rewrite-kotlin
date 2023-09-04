@@ -1678,8 +1678,6 @@ class KotlinParserVisitor(
                 .withAfter(whitespace())
             skip(".")
         }
-        val list = PsiTreeUtil.findChildOfType(node, KtParameterList::class.java)
-        val parenthesized = list != null && list.text.startsWith("(")
         val before = sourceBefore("(")
         val refParams: MutableList<JRightPadded<J?>> = ArrayList(functionTypeRef.parameters.size)
         val closureType = typeMapping.type(functionTypeRef)
@@ -1694,9 +1692,9 @@ class KotlinParserVisitor(
                         param = JRightPadded.build(expr).withAfter(whitespace())
                         skip(",")
                     } else {
-                        val after = if (parenthesized) whitespace() else Space.EMPTY
+                        val after = whitespace()
                         param = JRightPadded.build(expr).withAfter(after)
-                        if (parenthesized && skip(",")) {
+                        if (skip(",")) {
                             param = param.withMarkers(Markers.build(listOf(TrailingComma(randomId(), whitespace()))))
                         }
                     }
@@ -1704,23 +1702,20 @@ class KotlinParserVisitor(
                 }
             }
             skip(")")
-        }
-        var params = K.FunctionType.Parameters(randomId(), Space.EMPTY, Markers.EMPTY, parenthesized, refParams)
-        if (parenthesized && functionTypeRef.parameters.isEmpty()) {
-            params = params.padding.withParams(
-                listOf(
+        } else {
+            refParams +=
                     JRightPadded
                         .build(J.Empty(randomId(), Space.EMPTY, Markers.EMPTY) as J)
                         .withAfter(sourceBefore(")"))
-                )
-            )
         }
+
+        val params = K.FunctionType.Parameters(randomId(), before, Markers.EMPTY, refParams)
         val arrow = sourceBefore("->")
         val saveCursor = cursor
         whitespace()
         val omitBraces = source[cursor] != '{'
         cursor(saveCursor)
-        var body: TypeTree = visitElement(functionTypeRef.returnTypeRef, data) as TypeTree
+        val body: TypeTree = visitElement(functionTypeRef.returnTypeRef, data) as TypeTree
 //        if (body is J.Block) {
 //            body = body.withEnd(sourceBefore("}"))
 //        }
