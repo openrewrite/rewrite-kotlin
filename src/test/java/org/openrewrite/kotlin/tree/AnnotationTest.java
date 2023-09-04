@@ -349,7 +349,7 @@ class AnnotationTest implements RewriteTest {
                       }
               
                   @Ann inline fun < @Ann reified T > m ( @Ann s : @Ann String ) : String {
-                      @Ann return @Ann s
+                      @Ann return (@Ann s)
                   }
               }
               @Ann typealias Other = @Ann String
