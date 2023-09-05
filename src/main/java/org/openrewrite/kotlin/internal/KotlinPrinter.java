@@ -181,6 +181,8 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
     @Override
     public J visitKReturn(K.KReturn kReturn, PrintOutputCapture<P> p) {
+        // backwards compatibility: leave this in until `K.KReturn#annotations` has been deleted
+        visit(kReturn.getAnnotations(), p);
         J.Return return_ = kReturn.getExpression();
         if (kReturn.getLabel() != null) {
             beforeSyntax(return_, Space.Location.RETURN_PREFIX, p);

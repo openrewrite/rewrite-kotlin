@@ -743,6 +743,13 @@ public interface K extends J {
         @EqualsAndHashCode.Include
         UUID id;
 
+        /**
+         * @deprecated Wrap with {@link AnnotatedExpression} to add annotations. To be deleted.
+         */
+        @Deprecated
+        @With
+        List<J.Annotation> annotations;
+
         @With
         J.Return expression;
 
@@ -751,7 +758,12 @@ public interface K extends J {
         J.Identifier label;
 
         public KReturn(UUID id, Return expression, @Nullable J.Identifier label) {
+            this(id, Collections.emptyList(), expression, label);
+        }
+
+        public KReturn(UUID id, List<Annotation> annotations, Return expression, @Nullable J.Identifier label) {
             this.id = id;
+            this.annotations = annotations;
             this.expression = expression;
             this.label = label;
         }
@@ -787,6 +799,7 @@ public interface K extends J {
         @Override
         public <T extends J> T withType(@Nullable JavaType type) {
             // to change the expression of a return, change the type of its expression
+            //noinspection unchecked
             return (T) this;
         }
 
