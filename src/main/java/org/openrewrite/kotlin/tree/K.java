@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.tree;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
@@ -714,6 +715,8 @@ public interface K extends J {
 
         Space arrow;
 
+        // backwards compatibility
+        @JsonAlias("typedTree")
         TypeTree returnType;
 
         @Override
