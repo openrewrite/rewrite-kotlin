@@ -2072,17 +2072,7 @@ class KotlinParserVisitor(
                 typeExpression = if (j is TypeTree) {
                     j
                 } else {
-                    K.FunctionType(
-                            randomId(),
-                            Space.EMPTY,
-                            Markers.EMPTY,
-                            emptyList(),
-                            emptyList(),
-                            null,
-                            null!!, //j,
-                            null!!,
-                            null
-                    )
+                    throw IllegalStateException("Unexpected type expression: " + j.javaClass.name)
                 }
             }
         }
@@ -3115,17 +3105,7 @@ class KotlinParserVisitor(
                 typeExpression = if (j is TypeTree) {
                     j
                 } else {
-                    K.FunctionType(
-                        randomId(),
-                        Space.EMPTY,
-                        Markers.EMPTY,
-                        emptyList(),
-                        emptyList(),
-                        null,
-                        null!!, //j as TypedTree,
-                        null,
-                        null
-                    )
+                    throw IllegalStateException("Unexpected type expression: " + j.javaClass.name)
                 }
             } else if ("_" == valueName) {
                 val savedCursor = cursor
@@ -3136,17 +3116,7 @@ class KotlinParserVisitor(
                     typeExpression = if (j is TypeTree) {
                         j
                     } else {
-                        K.FunctionType(
-                            randomId(),
-                            Space.EMPTY,
-                            Markers.EMPTY,
-                            emptyList(),
-                            emptyList(),
-                            null,
-                            null!!, //j as TypedTree,
-                            null,
-                            null
-                        )
+                        throw IllegalStateException("Unexpected type expression: " + j.javaClass.name)
                     }
                 } else {
                     cursor = savedCursor
