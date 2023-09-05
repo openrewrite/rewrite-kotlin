@@ -646,7 +646,8 @@ public interface K extends J {
 
         @Override
         public <T extends J> T withType(@Nullable JavaType type) {
-            return (T) withExpression(expression.withType(type));
+            ExpressionStatement newExpression = withExpression(expression.withType(type));
+            return (T) (newExpression == expression ? this : newExpression);
         }
 
         @Transient
@@ -679,7 +680,7 @@ public interface K extends J {
         public Space getPrefix() {
             // For backwards compatibility with older LST before there was a prefix field
             //noinspection ConstantConditions
-            return prefix == null ? parameters.getPrefix() : prefix;
+            return prefix == null ? returnType.getPrefix() : prefix;
         }
 
         Markers markers;
@@ -687,7 +688,7 @@ public interface K extends J {
         public Markers getMarkers() {
             // For backwards compatibility with older LST before there was a prefix field
             //noinspection ConstantConditions
-            return markers == null ? parameters.getMarkers() : markers;
+            return markers == null ? returnType.getMarkers() : markers;
         }
 
         List<J.Annotation> leadingAnnotations;
@@ -721,7 +722,9 @@ public interface K extends J {
         }
 
         public <T extends J> T withType(@Nullable JavaType type) {
-            return (T) withReturnType(returnType.withType(type));
+            TypeTree newType = returnType.withType(type);
+            //noinspection unchecked
+            return (T) (newType == type ? this : withReturnType(newType));
         }
 
         @Override
