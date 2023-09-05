@@ -85,7 +85,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
     @Override
     public J visitAnnotatedExpression(K.AnnotatedExpression annotatedExpression, PrintOutputCapture<P> p) {
-        beforeSyntax(annotatedExpression, KSpace.Location.ANNOTATED_EXPRESSION_PREFIX, p);
         visit(annotatedExpression.getAnnotations(), p);
         visit(annotatedExpression.getExpression(), p);
         afterSyntax(annotatedExpression, p);

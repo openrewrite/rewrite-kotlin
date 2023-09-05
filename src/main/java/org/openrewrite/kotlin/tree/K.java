@@ -19,6 +19,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import org.openrewrite.*;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaPrinter;
 import org.openrewrite.java.internal.TypesInUse;
@@ -333,9 +334,6 @@ public interface K extends J {
         UUID id;
 
         @With
-        Space prefix;
-
-        @With
         Markers markers;
 
         @With
@@ -344,12 +342,22 @@ public interface K extends J {
         @With
         Expression expression;
 
-        public AnnotatedExpression(UUID id, Space prefix, Markers markers, List<J.Annotation> annotations, Expression expression) {
+        public AnnotatedExpression(UUID id, Markers markers, List<J.Annotation> annotations, Expression expression) {
             this.id = id;
-            this.prefix = prefix;
             this.markers = markers;
             this.annotations = annotations;
             this.expression = expression;
+        }
+
+        @Override
+        public Space getPrefix() {
+            return annotations.isEmpty() ? expression.getPrefix() : annotations.get(0).getPrefix();
+        }
+
+        @Override
+        public <J2 extends J> J2 withPrefix(Space space) {
+            return (J2) (annotations.isEmpty() ? withExpression(expression.withPrefix(space))
+                    : withAnnotations(ListUtils.mapFirst(annotations, a -> a.withPrefix(space))));
         }
 
         @Override

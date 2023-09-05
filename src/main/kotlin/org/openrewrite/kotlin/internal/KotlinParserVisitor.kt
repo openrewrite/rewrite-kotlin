@@ -4410,14 +4410,12 @@ class KotlinParserVisitor(
         }
 
         if (firElement is FirExpression && firElement.annotations.isNotEmpty()) {
-            val annotationsPrefix = whitespace()
             val annotations = ArrayList<J.Annotation>(firElement.annotations.size)
             for (annotation in firElement.annotations) {
                 annotations.add(visitElement(annotation, data) as J.Annotation)
             }
             return K.AnnotatedExpression(
                 randomId(),
-                annotationsPrefix,
                 Markers.EMPTY,
                 annotations,
                 visitElement0(firElement, data) as Expression
