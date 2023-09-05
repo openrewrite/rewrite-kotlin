@@ -666,7 +666,7 @@ public interface K extends J {
         UUID id;
         Space prefix;
 
-        public FunctionType(UUID id, Space prefix, Markers markers, List<Annotation> leadingAnnotations, List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver, Parameters parameters, Space arrow, TypeTree returnType) {
+        public FunctionType(UUID id, Space prefix, Markers markers, List<Annotation> leadingAnnotations, List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver, Parameters parameters, Space arrow, TypedTree returnType) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
@@ -717,7 +717,7 @@ public interface K extends J {
 
         // backwards compatibility
         @JsonAlias("typedTree")
-        TypeTree returnType;
+        TypedTree returnType;
 
         @Override
         public @Nullable JavaType getType() {
