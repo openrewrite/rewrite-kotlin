@@ -174,23 +174,25 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             visitRightPadded(functionType.getReceiver(), p);
             p.append(".");
         }
-        visitFunctionTypeParameters(functionType.getParameters(), p);
-        if (!functionType.getParameters().getParameters().isEmpty()) {
+        delegate.visitContainer("(", functionType.getPadding().getParameters(), JContainer.Location.TYPE_PARAMETERS, ",", ")", p);
+        if (!functionType.getParameters().isEmpty()) {
             visitSpace(functionType.getArrow(), KSpace.Location.FUNCTION_TYPE_ARROW_PREFIX, p);
             p.append("->");
         }
-        visit(functionType.getParameters(), p);
         visit(functionType.getReturnType(), p);
         afterSyntax(functionType, p);
         return functionType;
     }
 
-    private void visitFunctionTypeParameters(K.FunctionType.Parameters parameters, PrintOutputCapture<P> p) {
-        visitMarkers(parameters.getMarkers(), p);
-        visitSpace(parameters.getPrefix(), KSpace.Location.FUNCTION_TYPE_PARAMETERS_PREFIX, p);
-        p.append('(');
-        visitRightPadded(parameters.getPadding().getParams(), KRightPadded.Location.FUNCTION_TYPE_PARAM, p);
-        p.append(')');
+    @Override
+    public J visitFunctionTypeParameter(K.FunctionType.Parameter parameter, PrintOutputCapture<P> p) {
+        if (parameter.getName() != null) {
+            visit(parameter.getName(), p);
+            // FIXME prefix
+            p.append(":");
+        }
+        visit(parameter.getType(), p);
+        return parameter;
     }
 
     @Override

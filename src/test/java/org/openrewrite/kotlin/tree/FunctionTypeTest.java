@@ -25,7 +25,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 class FunctionTypeTest implements RewriteTest {
 
     @Test
-    @ExpectedToFail
     void namedParameter() {
         rewriteRun(
           kotlin(

@@ -150,20 +150,21 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         f = f.withLeadingAnnotations(ListUtils.map(f.getLeadingAnnotations(), a -> visitAndCast(a, p)));
         f = f.withModifiers(ListUtils.map(f.getModifiers(), e -> visitAndCast(e, p)));
         f = f.withReceiver(visitRightPadded(f.getReceiver(), p));
-        f = f.withParameters(
-                f.getParameters().withPrefix(
-                        visitSpace(f.getParameters().getPrefix(), KSpace.Location.FUNCTION_TYPE_PARAMETERS_PREFIX, p)
-                )
-        );
-        f = f.withParameters(
-                f.getParameters().getPadding().withParams(
-                        ListUtils.map(f.getParameters().getPadding().getParams(),
-                                param -> visitRightPadded(param, KRightPadded.Location.FUNCTION_TYPE_PARAM, p)
-                        )
-                )
-        );
-        f = f.withParameters(visitAndCast(f.getParameters(), p));
+//        if (f.getPadding().getParameters() != null) {
+//            f = f.getPadding().withParameters(visitContainer(f.getPadding().getParameters(), KContainer.Location.FUNCTION_TYPE_PARAMETERS, p));
+//        }
+        f = f.withReturnType(visitAndCast(f.getReturnType(), p));
         return f;
+    }
+
+    public J visitFunctionTypeParameter(K.FunctionType.Parameter parameter, P p) {
+        K.FunctionType.Parameter pa = parameter;
+        pa = pa.withMarkers(visitMarkers(pa.getMarkers(), p));
+        if (pa.getName() != null) {
+            pa = pa.withName(visitAndCast(pa.getName(), p));
+        }
+        pa = pa.withType(visitAndCast(pa.getType(), p));
+        return pa;
     }
 
     public J visitKReturn(K.KReturn kReturn, P p) {

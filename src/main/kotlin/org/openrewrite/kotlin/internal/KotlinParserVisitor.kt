@@ -1679,14 +1679,14 @@ class KotlinParserVisitor(
             skip(".")
         }
         val before = sourceBefore("(")
-        val refParams: MutableList<JRightPadded<J?>> = ArrayList(functionTypeRef.parameters.size)
+        val refParams: MutableList<JRightPadded<K.FunctionType.Parameter>> = ArrayList(functionTypeRef.parameters.size)
         if (functionTypeRef.parameters.isNotEmpty()) {
             val parameters = functionTypeRef.parameters
             for (i in parameters.indices) {
                 val p = parameters[i]
-                val expr: J? = visitElement(p, data)
-                var param: JRightPadded<J?>
+                val expr: K.FunctionType.Parameter? = visitElement(p, data) as K.FunctionType.Parameter?
                 if (expr != null) {
+                    var param: JRightPadded<K.FunctionType.Parameter>
                     if (i < parameters.size - 1) {
                         param = JRightPadded.build(expr).withAfter(whitespace())
                         skip(",")
@@ -1704,11 +1704,10 @@ class KotlinParserVisitor(
         } else {
             refParams +=
                     JRightPadded
-                        .build(J.Empty(randomId(), Space.EMPTY, Markers.EMPTY) as J)
+                        .build(J.Empty(randomId(), Space.EMPTY, Markers.EMPTY) as K.FunctionType.Parameter)
                         .withAfter(sourceBefore(")"))
         }
 
-        val params = K.FunctionType.Parameters(randomId(), before, Markers.EMPTY, refParams)
         val arrow = sourceBefore("->")
         val returnType: TypeTree = visitElement(functionTypeRef.returnTypeRef, data) as TypeTree
 
@@ -1719,7 +1718,7 @@ class KotlinParserVisitor(
             leadingAnnotations,
             modifiers,
             receiver,
-            params,
+            JContainer.build(before, refParams, Markers.EMPTY),
             arrow,
             returnType
         )
@@ -3727,7 +3726,12 @@ class KotlinParserVisitor(
         functionTypeParameter: FirFunctionTypeParameter,
         data: ExecutionContext
     ): J {
-        return visitElement(functionTypeParameter.returnTypeRef, data)!!
+         return K.FunctionType.Parameter(
+            randomId(),
+            Markers.EMPTY,
+            if (functionTypeParameter.name != null) createIdentifier(functionTypeParameter.name!!.asString()) else null,
+            visitElement(functionTypeParameter.returnTypeRef, data) as TypeTree
+        )
     }
 
     override fun visitImplicitInvokeCall(implicitInvokeCall: FirImplicitInvokeCall, data: ExecutionContext): J {

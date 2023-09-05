@@ -658,15 +658,28 @@ public interface K extends J {
         }
     }
 
-    @Value
+    @ToString
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @With
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     class FunctionType implements K, TypeTree {
 
+        @Nullable
+        @NonFinal
+        transient WeakReference<Padding> padding;
+
+        @EqualsAndHashCode.Include
+        @With
+        @Getter
+
         UUID id;
+        @With
+        @Getter
         Space prefix;
 
-        public FunctionType(UUID id, Space prefix, Markers markers, List<Annotation> leadingAnnotations, List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver, Parameters parameters, Space arrow, TypedTree returnType) {
+        public FunctionType(UUID id, Space prefix, Markers markers, List<Annotation> leadingAnnotations,
+                            List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver,
+                            @Nullable JContainer<Parameter> parameters, Space arrow, TypedTree returnType) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
@@ -684,6 +697,8 @@ public interface K extends J {
             return prefix == null ? returnType.getPrefix() : prefix;
         }
 
+        @With
+        @Getter
         Markers markers;
 
         public Markers getMarkers() {
@@ -692,6 +707,8 @@ public interface K extends J {
             return markers == null ? returnType.getMarkers() : markers;
         }
 
+        @With
+        @Getter
         List<J.Annotation> leadingAnnotations;
 
         public List<Annotation> getLeadingAnnotations() {
@@ -700,6 +717,7 @@ public interface K extends J {
             return leadingAnnotations == null ? Collections.emptyList() : leadingAnnotations;
         }
 
+        @With
         List<J.Modifier> modifiers;
 
         public List<Modifier> getModifiers() {
@@ -709,14 +727,30 @@ public interface K extends J {
         }
 
         @Nullable
+        @With
+        @Getter
         JRightPadded<NameTree> receiver;
 
-        Parameters parameters;
+        @Nullable
+        JContainer<Parameter> parameters;
 
+        @Nullable
+        public List<Parameter> getParameters() {
+            return parameters == null ? null : parameters.getElements();
+        }
+
+        public FunctionType withParameters(List<Parameter> parameters) {
+            return getPadding().withParameters(JContainer.withElementsNullable(this.parameters, parameters));
+        }
+
+        @With
+        @Getter
         Space arrow;
 
         // backwards compatibility
         @JsonAlias("typedTree")
+        @With
+        @Getter
         TypedTree returnType;
 
         @Override
@@ -738,12 +772,7 @@ public interface K extends J {
         @ToString
         @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
         @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-        @AllArgsConstructor(access = AccessLevel.PRIVATE)
-        public static final class Parameters implements K {
-            @Nullable
-            @NonFinal
-            transient WeakReference<FunctionType.Parameters.Padding> padding;
-
+        public static final class Parameter implements K {
             @With
             @EqualsAndHashCode.Include
             @Getter
@@ -751,55 +780,67 @@ public interface K extends J {
 
             @With
             @Getter
-            Space prefix;
+            Markers markers;
 
             @With
             @Getter
-            Markers markers;
+            @Nullable
+            Identifier name;
 
-            List<JRightPadded<J>> parameters;
+            @With
+            @Getter
+            TypeTree type;
 
-            public Parameters(UUID id, Space prefix, Markers markers, List<JRightPadded<J>> parameters) {
+            public Parameter(UUID id, Markers markers, @Nullable Identifier name, TypeTree type) {
                 this.id = id;
-                this.prefix = prefix;
                 this.markers = markers;
-                this.parameters = parameters;
+                this.name = name;
+                this.type = type;
             }
 
-            public List<J> getParameters() {
-                return JRightPadded.getElements(parameters);
+            @Override
+            public Space getPrefix() {
+                return name != null ? name.getPrefix() : type.getPrefix();
             }
 
-            public FunctionType.Parameters withParameters(List<J> parameters) {
-                return getPadding().withParams(JRightPadded.withElements(this.parameters, parameters));
+            @Override
+            public <J2 extends J> J2 withPrefix(Space space) {
+                //noinspection unchecked
+                return (J2) (name != null ? withName(name.withPrefix(space)) : withType(type.withPrefix(space)));
             }
 
-            public FunctionType.Parameters.Padding getPadding() {
-                FunctionType.Parameters.Padding p;
-                if (this.padding == null) {
-                    p = new FunctionType.Parameters.Padding(this);
+            @Override
+            public @Nullable <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+                return v.visitFunctionTypeParameter(this, p);
+            }
+        }
+        public Padding getPadding() {
+            Padding p;
+            if (this.padding == null) {
+                p = new Padding(this);
+                this.padding = new WeakReference<>(p);
+            } else {
+                p = this.padding.get();
+                if (p == null || p.t != this) {
+                    p = new Padding(this);
                     this.padding = new WeakReference<>(p);
-                } else {
-                    p = this.padding.get();
-                    if (p == null || p.t != this) {
-                        p = new FunctionType.Parameters.Padding(this);
-                        this.padding = new WeakReference<>(p);
-                    }
                 }
-                return p;
+            }
+            return p;
+        }
+
+        @RequiredArgsConstructor
+        public static class Padding {
+            private final FunctionType t;
+
+            @Nullable
+            public JContainer<FunctionType.Parameter> getParameters() {
+                return t.parameters;
             }
 
-            @RequiredArgsConstructor
-            public static class Padding {
-                private final FunctionType.Parameters t;
-
-                public List<JRightPadded<J>> getParams() {
-                    return t.parameters;
-                }
-
-                public FunctionType.Parameters withParams(List<JRightPadded<J>> parameters) {
-                    return t.parameters == parameters ? t : new FunctionType.Parameters(t.id, t.prefix, t.markers, parameters);
-                }
+            public FunctionType withParameters(@Nullable JContainer<Parameter> parameters) {
+                return t.parameters == parameters ? t
+                        : new FunctionType(t.id, t.prefix, t.markers, t.leadingAnnotations, t.modifiers, t.receiver, parameters, t.arrow, t.returnType);
             }
         }
     }
