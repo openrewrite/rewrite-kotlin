@@ -1680,7 +1680,6 @@ class KotlinParserVisitor(
         }
         val before = sourceBefore("(")
         val refParams: MutableList<JRightPadded<J?>> = ArrayList(functionTypeRef.parameters.size)
-        val closureType = typeMapping.type(functionTypeRef)
         if (functionTypeRef.parameters.isNotEmpty()) {
             val parameters = functionTypeRef.parameters
             for (i in parameters.indices) {
@@ -1711,24 +1710,18 @@ class KotlinParserVisitor(
 
         val params = K.FunctionType.Parameters(randomId(), before, Markers.EMPTY, refParams)
         val arrow = sourceBefore("->")
-        val saveCursor = cursor
-        whitespace()
-        val omitBraces = source[cursor] != '{'
-        cursor(saveCursor)
-        val body: TypeTree = visitElement(functionTypeRef.returnTypeRef, data) as TypeTree
-//        if (body is J.Block) {
-//            body = body.withEnd(sourceBefore("}"))
-//        }
+        val returnType: TypeTree = visitElement(functionTypeRef.returnTypeRef, data) as TypeTree
+
         return K.FunctionType(
             randomId(),
             prefix,
-            if (omitBraces) Markers.EMPTY.addIfAbsent(OmitBraces(randomId())) else Markers.EMPTY,
+            Markers.EMPTY,
             leadingAnnotations,
             modifiers,
             receiver,
             params,
             arrow,
-            body //closureType
+            returnType
         )
     }
 
