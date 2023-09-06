@@ -24,10 +24,13 @@ import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.marker.*;
 import org.openrewrite.kotlin.service.KotlinAutoFormatService;
 import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.kotlin.tree.KContainer;
 import org.openrewrite.kotlin.tree.KRightPadded;
 import org.openrewrite.kotlin.tree.KSpace;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
+
+import java.util.List;
 
 /**
  * Visit K types.
@@ -150,9 +153,9 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         f = f.withLeadingAnnotations(ListUtils.map(f.getLeadingAnnotations(), a -> visitAndCast(a, p)));
         f = f.withModifiers(ListUtils.map(f.getModifiers(), e -> visitAndCast(e, p)));
         f = f.withReceiver(visitRightPadded(f.getReceiver(), p));
-//        if (f.getPadding().getParameters() != null) {
-//            f = f.getPadding().withParameters(visitContainer(f.getPadding().getParameters(), KContainer.Location.FUNCTION_TYPE_PARAMETERS, p));
-//        }
+        if (f.getPadding().getParameters() != null) {
+            f = f.getPadding().withParameters(this.visitContainer(f.getPadding().getParameters(), KContainer.Location.FUNCTION_TYPE_PARAMETERS, p));
+        }
         f = f.withReturnType(visitAndCast(f.getReturnType(), p));
         return f;
     }
@@ -163,7 +166,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         if (pa.getName() != null) {
             pa = pa.withName(visitAndCast(pa.getName(), p));
         }
-        pa = pa.withType(visitAndCast(pa.getParameterType(), p));
+        pa = pa.withParameterType(visitAndCast(pa.getParameterType(), p));
         return pa;
     }
 
@@ -310,6 +313,24 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
 
     public <J2 extends J> JContainer<J2> visitContainer(JContainer<J2> container, P p) {
         return super.visitContainer(container, JContainer.Location.LANGUAGE_EXTENSION, p);
+    }
+
+    public <J2 extends J> JContainer<J2> visitContainer(@Nullable JContainer<J2> container,
+                                                        KContainer.Location loc, P p) {
+        if (container == null) {
+            //noinspection ConstantConditions
+            return null;
+        }
+        setCursor(new Cursor(getCursor(), container));
+
+        Space before = visitSpace(container.getBefore(), loc.getBeforeLocation(), p);
+        List<JRightPadded<J2>> js = ListUtils.map(container.getPadding().getElements(), t -> visitRightPadded(t, loc.getElementLocation(), p));
+
+        setCursor(getCursor().getParent());
+
+        return js == container.getPadding().getElements() && before == container.getBefore() ?
+                container :
+                JContainer.build(before, js, container.getMarkers());
     }
 
     public <T> JRightPadded<T> visitRightPadded(@Nullable JRightPadded<T> right, KRightPadded.Location loc, P p) {
