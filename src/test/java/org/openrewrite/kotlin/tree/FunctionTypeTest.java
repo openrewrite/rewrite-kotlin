@@ -24,11 +24,22 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 class FunctionTypeTest implements RewriteTest {
 
     @Test
+    void nested() {
+        rewriteRun(
+          kotlin(
+            """
+              val f: ((Int) -> Boolean) -> Boolean = { true }
+              """
+          )
+        );
+    }
+
+    @Test
     void namedParameter() {
         rewriteRun(
           kotlin(
             """
-              val f: (p  : Any) -> Boolean = { p -> true }
+              val f: (p  : Any) -> Boolean = { true }
               """
           )
         );
