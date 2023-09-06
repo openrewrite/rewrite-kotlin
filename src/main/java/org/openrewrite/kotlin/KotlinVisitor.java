@@ -163,7 +163,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         if (pa.getName() != null) {
             pa = pa.withName(visitAndCast(pa.getName(), p));
         }
-        pa = pa.withType(visitAndCast(pa.getType(), p));
+        pa = pa.withType(visitAndCast(pa.getParameterType(), p));
         return pa;
     }
 

@@ -191,7 +191,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             // FIXME prefix
             p.append(":");
         }
-        visit(parameter.getType(), p);
+        visit(parameter.getParameterType(), p);
         return parameter;
     }
 

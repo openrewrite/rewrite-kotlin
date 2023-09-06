@@ -15,12 +15,8 @@
  */
 package org.openrewrite.kotlin.internal
 
-import org.jetbrains.kotlin.KtFakeSourceElement
-import org.jetbrains.kotlin.KtFakeSourceElementKind
+import org.jetbrains.kotlin.*
 import org.jetbrains.kotlin.KtFakeSourceElementKind.GeneratedLambdaLabel
-import org.jetbrains.kotlin.KtLightSourceElement
-import org.jetbrains.kotlin.KtNodeTypes
-import org.jetbrains.kotlin.KtRealPsiSourceElement
 import org.jetbrains.kotlin.com.intellij.lang.ASTNode
 import org.jetbrains.kotlin.com.intellij.lang.LighterASTNode
 import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange
@@ -37,7 +33,10 @@ import org.jetbrains.kotlin.fir.declarations.impl.FirDefaultPropertyGetter
 import org.jetbrains.kotlin.fir.declarations.impl.FirDefaultPropertySetter
 import org.jetbrains.kotlin.fir.declarations.impl.FirPrimaryConstructor
 import org.jetbrains.kotlin.fir.expressions.*
-import org.jetbrains.kotlin.fir.expressions.impl.*
+import org.jetbrains.kotlin.fir.expressions.impl.FirElseIfTrueCondition
+import org.jetbrains.kotlin.fir.expressions.impl.FirNoReceiverExpression
+import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
+import org.jetbrains.kotlin.fir.expressions.impl.FirUnitExpression
 import org.jetbrains.kotlin.fir.references.*
 import org.jetbrains.kotlin.fir.resolve.toFirRegularClassSymbol
 import org.jetbrains.kotlin.fir.resolve.toSymbol
@@ -82,7 +81,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import java.util.function.Function
 import java.util.stream.Collectors
-import kotlin.collections.HashMap
 import kotlin.math.max
 import kotlin.math.min
 
@@ -1679,14 +1677,14 @@ class KotlinParserVisitor(
             skip(".")
         }
         val before = sourceBefore("(")
-        val refParams: MutableList<JRightPadded<K.FunctionType.Parameter>> = ArrayList(functionTypeRef.parameters.size)
+        val refParams: MutableList<JRightPadded<out TypeTree>> = ArrayList(functionTypeRef.parameters.size)
         if (functionTypeRef.parameters.isNotEmpty()) {
             val parameters = functionTypeRef.parameters
             for (i in parameters.indices) {
                 val p = parameters[i]
-                val expr: K.FunctionType.Parameter? = visitElement(p, data) as K.FunctionType.Parameter?
+                val expr = visitElement(p, data) as K.FunctionType.Parameter?
                 if (expr != null) {
-                    var param: JRightPadded<K.FunctionType.Parameter>
+                    var param: JRightPadded<out TypeTree>
                     if (i < parameters.size - 1) {
                         param = JRightPadded.build(expr).withAfter(whitespace())
                         skip(",")
@@ -1704,7 +1702,7 @@ class KotlinParserVisitor(
         } else {
             refParams +=
                     JRightPadded
-                        .build(J.Empty(randomId(), Space.EMPTY, Markers.EMPTY) as K.FunctionType.Parameter)
+                        .build(J.Empty(randomId(), Space.EMPTY, Markers.EMPTY))
                         .withAfter(sourceBefore(")"))
         }
 
@@ -1718,7 +1716,7 @@ class KotlinParserVisitor(
             leadingAnnotations,
             modifiers,
             receiver,
-            JContainer.build(before, refParams, Markers.EMPTY),
+            JContainer.build(before, refParams as List<JRightPadded<TypeTree>>, Markers.EMPTY),
             arrow,
             returnType
         )
@@ -3726,10 +3724,15 @@ class KotlinParserVisitor(
         functionTypeParameter: FirFunctionTypeParameter,
         data: ExecutionContext
     ): J {
-         return K.FunctionType.Parameter(
+        val name: J.Identifier?
+        if (functionTypeParameter.name != null) {
+            name = createIdentifier(functionTypeParameter.name!!.asString())
+            skip(":")
+        } else name = null
+        return K.FunctionType.Parameter(
             randomId(),
             Markers.EMPTY,
-            if (functionTypeParameter.name != null) createIdentifier(functionTypeParameter.name!!.asString()) else null,
+            name,
             visitElement(functionTypeParameter.returnTypeRef, data) as TypeTree
         )
     }

@@ -928,7 +928,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
 
         // handle space around arrow in function type
         // FIXME format parameters
-        @Nullable List<K.FunctionType.Parameter> parameters = kf.getParameters();
+        @Nullable List<TypeTree> parameters = kf.getParameters();
         kf = kf.withArrow(updateSpace(kf.getArrow(), style.getOther().getAroundArrowInFunctionTypes()));
         kf = kf.withReturnType(spaceBefore(kf.getReturnType(), style.getOther().getAroundArrowInFunctionTypes()));
         return kf;

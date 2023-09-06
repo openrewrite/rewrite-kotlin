@@ -679,7 +679,7 @@ public interface K extends J {
 
         public FunctionType(UUID id, Space prefix, Markers markers, List<Annotation> leadingAnnotations,
                             List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver,
-                            @Nullable JContainer<Parameter> parameters, Space arrow, TypedTree returnType) {
+                            @Nullable JContainer<TypeTree> parameters, Space arrow, TypedTree returnType) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
@@ -698,7 +698,6 @@ public interface K extends J {
         }
 
         @With
-        @Getter
         Markers markers;
 
         public Markers getMarkers() {
@@ -708,7 +707,6 @@ public interface K extends J {
         }
 
         @With
-        @Getter
         List<J.Annotation> leadingAnnotations;
 
         public List<Annotation> getLeadingAnnotations() {
@@ -732,14 +730,14 @@ public interface K extends J {
         JRightPadded<NameTree> receiver;
 
         @Nullable
-        JContainer<Parameter> parameters;
+        JContainer<TypeTree> parameters;
 
         @Nullable
-        public List<Parameter> getParameters() {
+        public List<TypeTree> getParameters() {
             return parameters == null ? null : parameters.getElements();
         }
 
-        public FunctionType withParameters(List<Parameter> parameters) {
+        public FunctionType withParameters(List<TypeTree> parameters) {
             return getPadding().withParameters(JContainer.withElementsNullable(this.parameters, parameters));
         }
 
@@ -772,7 +770,7 @@ public interface K extends J {
         @ToString
         @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
         @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-        public static final class Parameter implements K {
+        public static final class Parameter implements K, TypeTree {
             @With
             @EqualsAndHashCode.Include
             @Getter
@@ -789,29 +787,39 @@ public interface K extends J {
 
             @With
             @Getter
-            TypeTree type;
+            TypeTree parameterType;
 
-            public Parameter(UUID id, Markers markers, @Nullable Identifier name, TypeTree type) {
+            public Parameter(UUID id, Markers markers, @Nullable Identifier name, TypeTree parameterType) {
                 this.id = id;
                 this.markers = markers;
                 this.name = name;
-                this.type = type;
+                this.parameterType = parameterType;
             }
 
             @Override
             public Space getPrefix() {
-                return name != null ? name.getPrefix() : type.getPrefix();
+                return name != null ? name.getPrefix() : parameterType.getPrefix();
             }
 
             @Override
             public <J2 extends J> J2 withPrefix(Space space) {
                 //noinspection unchecked
-                return (J2) (name != null ? withName(name.withPrefix(space)) : withType(type.withPrefix(space)));
+                return (J2) (name != null ? withName(name.withPrefix(space)) : withType(parameterType.withPrefix(space)));
             }
 
             @Override
-            public @Nullable <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
                 return v.visitFunctionTypeParameter(this, p);
+            }
+
+            @Override
+            public JavaType getType() {
+                return parameterType.getType();
+            }
+
+            @Override
+            public <T extends J> T withType(@Nullable JavaType type) {
+                return (T) new Parameter(id, markers, name, this.parameterType.withType(type));
             }
         }
         public Padding getPadding() {
@@ -834,11 +842,11 @@ public interface K extends J {
             private final FunctionType t;
 
             @Nullable
-            public JContainer<FunctionType.Parameter> getParameters() {
+            public JContainer<TypeTree> getParameters() {
                 return t.parameters;
             }
 
-            public FunctionType withParameters(@Nullable JContainer<Parameter> parameters) {
+            public FunctionType withParameters(@Nullable JContainer<TypeTree> parameters) {
                 return t.parameters == parameters ? t
                         : new FunctionType(t.id, t.prefix, t.markers, t.leadingAnnotations, t.modifiers, t.receiver, parameters, t.arrow, t.returnType);
             }
