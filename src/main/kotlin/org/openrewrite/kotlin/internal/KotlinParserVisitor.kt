@@ -1657,6 +1657,10 @@ class KotlinParserVisitor(
 
     override fun visitFunctionTypeRef(functionTypeRef: FirFunctionTypeRef, data: ExecutionContext): J {
         val prefix = whitespace()
+        if (functionTypeRef.isMarkedNullable) {
+            skip("(")
+            whitespace() // FIXME add to LST
+        }
         var modifiers: List<J.Modifier> = ArrayList()
         val leadingAnnotations: MutableList<J.Annotation> = mutableListOf()
         val node = getRealPsiElement(functionTypeRef)
@@ -1709,10 +1713,20 @@ class KotlinParserVisitor(
         val arrow = sourceBefore("->")
         val returnType: TypeTree = visitElement(functionTypeRef.returnTypeRef, data) as TypeTree
 
+        val nullablePrefix: Space?
+        if (functionTypeRef.isMarkedNullable) {
+            whitespace() // FIXME add to LST
+            skip(")")
+            nullablePrefix = whitespace()
+            skip("?")
+        } else {
+            nullablePrefix = null
+        }
+
         return K.FunctionType(
             randomId(),
             prefix,
-            Markers.EMPTY,
+            if (functionTypeRef.isMarkedNullable) Markers.EMPTY.addIfAbsent(IsNullable(randomId(), nullablePrefix!!)) else Markers.EMPTY,
             leadingAnnotations,
             modifiers,
             receiver,

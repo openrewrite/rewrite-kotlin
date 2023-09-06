@@ -164,6 +164,8 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
     @Override
     public J visitFunctionType(K.FunctionType functionType, PrintOutputCapture<P> p) {
+        boolean nullable = functionType.getMarkers().findFirst(IsNullable.class).isPresent();
+
         beforeSyntax(functionType, KSpace.Location.FUNCTION_TYPE_PREFIX, p);
         visit(functionType.getLeadingAnnotations(), p);
         for (J.Modifier modifier : functionType.getModifiers()) {
@@ -174,12 +176,16 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             visitRightPadded(functionType.getReceiver(), p);
             p.append(".");
         }
-        delegate.visitContainer("(", functionType.getPadding().getParameters(), JContainer.Location.TYPE_PARAMETERS, ",", ")", p);
-        if (!functionType.getParameters().isEmpty()) {
-            visitSpace(functionType.getArrow(), KSpace.Location.FUNCTION_TYPE_ARROW_PREFIX, p);
-            p.append("->");
+        if (nullable) {
+            p.append("(");
         }
+        delegate.visitContainer("(", functionType.getPadding().getParameters(), JContainer.Location.TYPE_PARAMETERS, ",", ")", p);
+        visitSpace(functionType.getArrow(), KSpace.Location.FUNCTION_TYPE_ARROW_PREFIX, p);
+        p.append("->");
         visit(functionType.getReturnType(), p);
+        if (nullable) {
+            p.append(")");
+        }
         afterSyntax(functionType, p);
         return functionType;
     }
