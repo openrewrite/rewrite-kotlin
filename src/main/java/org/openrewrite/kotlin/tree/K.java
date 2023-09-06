@@ -674,12 +674,11 @@ public interface K extends J {
 
         UUID id;
         @With
-        @Getter
         Space prefix;
 
         public FunctionType(UUID id, Space prefix, Markers markers, List<Annotation> leadingAnnotations,
                             List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver,
-                            @Nullable JContainer<TypeTree> parameters, Space arrow, TypedTree returnType) {
+                            JContainer<TypeTree> parameters, Space arrow, TypedTree returnType) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
@@ -729,12 +728,10 @@ public interface K extends J {
         @Getter
         JRightPadded<NameTree> receiver;
 
-        @Nullable
         JContainer<TypeTree> parameters;
 
-        @Nullable
         public List<TypeTree> getParameters() {
-            return parameters == null ? null : parameters.getElements();
+            return parameters.getElements();
         }
 
         public FunctionType withParameters(List<TypeTree> parameters) {
