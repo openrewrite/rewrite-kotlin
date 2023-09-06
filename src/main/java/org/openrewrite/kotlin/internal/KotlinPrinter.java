@@ -172,12 +172,12 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             delegate.visitModifier(modifier, p);
         }
 
+        if (nullable) {
+            p.append("(");
+        }
         if (functionType.getReceiver() != null) {
             visitRightPadded(functionType.getReceiver(), p);
             p.append(".");
-        }
-        if (nullable) {
-            p.append("(");
         }
         delegate.visitContainer("(", functionType.getPadding().getParameters(), JContainer.Location.TYPE_PARAMETERS, ",", ")", p);
         visitSpace(functionType.getArrow(), KSpace.Location.FUNCTION_TYPE_ARROW_PREFIX, p);
