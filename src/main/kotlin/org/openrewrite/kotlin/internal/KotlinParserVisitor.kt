@@ -3739,14 +3739,17 @@ class KotlinParserVisitor(
         data: ExecutionContext
     ): J {
         val name: J.Identifier?
+        var colon: Space? = null
         if (functionTypeParameter.name != null) {
             name = createIdentifier(functionTypeParameter.name!!.asString())
+            colon = whitespace()
             skip(":")
         } else name = null
         return K.FunctionType.Parameter(
             randomId(),
             Markers.EMPTY,
             name,
+            colon,
             visitElement(functionTypeParameter.returnTypeRef, data) as TypeTree
         )
     }

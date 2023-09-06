@@ -787,12 +787,18 @@ public interface K extends J {
 
             @With
             @Getter
+            @Nullable
+            Space colon;
+
+            @With
+            @Getter
             TypeTree parameterType;
 
-            public Parameter(UUID id, Markers markers, @Nullable Identifier name, TypeTree parameterType) {
+            public Parameter(UUID id, Markers markers, @Nullable Identifier name, @Nullable Space colon, TypeTree parameterType) {
                 this.id = id;
                 this.markers = markers;
                 this.name = name;
+                this.colon = colon;
                 this.parameterType = parameterType;
             }
 
@@ -819,7 +825,7 @@ public interface K extends J {
 
             @Override
             public <T extends J> T withType(@Nullable JavaType type) {
-                return (T) new Parameter(id, markers, name, this.parameterType.withType(type));
+                return (T) new Parameter(id, markers, name, colon, this.parameterType.withType(type));
             }
         }
         public Padding getPadding() {

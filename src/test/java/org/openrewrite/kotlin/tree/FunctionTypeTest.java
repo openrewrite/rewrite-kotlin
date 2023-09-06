@@ -28,7 +28,7 @@ class FunctionTypeTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              val f: (p: Any) -> Boolean = { p -> true }
+              val f: (p  : Any) -> Boolean = { p -> true }
               """
           )
         );

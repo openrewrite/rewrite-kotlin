@@ -194,7 +194,8 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     public J visitFunctionTypeParameter(K.FunctionType.Parameter parameter, PrintOutputCapture<P> p) {
         if (parameter.getName() != null) {
             visit(parameter.getName(), p);
-            // FIXME prefix
+            //noinspection DataFlowIssue
+            visitSpace(parameter.getColon(), KSpace.Location.FUNCTION_TYPE_PARAMETER_COLON, p);
             p.append(":");
         }
         visit(parameter.getParameterType(), p);
