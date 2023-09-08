@@ -500,6 +500,100 @@ public interface K extends J {
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    final class ConstructorDelegationCall implements K, TypeTree {
+
+        @Nullable
+        @NonFinal
+        transient WeakReference<ConstructorDelegationCall.Padding> padding;
+
+        @Getter
+        @With
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        @Getter
+        @With
+        Space prefix;
+
+        @Getter
+        @With
+        Markers markers;
+
+        @Getter
+        @With
+        TypeTree typeTree;
+
+        JContainer<Expression> arguments;
+
+        public List<Expression> getArguments() {
+            return arguments.getElements();
+        }
+
+        public ConstructorDelegationCall withArguments(List<Expression> arguments) {
+            return getPadding().withArguments(JContainer.withElements(this.arguments, arguments));
+        }
+
+        public ConstructorDelegationCall(UUID id, Space prefix, Markers markers, TypeTree typeTree, JContainer<Expression> arguments) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.typeTree = typeTree;
+            this.arguments = arguments;
+        }
+
+        @Override
+        public ConstructorDelegationCall withType(@Nullable JavaType type) {
+            return withTypeTree(typeTree.withType(type));
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitConstructorDelegationCall(this, p);
+        }
+
+        public ConstructorDelegationCall.Padding getPadding() {
+            ConstructorDelegationCall.Padding p;
+            if (this.padding == null) {
+                p = new ConstructorDelegationCall.Padding(this);
+                this.padding = new WeakReference<>(p);
+            } else {
+                p = this.padding.get();
+                if (p == null || p.t != this) {
+                    p = new ConstructorDelegationCall.Padding(this);
+                    this.padding = new WeakReference<>(p);
+                }
+            }
+            return p;
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            return typeTree.getType();
+        }
+
+        @RequiredArgsConstructor
+        public static class Padding {
+            private final ConstructorDelegationCall t;
+
+            public JContainer<Expression> getArguments() {
+                return t.arguments;
+            }
+
+            public ConstructorDelegationCall withArguments(JContainer<Expression> arguments) {
+                return t.arguments == arguments ? t : new ConstructorDelegationCall(t.id, t.prefix, t.markers, t.typeTree, arguments);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
+        }
+    }
+
+    @SuppressWarnings("unused")
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     final class DestructuringDeclaration implements K, Statement {
 
         @Nullable

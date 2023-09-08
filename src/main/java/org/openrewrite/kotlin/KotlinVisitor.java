@@ -131,6 +131,15 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         return b;
     }
 
+    public J visitConstructorDelegationCall(K.ConstructorDelegationCall constructorDelegationCall, P p) {
+        K.ConstructorDelegationCall d = constructorDelegationCall;
+        d = d.withPrefix(visitSpace(d.getPrefix(), KSpace.Location.CONSTRUCTOR_DELEGATION_CALL_PREFIX, p));
+        d = d.withMarkers(visitMarkers(d.getMarkers(), p));
+        d = d.withTypeTree(visitAndCast(d.getTypeTree(), p));
+        d = d.getPadding().withArguments(visitContainer(d.getPadding().getArguments(), JContainer.Location.METHOD_INVOCATION_ARGUMENTS, p));
+        return d;
+    }
+
     public J visitDestructuringDeclaration(K.DestructuringDeclaration destructuringDeclaration, P p) {
         K.DestructuringDeclaration d = destructuringDeclaration;
         d = d.withPrefix(visitSpace(d.getPrefix(), KSpace.Location.DESTRUCTURING_DECLARATION_PREFIX, p));

@@ -4013,76 +4013,27 @@ class KotlinParserVisitor(
         for (i in realSuperTypes.indices) {
             val typeRef = realSuperTypes[i]
             val symbol = typeRef.coneType.toRegularClassSymbol(firSession)
-            var element = visitElement(typeRef, data) as TypeTree
-            if (firPrimaryConstructor != null && symbol != null && ClassKind.CLASS == symbol.fir.classKind) {
-                // Wrap the element in a J.NewClass to preserve the whitespace and container of `( )`
-                val args = mapFunctionalCallArguments(firPrimaryConstructor.delegatedConstructor!!)
-                val delegationCall = J.MethodInvocation(
-                    randomId(),
-                    element.prefix,
-                    Markers.EMPTY.addIfAbsent(ConstructorDelegation(randomId(), before)).addIfAbsent(Implicit(randomId())),
-                    null,
-                    null,
-                    J.Identifier(
-                        randomId(),
-                        prefix,
-                        Markers.EMPTY,
-                        emptyList(),
-                        if (firPrimaryConstructor.delegatedConstructor!!.isThis) "this" else "super",
-                        type(typeRef),
-                        null
-                    ),
-                    args,
-                    type(firPrimaryConstructor.delegatedConstructor!!.calleeReference.resolved!!.resolvedSymbol) as? JavaType.Method
-                )
-                if (primaryConstructor == null) {
-                    primaryConstructor = J.MethodDeclaration(
-                        randomId(),
-                        Space.EMPTY,
-                        Markers.build(
-                            listOf(
-                                PrimaryConstructor(randomId()),
-                                Implicit(randomId())
-                            )
-                        ),
-                        emptyList(), // TODO annotations
-                        emptyList(), // TODO modifiers
-                        null,
-                        null,
-                        J.MethodDeclaration.IdentifierWithAnnotations(
-                            name.withMarkers(name.markers.addIfAbsent(Implicit(randomId()))),
-                            emptyList()
-                        ),
-                        JContainer.empty(),
-                        null,
-                        J.Block(
+            // Filter out generated types.
+            if (typeRef.source != null && typeRef.source!!.kind !is KtFakeSourceElementKind) {
+                val element: TypeTree
+                if (firPrimaryConstructor != null && symbol != null && ClassKind.CLASS == symbol.fir.classKind) {
+                    val delegationCall = K.ConstructorDelegationCall(
                             randomId(),
-                            Space.EMPTY,
-                            Markers.EMPTY.addIfAbsent(OmitBraces(randomId())),
-                            JRightPadded(false, Space.EMPTY, Markers.EMPTY),
-                            listOf(JRightPadded.build(delegationCall)),
-                            Space.EMPTY
-                        ),
-                        null,
-                        null // TODO type
+                            whitespace(),
+                            Markers.EMPTY,
+                            visitElement(typeRef, data) as TypeTree,
+                            mapFunctionalCallArguments(firPrimaryConstructor.delegatedConstructor!!)
                     )
+                    markers = markers.addIfAbsent(PrimaryConstructor(randomId()))
+                    element = delegationCall
                 } else {
-                    primaryConstructor = primaryConstructor.withBody(J.Block(
-                        randomId(),
-                        Space.EMPTY,
-                        Markers.EMPTY.addIfAbsent(OmitBraces(randomId())),
-                        JRightPadded(false, Space.EMPTY, Markers.EMPTY),
-                        listOf(JRightPadded.build(delegationCall)),
-                        Space.EMPTY
-                    ))
+                    element = visitElement(typeRef, data) as TypeTree
                 }
-                markers = markers.addIfAbsent(PrimaryConstructor(randomId()))
-                element = element.withMarkers(element.markers.addIfAbsent(ConstructorDelegation(randomId(), Space.EMPTY)))
+                superTypes.add(
+                    JRightPadded.build(element)
+                        .withAfter(if (i == realSuperTypes.size - 1) Space.EMPTY else sourceBefore(","))
+                )
             }
-            superTypes.add(
-                JRightPadded.build(element)
-                    .withAfter(if (i == realSuperTypes.size - 1) Space.EMPTY else sourceBefore(","))
-            )
         }
         if (superTypes.isEmpty()) {
             cursor(saveCursor)
