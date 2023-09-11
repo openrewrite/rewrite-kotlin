@@ -81,6 +81,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import java.util.function.Function
 import java.util.stream.Collectors
+import kotlin.collections.HashMap
 import kotlin.math.max
 import kotlin.math.min
 
@@ -110,6 +111,7 @@ class KotlinParserVisitor(
     // Associate top-level function and property declarations to the file.
     private var currentFile: FirFile? = null
     private var aliasImportMap: MutableMap<String, String>
+    private val elementMap: MutableMap<PsiElement, MutableList<FirElement>>
 
     init {
         sourcePath = kotlinSource.input.getRelativePath(relativeTo)
@@ -125,12 +127,14 @@ class KotlinParserVisitor(
         this.nodes = kotlinSource.nodes
         generatedFirProperties = HashMap()
         aliasImportMap = HashMap()
+        elementMap = HashMap()
     }
 
     private fun type(obj: Any?, ownerFallBack: FirBasedSymbol<*>? = null) = typeMapping.type(obj, ownerFallBack)
 
     override fun visitFile(file: FirFile, data: ExecutionContext): J {
         currentFile = file
+        mapAllElements(file)
         generatedFirProperties.clear()
         var annotations: List<J.Annotation>? = null
         val annotationList = PsiTreeUtil.findChildOfType(
@@ -213,6 +217,17 @@ class KotlinParserVisitor(
             statements,
             Space.format(source, cursor, source.length)
         )
+    }
+
+    private fun mapAllElements(file: FirFile) {
+        object : FirDefaultVisitor<Unit, MutableMap<PsiElement, MutableList<FirElement>>>() {
+            override fun visitElement(element: FirElement, data: MutableMap<PsiElement, MutableList<FirElement>>) {
+                if (element.source != null && element.source.psi != null) {
+                    data.computeIfAbsent(element.source!!.psi!!) { ArrayList() } += element
+                }
+                element.acceptChildren(this, data)
+            }
+        }.visitFile(file, elementMap)
     }
 
     override fun visitErrorNamedReference(errorNamedReference: FirErrorNamedReference, data: ExecutionContext): J {
