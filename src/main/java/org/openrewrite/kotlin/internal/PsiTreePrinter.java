@@ -15,8 +15,17 @@
  */
 package org.openrewrite.kotlin.internal;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.KtFakeSourceElement;
+import org.jetbrains.kotlin.KtRealPsiSourceElement;
+import org.jetbrains.kotlin.KtSourceElement;
 import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
+import org.jetbrains.kotlin.fir.FirElement;
+import org.jetbrains.kotlin.fir.declarations.FirFile;
+import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor;
 import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
@@ -45,6 +54,10 @@ public class PsiTreePrinter {
         return printIndexedSourceCode(input.getSource(new InMemoryExecutionContext()).readFully());
     }
 
+    public static String print(FirFile file) {
+        return printFirFile(file);
+    }
+
     public static String printPsiTreeSkeleton(PsiElement psiElement) {
         PsiTreePrinter treePrinter = new PsiTreePrinter();
         StringBuilder sb = new StringBuilder();
@@ -64,6 +77,66 @@ public class PsiTreePrinter {
         sb.append("PSI Tree All").append("\n");
         treePrinter.printNode(psiElement, 1);
         sb.append(String.join("\n", treePrinter.outputLines));
+        return sb.toString();
+    }
+
+    @AllArgsConstructor
+    @Data
+    private static class FirTreeContext {
+        List<StringBuilder> lines;
+        int depth;
+    }
+
+    public static String printFirFile(FirFile file) {
+        StringBuilder sb = new StringBuilder();
+        List<StringBuilder> lines = new ArrayList<>();
+        sb.append("------------").append("\n");
+        sb.append("FirFile:").append("\n\n");
+
+        FirTreeContext context = new FirTreeContext(lines, 0);
+        new FirDefaultVisitor<Void, FirTreeContext>() {
+            @Override
+            public Void visitElement(@NotNull FirElement firElement, FirTreeContext ctx) {
+                StringBuilder line = new StringBuilder();
+                line.append(leftPadding(ctx.getDepth()))
+                        .append(printFirElement(firElement));
+                connectToLatestSibling(ctx.getDepth(), ctx.getLines());
+                ctx.getLines().add(line);
+                ctx.setDepth(ctx.getDepth() + 1);
+                firElement.acceptChildren(this, ctx);
+                ctx.setDepth(ctx.getDepth() - 1);
+                return null;
+            }
+        }.visitFile(file, context);
+        sb.append(String.join("\n", lines));
+        return sb.toString();
+    }
+
+    public static String printFirElement(FirElement firElement) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(firElement.getClass().getSimpleName());
+
+        if (firElement.getSource() != null) {
+            KtSourceElement source = firElement.getSource();
+            sb.append(" | ");
+
+            if (source instanceof KtRealPsiSourceElement) {
+                sb.append("Real ");
+            } else if (source instanceof KtFakeSourceElement) {
+                sb.append("Fake ");
+            } else {
+                sb.append(source.getClass().getSimpleName());
+            }
+
+            sb.append("PSI(")
+                    .append("[").append(source.getStartOffset())
+                    .append(",")
+                    .append(source.getEndOffset())
+                    .append("]")
+                    .append(" ")
+                    .append(source.getElementType())
+                    .append(")");
+        }
         return sb.toString();
     }
 
@@ -219,6 +292,32 @@ public class PsiTreePrinter {
         int pos = (depth - 1) * TAB.length();
         for (int i = outputLines.size() - 1; i > 0; i--) {
             StringBuilder line = outputLines.get(i);
+            if (pos >= line.length()) {
+                break;
+            }
+
+            if (line.charAt(pos) != ' ') {
+                if (line.charAt(pos) == BRANCH_END_CHAR) {
+                    line.setCharAt(pos, BRANCH_CONTINUE_CHAR);
+                }
+                break;
+            }
+            line.setCharAt(pos, BRANCH_CONTINUE_CHAR);
+        }
+    }
+
+    /**
+     * Print a vertical line that connects the current element to the latest sibling.
+     * @param depth current element depth
+     */
+    private static void connectToLatestSibling(int depth, List<StringBuilder> lines) {
+        if (depth <= 1) {
+            return;
+        }
+
+        int pos = (depth - 1) * TAB.length();
+        for (int i = lines.size() - 1; i > 0; i--) {
+            StringBuilder line = lines.get(i);
             if (pos >= line.length()) {
                 break;
             }

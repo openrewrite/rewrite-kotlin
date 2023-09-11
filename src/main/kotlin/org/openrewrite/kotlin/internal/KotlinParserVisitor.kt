@@ -111,7 +111,7 @@ class KotlinParserVisitor(
     // Associate top-level function and property declarations to the file.
     private var currentFile: FirFile? = null
     private var aliasImportMap: MutableMap<String, String>
-    private val elementMap: MutableMap<PsiElement, MutableList<FirElement>>
+    private val elementMap: MutableMap<PsiInfo, MutableList<FirInfo>>
 
     init {
         sourcePath = kotlinSource.input.getRelativePath(relativeTo)
@@ -220,12 +220,28 @@ class KotlinParserVisitor(
     }
 
     private fun mapAllElements(file: FirFile) {
-        object : FirDefaultVisitor<Unit, MutableMap<PsiElement, MutableList<FirElement>>>() {
-            override fun visitElement(element: FirElement, data: MutableMap<PsiElement, MutableList<FirElement>>) {
+        // debug purpose only, to be removed
+        System.out.println(PsiTreePrinter.print(file))
+
+        var depth = 0
+        object : FirDefaultVisitor<Unit, MutableMap<PsiInfo, MutableList<FirInfo>>>() {
+            override fun visitElement(element: FirElement, data: MutableMap<PsiInfo, MutableList<FirInfo>>) {
                 if (element.source != null && element.source.psi != null) {
-                    data.computeIfAbsent(element.source!!.psi!!) { ArrayList() } += element
+                    val psiElement = element.source!!.psi!!
+                    val psiInfo = PsiInfo(
+                        psiElement.startOffset,
+                        psiElement.endOffset
+                    )
+                    val firInfo = FirInfo(
+                        psiElement,
+                        depth,
+                        element
+                    )
+                    data.computeIfAbsent(psiInfo) { ArrayList() } += firInfo
                 }
+                depth++
                 element.acceptChildren(this, data)
+                depth--
             }
         }.visitFile(file, elementMap)
     }
@@ -4665,6 +4681,43 @@ class KotlinParserVisitor(
 
     private fun createIdentifier(name: String?, firElement: FirElement): J.Identifier {
         val type = type(firElement, getCurrentFile())
+
+        val savedCursor = cursor
+        whitespace()
+        val start = cursor
+        cursor = savedCursor
+        val range: Pair<Int, Int> = Pair(start, start + (name?.length ?: 0))
+
+        // find the enclosing FirElement
+
+        var enclosingFir: FirElement? = null
+        var minDiff = Int.MAX_VALUE
+
+        elementMap.forEach { (psiInfo, firInfos) ->
+            val startOffset = psiInfo.startOffset
+            val endOffset = psiInfo.endOffset
+            if (startOffset <= range.first &&
+                endOffset >= range.second
+            ) {
+                var diff = (range.first - startOffset) + (endOffset - range.second)
+                if (diff < minDiff) {
+                    minDiff = diff
+
+                    var maxDepth = -1
+                    firInfos.forEach { firInfo ->
+                        if (firInfo.fir.source is KtRealPsiSourceElement && firInfo.depth > maxDepth) {
+                            enclosingFir = firInfo.fir
+                            maxDepth = firInfo.depth
+                        }
+                    }
+                }
+            }
+        }
+
+        if (enclosingFir != firElement) {
+            throw IllegalArgumentException("PSI->FIR mapping, Didn't find expected FIR")
+        }
+
         return createIdentifier(
             name ?: "",
             if (type is JavaType.Variable) type.type else type,
