@@ -81,7 +81,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Consumer
 import java.util.function.Function
 import java.util.stream.Collectors
-import kotlin.collections.HashMap
 import kotlin.math.max
 import kotlin.math.min
 
@@ -111,7 +110,7 @@ class KotlinParserVisitor(
     // Associate top-level function and property declarations to the file.
     private var currentFile: FirFile? = null
     private var aliasImportMap: MutableMap<String, String>
-    private val elementMap: MutableMap<PsiInfo, MutableList<FirInfo>>
+    private val elementAssociations: PsiElementAssociations
 
     init {
         sourcePath = kotlinSource.input.getRelativePath(relativeTo)
@@ -127,14 +126,14 @@ class KotlinParserVisitor(
         this.nodes = kotlinSource.nodes
         generatedFirProperties = HashMap()
         aliasImportMap = HashMap()
-        elementMap = HashMap()
+        elementAssociations = PsiElementAssociations(typeMapping)
     }
 
     private fun type(obj: Any?, ownerFallBack: FirBasedSymbol<*>? = null) = typeMapping.type(obj, ownerFallBack)
 
     override fun visitFile(file: FirFile, data: ExecutionContext): J {
         currentFile = file
-        mapAllElements(file)
+        elementAssociations.initialize(file)
         generatedFirProperties.clear()
         var annotations: List<J.Annotation>? = null
         val annotationList = PsiTreeUtil.findChildOfType(
@@ -217,32 +216,6 @@ class KotlinParserVisitor(
             statements,
             Space.format(source, cursor, source.length)
         )
-    }
-
-    private fun mapAllElements(file: FirFile) {
-        // debug purpose only, to be removed
-        System.out.println(PsiTreePrinter.print(file))
-
-        var depth = 0
-        object : FirDefaultVisitor<Unit, MutableMap<PsiInfo, MutableList<FirInfo>>>() {
-            override fun visitElement(element: FirElement, data: MutableMap<PsiInfo, MutableList<FirInfo>>) {
-                if (element.source != null && element.source.psi != null) {
-                    val psiElement = element.source!!.psi!!
-                    val psiInfo = PsiInfo(
-                        psiElement.startOffset,
-                        psiElement.endOffset
-                    )
-                    val firInfo = FirInfo(
-                        depth,
-                        element
-                    )
-                    data.computeIfAbsent(psiInfo) { ArrayList() } += firInfo
-                }
-                depth++
-                element.acceptChildren(this, data)
-                depth--
-            }
-        }.visitFile(file, elementMap)
     }
 
     override fun visitErrorNamedReference(errorNamedReference: FirErrorNamedReference, data: ExecutionContext): J {
@@ -4690,33 +4663,7 @@ class KotlinParserVisitor(
             cursor = savedCursor
 
             val range: Pair<Int, Int> = Pair(start, start + (name?.length ?: 0))
-
-            // find the eligible enclosing FirElement
-            var enclosingFir: FirElement? = null
-            var minDiff = Int.MAX_VALUE
-
-            elementMap.forEach { (psiInfo, firInfos) ->
-                val startOffset = psiInfo.startOffset
-                val endOffset = psiInfo.endOffset
-                if (startOffset <= range.first &&
-                    endOffset >= range.second
-                ) {
-                    val diff = (range.first - startOffset) + (endOffset - range.second)
-                    if (diff < minDiff) {
-                        minDiff = diff
-
-                        var maxDepth = -1
-                        firInfos.forEach { firInfo ->
-                            if (firInfo.fir.source is KtRealPsiSourceElement && firInfo.depth > maxDepth) {
-                                enclosingFir = firInfo.fir
-                                maxDepth = firInfo.depth
-                            }
-                        }
-                    }
-                }
-            }
-
-            val type2 = typeMapping.type(enclosingFir, getCurrentFile())
+            val type2 = elementAssociations.type(range)
             if (type2 != type) {
                 throw IllegalArgumentException("PSI->FIR mapping, Didn't find expected FIR")
             }
