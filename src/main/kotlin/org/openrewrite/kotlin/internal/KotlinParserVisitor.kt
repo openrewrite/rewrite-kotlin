@@ -233,7 +233,6 @@ class KotlinParserVisitor(
                         psiElement.endOffset
                     )
                     val firInfo = FirInfo(
-                        psiElement,
                         depth,
                         element
                     )
@@ -4692,7 +4691,7 @@ class KotlinParserVisitor(
 
             val range: Pair<Int, Int> = Pair(start, start + (name?.length ?: 0))
 
-            // find the enclosing FirElement
+            // find the eligible enclosing FirElement
             var enclosingFir: FirElement? = null
             var minDiff = Int.MAX_VALUE
 

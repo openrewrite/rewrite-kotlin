@@ -15,11 +15,9 @@
  */
 package org.openrewrite.kotlin.internal
 
-import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.fir.FirElement
 
 class FirInfo (
-    val psiElement: PsiElement,
     val depth: Int,
     val fir: FirElement
 ) {
