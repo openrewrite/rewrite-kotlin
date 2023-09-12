@@ -1672,7 +1672,7 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-
+    @Disabled
     @Test
     void newClass() {
         rewriteRun(

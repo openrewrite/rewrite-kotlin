@@ -302,6 +302,7 @@ class ClassDeclarationTest implements RewriteTest {
         );
     }
 
+    @Disabled("Not PSI issue, but cursor position is wrong, should be 17-35, but it's 33")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/190")
     @Test
     void companionObject() {

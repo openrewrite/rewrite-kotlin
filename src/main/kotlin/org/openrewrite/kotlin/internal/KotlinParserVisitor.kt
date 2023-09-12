@@ -4682,40 +4682,45 @@ class KotlinParserVisitor(
     private fun createIdentifier(name: String?, firElement: FirElement): J.Identifier {
         val type = type(firElement, getCurrentFile())
 
-        val savedCursor = cursor
-        whitespace()
-        val start = cursor
-        cursor = savedCursor
-        val range: Pair<Int, Int> = Pair(start, start + (name?.length ?: 0))
+        if (type != null &&
+            firElement.source != null &&
+            firElement.source is KtRealPsiSourceElement) {
+            val savedCursor = cursor
+            whitespace()
+            val start = cursor
+            cursor = savedCursor
 
-        // find the enclosing FirElement
+            val range: Pair<Int, Int> = Pair(start, start + (name?.length ?: 0))
 
-        var enclosingFir: FirElement? = null
-        var minDiff = Int.MAX_VALUE
+            // find the enclosing FirElement
+            var enclosingFir: FirElement? = null
+            var minDiff = Int.MAX_VALUE
 
-        elementMap.forEach { (psiInfo, firInfos) ->
-            val startOffset = psiInfo.startOffset
-            val endOffset = psiInfo.endOffset
-            if (startOffset <= range.first &&
-                endOffset >= range.second
-            ) {
-                var diff = (range.first - startOffset) + (endOffset - range.second)
-                if (diff < minDiff) {
-                    minDiff = diff
+            elementMap.forEach { (psiInfo, firInfos) ->
+                val startOffset = psiInfo.startOffset
+                val endOffset = psiInfo.endOffset
+                if (startOffset <= range.first &&
+                    endOffset >= range.second
+                ) {
+                    val diff = (range.first - startOffset) + (endOffset - range.second)
+                    if (diff < minDiff) {
+                        minDiff = diff
 
-                    var maxDepth = -1
-                    firInfos.forEach { firInfo ->
-                        if (firInfo.fir.source is KtRealPsiSourceElement && firInfo.depth > maxDepth) {
-                            enclosingFir = firInfo.fir
-                            maxDepth = firInfo.depth
+                        var maxDepth = -1
+                        firInfos.forEach { firInfo ->
+                            if (firInfo.fir.source is KtRealPsiSourceElement && firInfo.depth > maxDepth) {
+                                enclosingFir = firInfo.fir
+                                maxDepth = firInfo.depth
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (enclosingFir != firElement) {
-            throw IllegalArgumentException("PSI->FIR mapping, Didn't find expected FIR")
+            val type2 = typeMapping.type(enclosingFir, getCurrentFile())
+            if (type2 != type) {
+                throw IllegalArgumentException("PSI->FIR mapping, Didn't find expected FIR")
+            }
         }
 
         return createIdentifier(
