@@ -724,7 +724,7 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession) : Java
         var paramNames: MutableList<String>? = null
         if (simpleFunction?.receiverParameter != null) {
             paramNames = ArrayList(simpleFunction.valueParameters.size + 1)
-            paramNames.add("receiver")
+            paramNames.add('$'+ "this" + '$')
         }
         if (simpleFunction != null && simpleFunction.valueParameters.isNotEmpty()) {
             paramNames = paramNames ?: ArrayList(simpleFunction.valueParameters.size)
