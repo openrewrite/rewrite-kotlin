@@ -520,14 +520,14 @@ public interface K extends J {
 
         @Getter
         @With
-        ConstructorDelegationCall delegationCall;
+        ConstructorInvocation constructorInvocation;
 
-        public Constructor(UUID id, Markers markers, MethodDeclaration methodDeclaration, Space colon, ConstructorDelegationCall delegationCall) {
+        public Constructor(UUID id, Markers markers, MethodDeclaration methodDeclaration, Space colon, ConstructorInvocation constructorInvocation) {
             this.id = id;
             this.markers = markers;
             this.methodDeclaration = methodDeclaration;
             this.colon = colon;
-            this.delegationCall = delegationCall;
+            this.constructorInvocation = constructorInvocation;
         }
 
         @Override
@@ -570,11 +570,11 @@ public interface K extends J {
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    final class ConstructorDelegationCall implements K, TypeTree {
+    final class ConstructorInvocation implements K, TypeTree {
 
         @Nullable
         @NonFinal
-        transient WeakReference<ConstructorDelegationCall.Padding> padding;
+        transient WeakReference<ConstructorInvocation.Padding> padding;
 
         @Getter
         @With
@@ -599,11 +599,11 @@ public interface K extends J {
             return arguments.getElements();
         }
 
-        public ConstructorDelegationCall withArguments(List<Expression> arguments) {
+        public ConstructorInvocation withArguments(List<Expression> arguments) {
             return getPadding().withArguments(JContainer.withElements(this.arguments, arguments));
         }
 
-        public ConstructorDelegationCall(UUID id, Space prefix, Markers markers, TypeTree typeTree, JContainer<Expression> arguments) {
+        public ConstructorInvocation(UUID id, Space prefix, Markers markers, TypeTree typeTree, JContainer<Expression> arguments) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
@@ -612,24 +612,24 @@ public interface K extends J {
         }
 
         @Override
-        public ConstructorDelegationCall withType(@Nullable JavaType type) {
+        public ConstructorInvocation withType(@Nullable JavaType type) {
             return withTypeTree(typeTree.withType(type));
         }
 
         @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-            return v.visitConstructorDelegationCall(this, p);
+            return v.visitConstructorInvocation(this, p);
         }
 
-        public ConstructorDelegationCall.Padding getPadding() {
-            ConstructorDelegationCall.Padding p;
+        public ConstructorInvocation.Padding getPadding() {
+            ConstructorInvocation.Padding p;
             if (this.padding == null) {
-                p = new ConstructorDelegationCall.Padding(this);
+                p = new ConstructorInvocation.Padding(this);
                 this.padding = new WeakReference<>(p);
             } else {
                 p = this.padding.get();
                 if (p == null || p.t != this) {
-                    p = new ConstructorDelegationCall.Padding(this);
+                    p = new ConstructorInvocation.Padding(this);
                     this.padding = new WeakReference<>(p);
                 }
             }
@@ -643,14 +643,14 @@ public interface K extends J {
 
         @RequiredArgsConstructor
         public static class Padding {
-            private final ConstructorDelegationCall t;
+            private final ConstructorInvocation t;
 
             public JContainer<Expression> getArguments() {
                 return t.arguments;
             }
 
-            public ConstructorDelegationCall withArguments(JContainer<Expression> arguments) {
-                return t.arguments == arguments ? t : new ConstructorDelegationCall(t.id, t.prefix, t.markers, t.typeTree, arguments);
+            public ConstructorInvocation withArguments(JContainer<Expression> arguments) {
+                return t.arguments == arguments ? t : new ConstructorInvocation(t.id, t.prefix, t.markers, t.typeTree, arguments);
             }
         }
 

@@ -3622,7 +3622,7 @@ class KotlinParserVisitor(
         }
 
         saveCursor = cursor
-        var delegationCall: K.ConstructorDelegationCall? = null
+        var delegationCall: K.ConstructorInvocation? = null
         before = whitespace()
         var colon: Space? = null
         if (skip(":") && constructor.delegatedConstructor != null) {
@@ -3633,10 +3633,10 @@ class KotlinParserVisitor(
                 createIdentifier(if (constructor.delegatedConstructor!!.isThis) "this" else "super")
             val argsPrefix = whitespace()
             val args = mapFunctionalCallArguments(constructor.delegatedConstructor!!).withBefore(argsPrefix)
-            delegationCall = K.ConstructorDelegationCall(
+            delegationCall = K.ConstructorInvocation(
                 randomId(),
                 thisPrefix,
-                Markers.EMPTY.addIfAbsent(ConstructorDelegation(randomId(), before)).addIfAbsent(Implicit(randomId())),
+                Markers.EMPTY,
                 delegateName,
                 args,
             )
@@ -4006,12 +4006,12 @@ class KotlinParserVisitor(
             if (typeRef.source != null && typeRef.source!!.kind !is KtFakeSourceElementKind) {
                 val element: TypeTree
                 if (firPrimaryConstructor != null && symbol != null && ClassKind.CLASS == symbol.fir.classKind) {
-                    val delegationCall = K.ConstructorDelegationCall(
-                            randomId(),
-                            whitespace(),
-                            Markers.EMPTY,
-                            visitElement(typeRef, data) as TypeTree,
-                            mapFunctionalCallArguments(firPrimaryConstructor.delegatedConstructor!!)
+                    val delegationCall = K.ConstructorInvocation(
+                        randomId(),
+                        whitespace(),
+                        Markers.EMPTY,
+                        visitElement(typeRef, data) as TypeTree,
+                        mapFunctionalCallArguments(firPrimaryConstructor.delegatedConstructor!!)
                     )
                     markers = markers.addIfAbsent(PrimaryConstructor(randomId()))
                     element = delegationCall

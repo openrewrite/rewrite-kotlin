@@ -136,13 +136,13 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         c = c.withMarkers(visitMarkers(c.getMarkers(), p));
         c = c.withMethodDeclaration(visitAndCast(c.getMethodDeclaration(), p));
         c = c.withColon(visitSpace(c.getColon(), KSpace.Location.CONSTRUCTOR_COLON, p));
-        c = c.withDelegationCall(visitAndCast(c.getDelegationCall(), p));
+        c = c.withConstructorInvocation(visitAndCast(c.getConstructorInvocation(), p));
         return c;
     }
 
-    public J visitConstructorDelegationCall(K.ConstructorDelegationCall constructorDelegationCall, P p) {
-        K.ConstructorDelegationCall d = constructorDelegationCall;
-        d = d.withPrefix(visitSpace(d.getPrefix(), KSpace.Location.CONSTRUCTOR_DELEGATION_CALL_PREFIX, p));
+    public J visitConstructorInvocation(K.ConstructorInvocation constructorInvocation, P p) {
+        K.ConstructorInvocation d = constructorInvocation;
+        d = d.withPrefix(visitSpace(d.getPrefix(), KSpace.Location.CONSTRUCTOR_INVOCATION_PREFIX, p));
         d = d.withMarkers(visitMarkers(d.getMarkers(), p));
         d = d.withTypeTree(visitAndCast(d.getTypeTree(), p));
         d = d.getPadding().withArguments(visitContainer(d.getPadding().getArguments(), JContainer.Location.METHOD_INVOCATION_ARGUMENTS, p));
@@ -386,9 +386,6 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         } else if (marker instanceof CheckNotNull) {
             CheckNotNull cnn = (CheckNotNull) marker;
             m = cnn.withPrefix(visitSpace(cnn.getPrefix(), KSpace.Location.CHECK_NOT_NULL_PREFIX, p));
-        } else if (marker instanceof ConstructorDelegation) {
-            ConstructorDelegation cd = (ConstructorDelegation) marker;
-            m = cd.withPrefix(visitSpace(cd.getPrefix(), KSpace.Location.CONSTRUCTOR_DELEGATION_PREFIX, p));
         } else if (marker instanceof IsNullable) {
             IsNullable isn = (IsNullable) marker;
             m = isn.withPrefix(visitSpace(isn.getPrefix(), KSpace.Location.IS_NULLABLE_PREFIX, p));

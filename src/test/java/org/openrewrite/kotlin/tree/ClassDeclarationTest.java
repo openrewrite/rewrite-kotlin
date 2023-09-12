@@ -17,7 +17,6 @@ package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
@@ -513,7 +512,7 @@ class ClassDeclarationTest implements RewriteTest {
                               cause -> assertThat(cause).isInstanceOf(J.VariableDeclarations.class)
                           );
                           assertThat(constructor.getMethodDeclaration().getBody()).isNull();
-                          assertThat(constructor.getDelegationCall().getArguments()).satisfiesExactly(
+                          assertThat(constructor.getConstructorInvocation().getArguments()).satisfiesExactly(
                               message -> assertThat(message).isInstanceOf(J.Identifier.class),
                               cause -> assertThat(cause).isInstanceOf(J.Identifier.class)
                           );

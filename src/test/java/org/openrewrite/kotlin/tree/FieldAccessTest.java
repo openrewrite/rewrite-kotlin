@@ -91,7 +91,7 @@ class FieldAccessTest implements RewriteTest {
                 J.ClassDeclaration test = (J.ClassDeclaration) cu.getStatements().get(1);
                 assertThat(test.getImplements()).satisfiesExactly(
                   superType -> {
-                      K.ConstructorDelegationCall call = (K.ConstructorDelegationCall) superType;
+                      K.ConstructorInvocation call = (K.ConstructorInvocation) superType;
                       assertThat(((JavaType.FullyQualified) call.getType()).getFullyQualifiedName()).isEqualTo("Super");
                       assertThat(((J.Identifier) call.getTypeTree()).getSimpleName()).isEqualTo("Super");
                       assertThat(call.getArguments()).satisfiesExactly(

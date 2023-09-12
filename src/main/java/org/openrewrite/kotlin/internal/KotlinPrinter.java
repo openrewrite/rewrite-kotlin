@@ -145,7 +145,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         visitSpace(constructor.getColon(), KSpace.Location.CONSTRUCTOR_COLON, p);
         p.append(':');
-        visit(constructor.getDelegationCall(), p);
+        visit(constructor.getConstructorInvocation(), p);
         afterSyntax(constructor, p);
 
         visit(method.getBody(), p);
@@ -154,12 +154,12 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public J visitConstructorDelegationCall(K.ConstructorDelegationCall constructorDelegationCall, PrintOutputCapture<P> p) {
-        beforeSyntax(constructorDelegationCall, KSpace.Location.CONSTRUCTOR_DELEGATION_CALL_PREFIX, p);
-        visit(constructorDelegationCall.getTypeTree(), p);
-        delegate.visitArgumentsContainer(constructorDelegationCall.getPadding().getArguments(), Space.Location.METHOD_INVOCATION_ARGUMENTS, p);
-        afterSyntax(constructorDelegationCall, p);
-        return constructorDelegationCall;
+    public J visitConstructorInvocation(K.ConstructorInvocation constructorInvocation, PrintOutputCapture<P> p) {
+        beforeSyntax(constructorInvocation, KSpace.Location.CONSTRUCTOR_INVOCATION_PREFIX, p);
+        visit(constructorInvocation.getTypeTree(), p);
+        delegate.visitArgumentsContainer(constructorInvocation.getPadding().getArguments(), Space.Location.METHOD_INVOCATION_ARGUMENTS, p);
+        afterSyntax(constructorInvocation, p);
+        return constructorInvocation;
     }
 
     @Override
@@ -836,13 +836,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                         kotlinPrinter.visitSpace(typeReferencePrefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p));
                 p.append(":");
                 visit(method.getReturnTypeExpression(), p);
-            } else if (method.getBody() != null && !method.getBody().getStatements().isEmpty()) {
-                Statement firstStatement = method.getBody().getStatements().get(0);
-                firstStatement.getMarkers().findFirst(ConstructorDelegation.class).ifPresent(delegation -> {
-                    kotlinPrinter.visitSpace(delegation.getPrefix(), KSpace.Location.CONSTRUCTOR_DELEGATION_PREFIX, p);
-                    p.append(":");
-                    visit(firstStatement, p);
-                });
             }
 
             visit(method.getBody(), p);
