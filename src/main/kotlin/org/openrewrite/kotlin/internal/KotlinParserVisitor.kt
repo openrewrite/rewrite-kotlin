@@ -129,7 +129,21 @@ class KotlinParserVisitor(
         elementAssociations = PsiElementAssociations(typeMapping)
     }
 
-    private fun type(obj: Any?, ownerFallBack: FirBasedSymbol<*>? = null) = typeMapping.type(obj, ownerFallBack)
+    private fun type(obj: Any?, ownerFallBack: FirBasedSymbol<*>? = null): JavaType? {
+        val type = typeMapping.type(obj, ownerFallBack)
+        if (obj is FirElement &&
+            obj.source != null &&
+            obj.source is KtRealPsiSourceElement) {
+
+            val type2 = elementAssociations.type(obj.source.psi!!)
+            if (type != null && type2 != type) {
+                throw IllegalArgumentException("PSI->FIR mapping, Didn't find expected FIR")
+            }
+            return type2
+        }
+        // FIXME also check what to do when `obj` is not a `FirElement`
+        return typeMapping.type(obj, ownerFallBack)
+    }
 
     override fun visitFile(file: FirFile, data: ExecutionContext): J {
         currentFile = file
@@ -4653,22 +4667,6 @@ class KotlinParserVisitor(
 
     private fun createIdentifier(name: String?, firElement: FirElement): J.Identifier {
         val type = type(firElement, getCurrentFile())
-
-        if (type != null &&
-            firElement.source != null &&
-            firElement.source is KtRealPsiSourceElement) {
-            val savedCursor = cursor
-            whitespace()
-            val start = cursor
-            cursor = savedCursor
-
-            val range: Pair<Int, Int> = Pair(start, start + (name?.length ?: 0))
-            val type2 = elementAssociations.type(range)
-            if (type2 != type) {
-                throw IllegalArgumentException("PSI->FIR mapping, Didn't find expected FIR")
-            }
-        }
-
         return createIdentifier(
             name ?: "",
             if (type is JavaType.Variable) type.type else type,
