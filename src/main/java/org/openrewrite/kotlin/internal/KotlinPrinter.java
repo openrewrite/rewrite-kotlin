@@ -128,6 +128,32 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public J visitConstructor(K.Constructor constructor, PrintOutputCapture<P> p) {
+        J.MethodDeclaration method = constructor.getMethodDeclaration();
+
+        beforeSyntax(method, Space.Location.METHOD_DECLARATION_PREFIX, p);
+        p.append("constructor");
+        JContainer<Statement> params = method.getPadding().getParameters();
+        beforeSyntax(params.getBefore(), params.getMarkers(), JContainer.Location.METHOD_DECLARATION_PARAMETERS.getBeforeLocation(), p);
+        p.append("(");
+        List<JRightPadded<Statement>> elements = params.getPadding().getElements();
+        for (int i = 0; i < elements.size(); i++) {
+            delegate.printMethodParameters(p, i, elements);
+        }
+        afterSyntax(params.getMarkers(), p);
+        p.append(")");
+
+        visitSpace(constructor.getColon(), KSpace.Location.CONSTRUCTOR_COLON, p);
+        p.append(':');
+        visit(constructor.getDelegationCall(), p);
+        afterSyntax(constructor, p);
+
+        visit(method.getBody(), p);
+
+        return constructor;
+    }
+
+    @Override
     public J visitConstructorDelegationCall(K.ConstructorDelegationCall constructorDelegationCall, PrintOutputCapture<P> p) {
         beforeSyntax(constructorDelegationCall, KSpace.Location.CONSTRUCTOR_DELEGATION_CALL_PREFIX, p);
         visit(constructorDelegationCall.getTypeTree(), p);

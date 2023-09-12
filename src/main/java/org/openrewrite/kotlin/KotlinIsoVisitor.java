@@ -33,6 +33,11 @@ public class KotlinIsoVisitor<P> extends KotlinVisitor<P> {
     }
 
     @Override
+    public K.Constructor visitConstructor(K.Constructor constructor, P p) {
+        return (K.Constructor) super.visitConstructor(constructor, p);
+    }
+
+    @Override
     public K.ConstructorDelegationCall visitConstructorDelegationCall(K.ConstructorDelegationCall destructuringDeclaration, P p) {
         return (K.ConstructorDelegationCall) super.visitConstructorDelegationCall(destructuringDeclaration, p);
     }

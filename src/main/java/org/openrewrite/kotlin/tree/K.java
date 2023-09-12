@@ -499,6 +499,76 @@ public interface K extends J {
     @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    final class Constructor implements K, Statement, TypedTree {
+
+        @Getter
+        @With
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        @Getter
+        @With
+        Markers markers;
+
+        @Getter
+        @With
+        J.MethodDeclaration methodDeclaration;
+
+        @Getter
+        @With
+        Space colon;
+
+        @Getter
+        @With
+        ConstructorDelegationCall delegationCall;
+
+        public Constructor(UUID id, Markers markers, MethodDeclaration methodDeclaration, Space colon, ConstructorDelegationCall delegationCall) {
+            this.id = id;
+            this.markers = markers;
+            this.methodDeclaration = methodDeclaration;
+            this.colon = colon;
+            this.delegationCall = delegationCall;
+        }
+
+        @Override
+        public Constructor withType(@Nullable JavaType type) {
+            throw new UnsupportedOperationException("To change the return type of this constructor, use withMethodType(..)");
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitConstructor(this, p);
+        }
+
+        @Override
+        public <J2 extends J> J2 withPrefix(Space space) {
+            return (J2) withMethodDeclaration(methodDeclaration.withPrefix(space));
+        }
+
+        @Override
+        public Space getPrefix() {
+            return methodDeclaration.getPrefix();
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            return methodDeclaration.getType();
+        }
+
+        @Override
+        public CoordinateBuilder.Statement getCoordinates() {
+            return null;
+        }
+
+        @Override
+        public String toString() {
+            return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
+        }
+    }
+
+    @SuppressWarnings("unused")
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     final class ConstructorDelegationCall implements K, TypeTree {
 

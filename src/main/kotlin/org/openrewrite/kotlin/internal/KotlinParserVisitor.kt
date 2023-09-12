@@ -3622,24 +3622,23 @@ class KotlinParserVisitor(
         }
 
         saveCursor = cursor
-        var delegationCall: J.MethodInvocation? = null
+        var delegationCall: K.ConstructorDelegationCall? = null
         before = whitespace()
+        var colon: Space? = null
         if (skip(":") && constructor.delegatedConstructor != null) {
+            colon = before
             val thisPrefix = whitespace()
             // The delegate constructor call is de-sugared during the backend phase of the compiler.
             val delegateName =
                 createIdentifier(if (constructor.delegatedConstructor!!.isThis) "this" else "super")
             val argsPrefix = whitespace()
             val args = mapFunctionalCallArguments(constructor.delegatedConstructor!!).withBefore(argsPrefix)
-            delegationCall = J.MethodInvocation(
+            delegationCall = K.ConstructorDelegationCall(
                 randomId(),
                 thisPrefix,
                 Markers.EMPTY.addIfAbsent(ConstructorDelegation(randomId(), before)).addIfAbsent(Implicit(randomId())),
-                null,
-                null,
                 delegateName,
                 args,
-                type(constructor) as JavaType.Method
             )
         } else {
             cursor(saveCursor)
@@ -3663,22 +3662,7 @@ class KotlinParserVisitor(
             throw IllegalStateException("Unexpected constructor body.")
         }
 
-        if (delegationCall != null) {
-            body = if (body == null) {
-                J.Block(
-                    randomId(),
-                    Space.EMPTY,
-                    Markers.EMPTY.addIfAbsent(OmitBraces(randomId())),
-                    JRightPadded(false, Space.EMPTY, Markers.EMPTY),
-                    listOf(JRightPadded.build(delegationCall)),
-                    Space.EMPTY
-                )
-            } else {
-                body.withStatements(ListUtils.insert(body.statements, delegationCall, 0))
-            }
-        }
-
-        return J.MethodDeclaration(
+        val methodDeclaration = J.MethodDeclaration(
             randomId(),
             prefix,
             markers,
@@ -3693,6 +3677,11 @@ class KotlinParserVisitor(
             null,
             typeMapping.methodDeclarationType(constructor, null, getCurrentFile())
         )
+
+        if (delegationCall != null) {
+            return K.Constructor(randomId(), Markers.EMPTY, methodDeclaration, colon!!, delegationCall)
+        }
+        return methodDeclaration
     }
 
     override fun visitComponentCall(componentCall: FirComponentCall, data: ExecutionContext): J {
@@ -4547,6 +4536,7 @@ class KotlinParserVisitor(
             is FirContextReceiver -> visitContextReceiver(firElement, data)
             is FirContractDescriptionOwner -> visitContractDescriptionOwner(firElement, data)
             is FirQualifiedAccessExpression -> visitQualifiedAccessExpression(firElement, data)
+            is FirDelegatedConstructorCall -> visitDelegatedConstructorCall(firElement, data)
             is FirContextReceiverArgumentListOwner -> visitContextReceiverArgumentListOwner(firElement, data)
             is FirClassReferenceExpression -> visitClassReferenceExpression(firElement, data)
             is FirClassLikeDeclaration -> visitClassLikeDeclaration(firElement, data)

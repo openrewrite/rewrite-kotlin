@@ -507,18 +507,16 @@ class ClassDeclarationTest implements RewriteTest {
                   assertThat(cu.getStatements()).satisfiesExactly(stmt -> {
                       J.ClassDeclaration clazz = (J.ClassDeclaration) stmt;
                       assertThat(clazz.getBody().getStatements()).satisfiesExactly(decl -> {
-                          J.MethodDeclaration constructor = (J.MethodDeclaration) decl;
-                          assertThat(constructor.getParameters()).satisfiesExactly(
+                          K.Constructor constructor = (K.Constructor) decl;
+                          assertThat(constructor.getMethodDeclaration().getParameters()).satisfiesExactly(
                               message -> assertThat(message).isInstanceOf(J.VariableDeclarations.class),
                               cause -> assertThat(cause).isInstanceOf(J.VariableDeclarations.class)
                           );
-                          assertThat(constructor.getBody().getStatements()).satisfiesExactly(stmt1 -> {
-                              J.MethodInvocation superCall = (J.MethodInvocation) stmt1;
-                              assertThat(superCall.getArguments()).satisfiesExactly(
-                                  message -> assertThat(message).isInstanceOf(J.Identifier.class),
-                                  cause -> assertThat(cause).isInstanceOf(J.Identifier.class)
-                              );
-                          });
+                          assertThat(constructor.getMethodDeclaration().getBody()).isNull();
+                          assertThat(constructor.getDelegationCall().getArguments()).satisfiesExactly(
+                              message -> assertThat(message).isInstanceOf(J.Identifier.class),
+                              cause -> assertThat(cause).isInstanceOf(J.Identifier.class)
+                          );
                       });
                   });
               })
