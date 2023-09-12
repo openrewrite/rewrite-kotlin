@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.format;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -80,7 +79,6 @@ class BlankLinesTest implements RewriteTest {
             );
         }
 
-        @Disabled
         @DocumentExample
         @Test
         void keepMaximumInDeclarations() {
