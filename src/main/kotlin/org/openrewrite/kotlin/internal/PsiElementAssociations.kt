@@ -18,10 +18,15 @@ package org.openrewrite.kotlin.internal
 import org.jetbrains.kotlin.KtRealPsiSourceElement
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.fir.FirElement
+import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFile
+import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
+import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor
 import org.jetbrains.kotlin.psi
+import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtExpression
 import org.openrewrite.java.tree.JavaType
 import org.openrewrite.kotlin.KotlinTypeMapping
 
@@ -54,9 +59,33 @@ class PsiElementAssociations(private val typeMapping: KotlinTypeMapping) {
         }.visitFile(file, elementMap)
     }
 
-    fun type(psiElement: PsiElement): JavaType? {
-        val directFirInfos = elementMap[psiElement]!!.filter { it.fir.source is KtRealPsiSourceElement }
-        return typeMapping.type(directFirInfos[0].fir, file?.symbol)
+    fun type(psiElement: PsiElement, ownerFallBack: FirBasedSymbol<*>?): JavaType? {
+        val fir = primary(psiElement)
+        return if (fir != null) typeMapping.type(fir, ownerFallBack) else null
+    }
+
+    fun symbol(psi: KtDeclaration?): FirBasedSymbol<*>? {
+        val fir = fir(psi) { it is FirDeclaration }
+        return if (fir != null) (fir as FirDeclaration).symbol else null
+    }
+
+    fun symbol(psi: KtExpression?): FirBasedSymbol<*>? {
+        val fir = fir(psi) { it is FirResolvedNamedReference }
+        return if (fir != null) (fir as FirResolvedNamedReference).resolvedSymbol else null
+    }
+
+    fun primary(psiElement: PsiElement) =
+        fir(psiElement) { it.source is KtRealPsiSourceElement }
+
+    fun fir(psi: PsiElement?, filter: (FirElement) -> Boolean) : FirElement? {
+        val allFirInfos = elementMap[psi]!!
+        val directFirInfos = allFirInfos.filter { filter.invoke(it.fir) }
+        return if (directFirInfos.isNotEmpty())
+            directFirInfos[0].fir
+        else if (allFirInfos.isNotEmpty())
+            allFirInfos[0].fir
+        else
+            null
     }
 
     private class FirInfo(
