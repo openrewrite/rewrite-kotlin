@@ -93,7 +93,7 @@ public class PsiTreePrinter {
         sb.append("------------").append("\n");
         sb.append("FirFile:").append("\n\n");
 
-        FirTreeContext context = new FirTreeContext(lines, 0);
+        FirTreeContext context = new FirTreeContext(lines, 1);
         new FirDefaultVisitor<Void, FirTreeContext>() {
             @Override
             public Void visitElement(@NotNull FirElement firElement, FirTreeContext ctx) {

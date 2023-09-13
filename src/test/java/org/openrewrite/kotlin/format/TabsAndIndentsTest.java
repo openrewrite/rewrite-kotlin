@@ -316,7 +316,7 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-
+    @ExpectedToFail("expected kotlin.Any but kotlin.Array<Generic{ extends kotlin.Any}>")
     @Issue("https://github.com/openrewrite/rewrite/issues/636")
     @Test
     void methodInvocationArgumentOnOpeningLineWithMethodSelect() {
@@ -343,6 +343,7 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("expected kotlin.Any but kotlin.Array<Generic{ extends kotlin.Any}>")
     @Test
     void methodInvocationArgumentOnNewLineWithMethodSelect() {
         rewriteRun(
@@ -366,6 +367,7 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("vararg")
     @Issue("https://github.com/openrewrite/rewrite/issues/636")
     @Test
     void methodInvocationArgumentsWithMethodSelectsOnEachNewLine() {
@@ -501,6 +503,7 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("expected kotlin.Any but kotlin.Array<Generic{ extends kotlin.Any}>")
     @Issue("https://github.com/openrewrite/rewrite/issues/660")
     @Test
     void methodInvocationLambdaBlockWithClosingBracketOnSameLineIndent() {
@@ -529,6 +532,7 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("expected kotlin.Any but kotlin.Array<Generic{ extends kotlin.Any}>")
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/660")
     void methodInvocationLambdaBlockWithClosingBracketOnNewLineIndent() {

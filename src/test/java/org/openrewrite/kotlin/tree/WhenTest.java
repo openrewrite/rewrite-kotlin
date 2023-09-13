@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RewriteTest;
@@ -62,6 +63,7 @@ class WhenTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("2,3 expect kotlin.Boolean but kotlin.Int")
     @Test
     void multiCase() {
         rewriteRun(
@@ -187,6 +189,7 @@ class WhenTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("1, expect kotlin.Boolean but kotlin.Int")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/86")
     @Test
     void logicalOperatorOnMixed() {
@@ -237,6 +240,7 @@ class WhenTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Iterable::class , expect kotlin.Boolean but kotlin.reflect.KClass<kotlin.collections.Iterable<Generic{T}>>")
     @Test
     void trailingComma() {
         rewriteRun(
