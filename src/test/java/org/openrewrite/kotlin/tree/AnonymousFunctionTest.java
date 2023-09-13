@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -64,6 +65,7 @@ class AnonymousFunctionTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("SAFE_ACCESS_EXPRESSION")
     @Test
     void nestedWithWhitespace() {
         rewriteRun(

@@ -132,7 +132,6 @@ class KotlinParserVisitor(
     private fun type(obj: Any?, ownerFallBack: FirBasedSymbol<*>? = null): JavaType? {
         val expectedType = typeMapping.type(obj, ownerFallBack)
         if (obj is FirElement && obj.source != null) {
-
             val actualType = elementAssociations.type(obj.source.psi!!, ownerFallBack)
             if (expectedType != null && actualType != expectedType) {
                 throw IllegalArgumentException("PSI->FIR mapping, Didn't find expected FIR")
@@ -186,8 +185,18 @@ class KotlinParserVisitor(
         ownerSymbol: FirBasedSymbol<*>?
     ): JavaType.Method? {
         val expectedType = typeMapping.methodInvocationType(functionCall, ownerSymbol)
-        val primary = elementAssociations.fir(functionCall.source.psi!!) { it.source is KtRealPsiSourceElement && it is FirFunctionCall } as FirFunctionCall?
-        if (primary != functionCall) {
+        val primary = elementAssociations.fir(functionCall.source.psi!!) {
+            it.source is KtRealPsiSourceElement && it is FirFunctionCall }
+
+        if (primary == functionCall)
+            return expectedType
+
+        val actualType = if (primary is FirFunctionCall)
+            typeMapping.methodInvocationType(primary, ownerSymbol)
+        else
+            typeMapping.type(primary)
+
+        if (actualType != expectedType) {
             throw IllegalArgumentException("PSI->FIR mapping, Didn't find expected FIR")
         }
         return expectedType

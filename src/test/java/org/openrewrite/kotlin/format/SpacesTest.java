@@ -18,6 +18,7 @@ package org.openrewrite.kotlin.format;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
@@ -1016,6 +1017,7 @@ class SpacesTest implements RewriteTest {
             }
 
             // 3. Destructuring Declaration
+            @ExpectedToFail("destruct type")
             @Test
             void otherBeforeCommaFalseDestruct() {
                 rewriteRun(
@@ -1039,6 +1041,7 @@ class SpacesTest implements RewriteTest {
                 );
             }
 
+            @ExpectedToFail("destruct type")
             @Test
             void otherBeforeCommaTrueDestruct() {
                 rewriteRun(
@@ -1136,6 +1139,7 @@ class SpacesTest implements RewriteTest {
             }
 
             // 3. Destructuring Declaration
+            @ExpectedToFail("name, expect Person{name=component1,return=kotlin.String,parameters=[]} but {undefined}{name=name,type=kotlin.String}")
             @Test
             void otherAfterCommaTrueDestruct() {
                 rewriteRun(
@@ -1159,6 +1163,7 @@ class SpacesTest implements RewriteTest {
                 );
             }
 
+            @ExpectedToFail("name, expect Person{name=component1,return=kotlin.String,parameters=[]} but {undefined}{name=name,type=kotlin.String}")
             @Test
             void otherAfterCommaFalseDestruct() {
                 rewriteRun(

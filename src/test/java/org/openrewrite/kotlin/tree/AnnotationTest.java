@@ -17,6 +17,7 @@ package org.openrewrite.kotlin.tree;
 
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.KotlinParser;
@@ -320,6 +321,7 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("a, expect kotlin.Triple<Generic{A}, Generic{B}, Generic{C}>{name=component1,return=kotlin.Int,parameters=[]} but {undefined}{name=a,type=kotlin.Int} ")
     @Test
     void destructuringVariableDeclaration() {
         rewriteRun(

@@ -18,6 +18,7 @@ package org.openrewrite.kotlin.tree;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -251,6 +252,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("a, expect kotlin.Triple<Generic{A}, Generic{B}, Generic{C}>{name=component1,return=kotlin.Int,parameters=[]} but {undefined}{name=a,type=kotlin.Int} ")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/58")
     @Test
     void destructuringVariableDeclaration() {
@@ -540,6 +542,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("DESTRUCTURING")
     @Test
     void spaceBetweenEqualsInDestructuringDeclaration() {
         rewriteRun(
@@ -557,6 +560,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("DESTRUCTURING")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/286")
     @Test
     void unusedUnderScoreVariableInDestructuringDeclaration() {

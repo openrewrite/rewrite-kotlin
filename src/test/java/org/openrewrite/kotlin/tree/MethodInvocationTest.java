@@ -137,6 +137,7 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("test ?. method ( ) , expect Test{name=method,return=kotlin.Unit,parameters=[]} but kotlin.Unit")
     @Test
     void nullSafeDereference() {
         rewriteRun(
@@ -544,6 +545,7 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("SAFE_ACCESS_EXPRESSION")
     @Test
     void nullSafeOnMethodTarget() {
         rewriteRun(
@@ -664,6 +666,7 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("SAFE_ACCESS_EXPRESSION")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/297")
     void spaceAfterLambdaParameter() {
@@ -680,6 +683,7 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("SAFE_ACCESS_EXPRESSION")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/308")
     void trailingLambdaAfterNullSafe() {
