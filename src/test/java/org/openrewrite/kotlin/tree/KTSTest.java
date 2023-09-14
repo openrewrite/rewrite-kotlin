@@ -21,7 +21,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlinScript;
 
-public class KTSTest implements RewriteTest {
+class KTSTest implements RewriteTest {
 
     @ExpectedToFail("KTS parser is not implemented yet")
     @Test
