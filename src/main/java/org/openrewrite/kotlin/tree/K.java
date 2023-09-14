@@ -499,6 +499,235 @@ public interface K extends J {
     @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    final class Constructor implements K, Statement, TypedTree {
+
+        @Getter
+        @With
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        @Getter
+        @With
+        Markers markers;
+
+        @Getter
+        @With
+        J.MethodDeclaration methodDeclaration;
+
+        @Getter
+        @With
+        Space colon;
+
+        @Getter
+        @With
+        ConstructorInvocation constructorInvocation;
+
+        public Constructor(UUID id, Markers markers, MethodDeclaration methodDeclaration, Space colon, ConstructorInvocation constructorInvocation) {
+            this.id = id;
+            this.markers = markers;
+            this.methodDeclaration = methodDeclaration;
+            this.colon = colon;
+            this.constructorInvocation = constructorInvocation;
+        }
+
+        @Override
+        public Constructor withType(@Nullable JavaType type) {
+            throw new UnsupportedOperationException("To change the return type of this constructor, use withMethodType(..)");
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitConstructor(this, p);
+        }
+
+        @Override
+        public <J2 extends J> J2 withPrefix(Space space) {
+            return (J2) withMethodDeclaration(methodDeclaration.withPrefix(space));
+        }
+
+        @Override
+        public Space getPrefix() {
+            return methodDeclaration.getPrefix();
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            return methodDeclaration.getType();
+        }
+
+        @Override
+        public CoordinateBuilder.Statement getCoordinates() {
+            return null;
+        }
+
+        @Override
+        public String toString() {
+            return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
+        }
+    }
+
+    @SuppressWarnings("unused")
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    final class ConstructorInvocation implements K, TypeTree {
+
+        @Nullable
+        @NonFinal
+        transient WeakReference<ConstructorInvocation.Padding> padding;
+
+        @Getter
+        @With
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        @Getter
+        @With
+        Space prefix;
+
+        @Getter
+        @With
+        Markers markers;
+
+        @Getter
+        @With
+        TypeTree typeTree;
+
+        JContainer<Expression> arguments;
+
+        public List<Expression> getArguments() {
+            return arguments.getElements();
+        }
+
+        public ConstructorInvocation withArguments(List<Expression> arguments) {
+            return getPadding().withArguments(JContainer.withElements(this.arguments, arguments));
+        }
+
+        public ConstructorInvocation(UUID id, Space prefix, Markers markers, TypeTree typeTree, JContainer<Expression> arguments) {
+            this.id = id;
+            this.prefix = prefix;
+            this.markers = markers;
+            this.typeTree = typeTree;
+            this.arguments = arguments;
+        }
+
+        @Override
+        public ConstructorInvocation withType(@Nullable JavaType type) {
+            return withTypeTree(typeTree.withType(type));
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitConstructorInvocation(this, p);
+        }
+
+        public ConstructorInvocation.Padding getPadding() {
+            ConstructorInvocation.Padding p;
+            if (this.padding == null) {
+                p = new ConstructorInvocation.Padding(this);
+                this.padding = new WeakReference<>(p);
+            } else {
+                p = this.padding.get();
+                if (p == null || p.t != this) {
+                    p = new ConstructorInvocation.Padding(this);
+                    this.padding = new WeakReference<>(p);
+                }
+            }
+            return p;
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            return typeTree.getType();
+        }
+
+        @RequiredArgsConstructor
+        public static class Padding {
+            private final ConstructorInvocation t;
+
+            public JContainer<Expression> getArguments() {
+                return t.arguments;
+            }
+
+            public ConstructorInvocation withArguments(JContainer<Expression> arguments) {
+                return t.arguments == arguments ? t : new ConstructorInvocation(t.id, t.prefix, t.markers, t.typeTree, arguments);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
+        }
+    }
+
+    @SuppressWarnings("unused")
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    final class DelegatedSuperType implements K, TypeTree {
+
+        @Getter
+        @With
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        @Getter
+        @With
+        Markers markers;
+
+        @Getter
+        @With
+        TypeTree typeTree;
+
+        @Getter
+        @With
+        Space by;
+
+        @Getter
+        @With
+        Expression delegate;
+
+        public DelegatedSuperType(UUID id, Markers markers, TypeTree typeTree, Space by, Expression delegate) {
+            this.id = id;
+            this.markers = markers;
+            this.typeTree = typeTree;
+            this.by = by;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public DelegatedSuperType withType(@Nullable JavaType type) {
+            return withTypeTree(typeTree.withType(type));
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitDelegatedSuperType(this, p);
+        }
+
+        @Override
+        public <J2 extends J> J2 withPrefix(Space space) {
+            return (J2) withTypeTree(typeTree.withPrefix(space));
+        }
+
+        @Override
+        public Space getPrefix() {
+            return typeTree.getPrefix();
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            return typeTree.getType();
+        }
+
+        @Override
+        public String toString() {
+            return withBy(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
+        }
+    }
+
+    @SuppressWarnings("unused")
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     final class DestructuringDeclaration implements K, Statement {
 
@@ -665,7 +894,7 @@ public interface K extends J {
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    class FunctionType implements K, TypeTree {
+    class FunctionType implements K, TypeTree, Expression {
 
         @Nullable
         @NonFinal
@@ -760,6 +989,11 @@ public interface K extends J {
             TypeTree newType = returnType.withType(type);
             //noinspection unchecked
             return (T) (newType == type ? this : withReturnType(newType));
+        }
+
+        @Override
+        public CoordinateBuilder.Expression getCoordinates() {
+            return new CoordinateBuilder.Expression(this);
         }
 
         @Override
@@ -950,7 +1184,7 @@ public interface K extends J {
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @Data
     @With
-    final class KString implements K, Expression {
+    final class KString implements K, Statement, Expression {
         UUID id;
         Space prefix;
         Markers markers;
@@ -976,8 +1210,8 @@ public interface K extends J {
 
         @Transient
         @Override
-        public CoordinateBuilder.Expression getCoordinates() {
-            return new CoordinateBuilder.Expression(this);
+        public CoordinateBuilder.Statement getCoordinates() {
+            return new CoordinateBuilder.Statement(this);
         }
 
         @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
