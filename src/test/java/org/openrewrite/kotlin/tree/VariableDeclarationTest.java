@@ -45,6 +45,13 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Test
+    void basic() {
+        rewriteRun(
+          kotlin("val a  =   1")
+        );
+    }
+
+    @Test
     void addition() {
         rewriteRun(
           kotlin("val a = 1 + 1")

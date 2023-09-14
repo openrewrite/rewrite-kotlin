@@ -61,9 +61,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaSourceSet;
-import org.openrewrite.kotlin.internal.CompiledSource;
-import org.openrewrite.kotlin.internal.KotlinParserVisitor;
-import org.openrewrite.kotlin.internal.KotlinSource;
+import org.openrewrite.kotlin.internal.*;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.tree.ParseError;
@@ -173,7 +171,17 @@ public class KotlinParser implements Parser {
                                         );
 
                                         assert kotlinSource.getFirFile() != null;
-                                        SourceFile kcu = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), new InMemoryExecutionContext());
+                                        SourceFile kcu1 = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), new InMemoryExecutionContext());
+
+                                        // PSI based parser
+                                        PsiElementAssociations psiFirMapping = new PsiElementAssociations(new KotlinTypeMapping(typeCache, firSession));
+                                        psiFirMapping.initialize(kotlinSource.getFirFile());
+                                        KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, psiFirMapping, styles, relativeTo, new InMemoryExecutionContext());
+                                        SourceFile kcu2 = psiParser.parse();
+
+                                        boolean usePsiBasedParsing = true;
+                                        SourceFile kcu = usePsiBasedParsing ? kcu2 : kcu1;
+
                                         parsingListener.parsed(kotlinSource.getInput(), kcu);
                                         return requirePrintEqualsInput(kcu, kotlinSource.getInput(), relativeTo, ctx);
                                     } catch (Throwable t) {
