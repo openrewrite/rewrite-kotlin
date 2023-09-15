@@ -71,13 +71,28 @@ class VariableDeclarationTest implements RewriteTest {
     void withNestedComments() {
         rewriteRun(
           kotlin("""
-            /* Outer comment1
+            /* Outer c1
                 /**
                 * Inner comment
                 */
-               Outer comment2
+               Outer c2
              */
-            var a  =   1
+            var /* Outer c1
+                /**
+                * Inner comment
+                */
+               Outer c2
+             */ a /* Outer c1
+                /**
+                * Inner comment
+                */
+               Outer c2
+             */ = /* Outer c1
+                /**
+                * Inner comment
+                */
+               Outer c2
+             */  1
             """)
         );
     }
