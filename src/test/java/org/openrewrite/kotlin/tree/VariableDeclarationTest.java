@@ -59,10 +59,24 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Test
-    void withComments() {
+    void withBlockComments() {
         rewriteRun(
           kotlin("""
             /*c0*/ var /*c1*/  /*c2*/ a   /*c3*/  =   /*c4*/    1
+            """)
+        );
+    }
+
+    @Test
+    void withComments() {
+        rewriteRun(
+          kotlin("""
+            // c1
+            var a
+            // c2
+              =
+            // c3
+               1
             """)
         );
     }

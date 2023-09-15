@@ -192,6 +192,15 @@ public class KotlinTreeParser {
                     }
                     continue;
                 }
+                case "EOL_COMMENT": {
+                    String comment;
+                    comment = nodeText.substring(2);
+                    if (space == null) {
+                        space = Space.build("", new ArrayList<>());
+                    }
+                    space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(false, comment, "", Markers.EMPTY)));
+                    continue;
+                }
                 case "BLOCK_COMMENT": {
                     String comment = nodeText.substring(2, nodeText.length() - 2);
                     if (space == null) {
