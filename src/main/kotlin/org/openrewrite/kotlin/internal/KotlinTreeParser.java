@@ -26,6 +26,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.EncodingDetectingInputStream;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.tree.K;
@@ -34,27 +35,23 @@ import org.openrewrite.style.NamedStyles;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static org.openrewrite.Tree.randomId;
 
-
+/**
+ * PSI based parser
+ */
 @SuppressWarnings("UnstableApiUsage")
 public class KotlinTreeParser {
-
     private final KotlinSource kotlinSource;
     private final PsiElementAssociations psiElementAssociations;
     private final List<NamedStyles> styles;
     private final Path sourcePath;
     private final FileAttributes fileAttributes;
-
     private final Charset charset;
     private final Boolean charsetBomMarked;
-
     @Nullable
     private final FirFile currentFile;
 
@@ -94,9 +91,8 @@ public class KotlinTreeParser {
         }
     }
 
-
     /*====================================================================
-    * PIS to J tree mapping methods
+    * PSI to J tree mapping methods
     * ====================================================================*/
     private K.CompilationUnit mapCompilationUnit(PsiElement kotlinFile) {
         List<J.Annotation> annotations = new ArrayList<>();
@@ -139,8 +135,6 @@ public class KotlinTreeParser {
     }
 
     private J.VariableDeclarations mapVariableDeclarations(PsiElement property) {
-
-        // todo
         Space prefix = Space.EMPTY;
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
@@ -149,17 +143,13 @@ public class KotlinTreeParser {
         List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = new ArrayList<>();
 
         List<PsiElement> childNodes = getAllChildren(property);
-        String space = "";
+        Space space = null;
         boolean afterEQ = false;
-
         J.Identifier identifier = null;
         JLeftPadded<Expression> initializer = null;
-
         String identifierName = "";
         JavaType identifierType = null;
-        String spaceBeforeIdentifier = "";
-        String spaceBeforeEQ = "";
-        String spaceAfterEQ = "";
+        Space spaceBeforeEQ = null;
 
         for (PsiElement child : childNodes) {
             String nodeText = child.getText();
@@ -170,41 +160,66 @@ public class KotlinTreeParser {
                     modifiers.add(
                             new J.Modifier(
                                     Tree.randomId(),
-                                    Space.EMPTY, // todo
+                                    space != null ? space : Space.EMPTY,
                                     Markers.EMPTY,
                                     null,
                                     J.Modifier.Type.Final,
-                                    Collections.emptyList()
+                                    Collections.emptyList() // FIXME
                             )
                     );
+                    space = null;
+                    continue;
+                }
+                case "var": {
+                    modifiers.add(
+                            new J.Modifier(
+                                    randomId(),
+                                    space != null ? space : Space.EMPTY,
+                                    Markers.EMPTY,
+                                    "var",
+                                    J.Modifier.Type.LanguageExtension,
+                                    Collections.emptyList() // FIXME
+                            )
+                    );
+                    space = null;
                     continue;
                 }
                 case "WHITE_SPACE": {
-                    space = nodeText;
+                    if (space == null ) {
+                        space = Space.build(nodeText, new ArrayList<>());
+                    } else {
+                        space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(nodeText)));
+                    }
+                    continue;
+                }
+                case "BLOCK_COMMENT": {
+                    String comment = nodeText.substring(2, nodeText.length() - 2);
+                    if (space == null) {
+                        space = Space.build("", new ArrayList<>());
+                    }
+                    space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(true, comment, "", Markers.EMPTY)));
                     continue;
                 }
                 case "IDENTIFIER": {
                     identifierName = nodeText;
                     identifierType = type(property);
-                    spaceBeforeIdentifier = space;
                     identifier = createIdentifier(identifierName,
-                            Space.EMPTY.withWhitespace(spaceBeforeIdentifier), identifierType);
-                    space = "";
+                            Optional.ofNullable(space).orElse(Space.EMPTY), identifierType);
+                    space = null;
                     continue;
                 }
                 case "EQ": {
                     spaceBeforeEQ = space;
-                    space = "";
+                    space = null;
                     afterEQ = true;
                     continue;
                 }
                 default: {
                     if (afterEQ) {
-                        spaceAfterEQ = space;
-                        space = "";
                         Expression exp = convertToExpression(map(child));
-                        initializer = padLeft(Space.EMPTY.withWhitespace(spaceBeforeEQ),
-                                exp.withPrefix(Space.EMPTY.withWhitespace(spaceAfterEQ))) ;
+                        initializer = padLeft(spaceBeforeEQ != null ? spaceBeforeEQ : Space.EMPTY,
+                                exp.withPrefix(space != null? space : Space.EMPTY )) ;
+                        space = null;
                         continue;
                     }
                     throw new UnsupportedOperationException("Unsupported child PSI type in PROPERTY :" + child.getNode().getElementType());

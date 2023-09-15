@@ -45,9 +45,40 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Test
-    void basic() {
+    void basicVal() {
         rewriteRun(
           kotlin("val a  =   1")
+        );
+    }
+
+    @Test
+    void basicVar() {
+        rewriteRun(
+          kotlin("var a  =   1")
+        );
+    }
+
+    @Test
+    void withComments() {
+        rewriteRun(
+          kotlin("""
+            /*c0*/ var /*c1*/  /*c2*/ a   /*c3*/  =   /*c4*/    1
+            """)
+        );
+    }
+
+    @Test
+    void withNestedComments() {
+        rewriteRun(
+          kotlin("""
+            /* Outer comment1
+                /**
+                * Inner comment
+                */
+               Outer comment2
+             */
+            var a  =   1
+            """)
         );
     }
 
