@@ -30,7 +30,7 @@ import org.jetbrains.kotlin.psi.KtExpression
 import org.openrewrite.java.tree.JavaType
 import org.openrewrite.kotlin.KotlinTypeMapping
 
-class PsiElementAssociations(private val typeMapping: KotlinTypeMapping) {
+class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
 
     private val elementMap: MutableMap<PsiElement, MutableList<FirInfo>> = HashMap()
     private var file: FirFile? = null

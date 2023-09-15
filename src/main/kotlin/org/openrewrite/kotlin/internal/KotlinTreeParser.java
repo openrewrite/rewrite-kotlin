@@ -17,6 +17,10 @@ package org.openrewrite.kotlin.internal;
 
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
+import org.jetbrains.kotlin.fir.declarations.FirVariable;
+import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
+import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
+import org.jetbrains.kotlin.psi.KtDeclaration;
 import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
@@ -50,6 +54,8 @@ public class KotlinTreeParser {
 
     private final Charset charset;
     private final Boolean charsetBomMarked;
+
+    @Nullable
     private final FirFile currentFile;
 
     public KotlinTreeParser(KotlinSource kotlinSource,
@@ -206,9 +212,6 @@ public class KotlinTreeParser {
             }
         }
 
-        // todo, fill this type
-        JavaType.Variable jtv = null;
-
         J.VariableDeclarations.NamedVariable namedVariable =
                 new J.VariableDeclarations.NamedVariable(
                         randomId(),
@@ -217,7 +220,7 @@ public class KotlinTreeParser {
                         identifier,
                         emptyList(),
                         initializer,
-                        jtv
+                        variableType(property)
                 );
 
         variables.add(padRight(namedVariable, Space.EMPTY));
@@ -248,16 +251,25 @@ public class KotlinTreeParser {
         );
     }
 
-
     /*====================================================================
-     * Type methods
+     * Type related methods
      * ====================================================================*/
     @Nullable
     private JavaType type(PsiElement psi) {
         return psiElementAssociations.type(psi, currentFile.getSymbol());
     }
 
-
+    @Nullable
+    private JavaType.Variable variableType(PsiElement psi) {
+        if (psi instanceof KtDeclaration) {
+            FirBasedSymbol basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
+            if (basedSymbol instanceof FirVariableSymbol) {
+                FirVariableSymbol<? extends FirVariable> variableSymbol = (FirVariableSymbol<? extends FirVariable>) basedSymbol;
+                return psiElementAssociations.getTypeMapping().variableType(variableSymbol, null, getCurrentFile());
+            }
+        }
+        return null;
+    }
 
     /*====================================================================
      * Other helper methods
@@ -304,5 +316,10 @@ public class KotlinTreeParser {
             j = new K.StatementExpression(randomId(), (Statement) j);
         }
         return (J2) j;
+    }
+
+    @Nullable
+    private FirBasedSymbol getCurrentFile() {
+        return currentFile != null ? currentFile.getSymbol() : null;
     }
 }
