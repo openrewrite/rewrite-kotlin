@@ -16,21 +16,24 @@
 package org.openrewrite.kotlin.internal;
 
 import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
+import org.jetbrains.kotlin.com.intellij.psi.PsiComment;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
+import org.jetbrains.kotlin.com.intellij.psi.PsiWhiteSpace;
+import org.jetbrains.kotlin.com.intellij.psi.stubs.IStubElementType;
 import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
+import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.fir.declarations.FirVariable;
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.psi.*;
-import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.tree.K;
@@ -39,9 +42,12 @@ import org.openrewrite.style.NamedStyles;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.openrewrite.Tree.randomId;
 
 /**
@@ -106,16 +112,10 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         List<JRightPadded<J.Import>> imports = new ArrayList<>();
         List<JRightPadded<Statement>> statements = new ArrayList<>();
 
-        List<PsiElement> childNodes = getAllChildren(file);
-        for (PsiElement child : childNodes) {
-            IElementType elementType = child.getNode().getElementType();
-            if (elementType == KtNodeTypes.PACKAGE_DIRECTIVE || elementType == KtNodeTypes.IMPORT_LIST) {
-                // todo
-            } else if (elementType == KtNodeTypes.PROPERTY) {
-                J.VariableDeclarations v = (J.VariableDeclarations) ((KtElement) child).accept(this, data);
-                statements.add(padRight(v, Space.EMPTY));
-            } else {
-                throw new UnsupportedOperationException("Unsupported child PSI type in kotlin.FILE :" + elementType);
+        for (KtDeclaration declaration : file.getDeclarations()) {
+            if (declaration instanceof KtProperty) {
+                J.VariableDeclarations v = (J.VariableDeclarations) declaration.accept(this, data);
+                statements.add(padRight(v, suffix(declaration)));
             }
         }
 
@@ -141,93 +141,27 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         Space prefix = Space.EMPTY;
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
-        List<J.Modifier> modifiers = new ArrayList<>();
         TypeTree typeExpression = null;
         List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = new ArrayList<>();
 
-        List<PsiElement> childNodes = getAllChildren(property);
-        Space space = null;
-        boolean afterEQ = false;
-        J.Identifier identifier = null;
-        JLeftPadded<Expression> initializer = null;
-        String identifierName;
-        JavaType identifierType;
-        Space spaceBeforeEQ = null;
-
-        for (PsiElement child : childNodes) {
-            String nodeText = child.getText();
-
-            IElementType childType = child.getNode().getElementType();
-            if (childType == KtTokens.VAL_KEYWORD) {
-                modifiers.add(
-                        new J.Modifier(
-                                Tree.randomId(),
-                                space != null ? space : Space.EMPTY,
-                                Markers.EMPTY,
-                                null,
-                                J.Modifier.Type.Final,
-                                Collections.emptyList() // FIXME
-                        )
-                );
-                space = null;
-            } else if (childType == KtTokens.VAR_KEYWORD) {
-                modifiers.add(
-                        new J.Modifier(
-                                randomId(),
-                                space != null ? space : Space.EMPTY,
-                                Markers.EMPTY,
-                                "var",
-                                J.Modifier.Type.LanguageExtension,
-                                Collections.emptyList() // FIXME
-                        )
-                );
-                space = null;
-            } else if (childType == KtTokens.WHITE_SPACE) {
-                if (space == null) {
-                    space = Space.build(nodeText, new ArrayList<>());
-                } else {
-                    space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(nodeText)));
-                }
-            } else if (childType == KtTokens.EOL_COMMENT || childType == KtTokens.BLOCK_COMMENT) {
-                boolean isMultiLineComment = childType == KtTokens.BLOCK_COMMENT;
-                String comment;
-                // unwrap `//` or `/* */`
-                comment = isMultiLineComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
-                if (space == null) {
-                    space = Space.build("", new ArrayList<>());
-                }
-                space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(isMultiLineComment, comment, "", Markers.EMPTY)));
-            } else if (childType == KtTokens.IDENTIFIER) {
-                identifierName = nodeText;
-                identifierType = type(property);
-                identifier = createIdentifier(identifierName,
-                        Optional.ofNullable(space).orElse(Space.EMPTY), identifierType);
-                space = null;
-            } else if (childType == KtTokens.EQ) {
-                spaceBeforeEQ = space;
-                space = null;
-                afterEQ = true;
-            } else {
-                if (afterEQ) {
-                    // build initializer
-                    Expression exp = convertToExpression(((KtElement) child).accept(this, data));
-                    initializer = padLeft(spaceBeforeEQ != null ? spaceBeforeEQ : Space.EMPTY,
-                            exp.withPrefix(space != null ? space : Space.EMPTY));
-                    space = null;
-                    continue;
-                }
-                throw new UnsupportedOperationException("Unsupported child PSI type in PROPERTY :" + childType);
-            }
-        }
+        J.Modifier modifier = new J.Modifier(
+                Tree.randomId(),
+                prefix(property.getValOrVarKeyword()),
+                Markers.EMPTY,
+                property.isVar() ? "var" : null,
+                property.isVar() ? J.Modifier.Type.LanguageExtension : J.Modifier.Type.Final,
+                Collections.emptyList() // FIXME
+        );
 
         J.VariableDeclarations.NamedVariable namedVariable =
                 new J.VariableDeclarations.NamedVariable(
                         randomId(),
                         Space.EMPTY,
                         Markers.EMPTY,
-                        identifier,
+                        createIdentifier(property.getNameIdentifier(), type(property)),
                         emptyList(),
-                        initializer,
+                        padLeft(prefix(property.getEqualsToken()),
+                                property.getInitializer().accept(this, data).withPrefix(prefix(property.getInitializer()))),
                         variableType(property)
                 );
 
@@ -238,7 +172,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 prefix,
                 markers,
                 leadingAnnotations,
-                modifiers,
+                singletonList(modifier),
                 typeExpression,
                 null,
                 Collections.emptyList(),
@@ -248,7 +182,21 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitConstantExpression(KtConstantExpression expression, ExecutionContext data) {
-        Object value = Integer.valueOf(expression.getText());
+        IStubElementType elementType = expression.getElementType();
+        Object value;
+        if (elementType == KtNodeTypes.INTEGER_CONSTANT) {
+            value = Integer.valueOf(expression.getText());
+        } else if (elementType == KtNodeTypes.BOOLEAN_CONSTANT) {
+            value = Boolean.valueOf(expression.getText());
+        } else if (elementType == KtNodeTypes.FLOAT_CONSTANT) {
+            value = Float.valueOf(expression.getText());
+        } else if (elementType == KtNodeTypes.CHARACTER_CONSTANT) {
+            value = Character.valueOf(expression.getText().charAt(0));
+        } else if (elementType == KtNodeTypes.NULL) {
+            value = null;
+        } else {
+            throw new IllegalArgumentException();
+        }
         return new J.Literal(
                 Tree.randomId(),
                 Space.EMPTY,
@@ -262,67 +210,20 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
-        List<PsiElement> childNodes = getAllChildren(expression);
-        Space space = null;
-        boolean afterOp = false;
-        Space binaryPrefix = null;
-        JLeftPadded<J.Binary.Type> operator = null;
-        Expression left = null;
-
-        for (PsiElement child : childNodes) {
-            String nodeText = child.getText();
-            IElementType childType = child.getNode().getElementType();
-            if (childType == KtTokens.WHITE_SPACE) {
-                if (space == null) {
-                    space = Space.build(nodeText, new ArrayList<>());
-                } else {
-                    space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(nodeText)));
-                }
-            } else if (childType == KtTokens.EOL_COMMENT || childType == KtTokens.BLOCK_COMMENT) {
-                boolean isMultiLineComment = childType == KtTokens.BLOCK_COMMENT;
-                String comment;
-                // unwrap `//` or `/* */`
-                comment = isMultiLineComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
-                if (space == null) {
-                    space = Space.build("", new ArrayList<>());
-                }
-                space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(isMultiLineComment, comment, "", Markers.EMPTY)));
-            } else if (childType == KtNodeTypes.OPERATION_REFERENCE) {
-                afterOp = true;
-                J.Binary.Type javaBinaryType = mapBinaryType(child); // J.Binary.Type.Addition;
-                operator = padLeft(space, javaBinaryType);
-                space = null;
-            } else {
-                Expression exp = convertToExpression(((KtElement) child).accept(this, data));
-                if (!afterOp) {
-                    binaryPrefix = space;
-                    space = null;
-                    left = exp;
-                } else {
-                    return new J.Binary(
-                            randomId(),
-                            spaceOrEmpty(binaryPrefix),
-                            Markers.EMPTY,
-                            left,
-                            operator,
-                            exp.withPrefix(spaceOrEmpty(space)),
-                            type(expression)
-                    );
-                }
-            }
-        }
-
-        throw new IllegalArgumentException("Parsing error with BINARY_EXPRESSION");
+        return new J.Binary(
+                randomId(),
+                space(expression.getFirstChild()),
+                Markers.EMPTY,
+                convertToExpression(expression.getLeft().accept(this, data)),
+                padLeft(prefix(expression.getOperationReference()), mapBinaryType(expression.getOperationReference())),
+                convertToExpression((expression.getRight()).accept(this, data))
+                        .withPrefix(prefix(expression.getRight())),
+                type(expression)
+        );
     }
 
-
-    private J.Binary.Type mapBinaryType(PsiElement operationReference) {
-        List<PsiElement> childNodes = getAllChildren(operationReference);
-        if (childNodes.size() > 1) {
-            throw new IllegalArgumentException("Parsing error with OPERATION_REFERENCE, unknown case");
-        }
-        PsiElement child = childNodes.get(0);
-        IElementType elementType = child.getNode().getElementType();
+    private J.Binary.Type mapBinaryType(KtOperationReferenceExpression operationReference) {
+        IElementType elementType = operationReference.getOperationSignTokenType();
         if (elementType == KtTokens.PLUS)
             return J.Binary.Type.Addition;
         else if (elementType == KtTokens.MINUS)
@@ -359,19 +260,9 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     /*====================================================================
      * Other helper methods
      * ====================================================================*/
-    @NonNull
-    private Space spaceOrEmpty(@Nullable Space space) {
-        return space != null ? space : Space.EMPTY;
-    }
 
-    private List<PsiElement> getAllChildren(PsiElement parent) {
-        List<PsiElement> children = new ArrayList<>();
-        Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(parent).iterator();
-        while (iterator.hasNext()) {
-            PsiElement it = iterator.next();
-            children.add(it);
-        }
-        return children;
+    private J.Identifier createIdentifier(PsiElement name, JavaType type) {
+        return createIdentifier(name.getNode().getText(), prefix(name), type);
     }
 
     private J.Identifier createIdentifier(String name, Space prefix, @Nullable JavaType type) {
@@ -380,7 +271,8 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 type instanceof JavaType.Variable ? (JavaType.Variable) type : null);
     }
 
-    private J.Identifier createIdentifier(String name, Space prefix, @Nullable JavaType type, @Nullable JavaType.Variable fieldType) {
+    private J.Identifier createIdentifier(String name, Space prefix, @Nullable JavaType
+            type, @Nullable JavaType.Variable fieldType) {
         return new J.Identifier(
                 randomId(),
                 prefix,
@@ -406,6 +298,72 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             j = new K.StatementExpression(randomId(), (Statement) j);
         }
         return (J2) j;
+    }
+
+    private Space prefix(PsiElement element) {
+        PsiElement whitespace = element.getPrevSibling();
+        if (whitespace == null || !isWhitespace(whitespace.getNode())) {
+            return Space.EMPTY;
+        }
+        while (whitespace.getPrevSibling() != null && isWhitespace(whitespace.getPrevSibling().getNode())) {
+            whitespace = whitespace.getPrevSibling();
+        }
+        return space(whitespace);
+    }
+
+    private Space suffix(PsiElement element) {
+        PsiElement whitespace = element.getLastChild();
+        if (whitespace == null || !isWhitespace(whitespace.getNode())) {
+            whitespace = element.getNextSibling();
+        } else {
+            while (whitespace.getPrevSibling() != null && isWhitespace(whitespace.getPrevSibling().getNode())) {
+                whitespace = whitespace.getPrevSibling();
+            }
+        }
+        if (whitespace == null || !isWhitespace(whitespace.getNode())) {
+            return Space.EMPTY;
+        }
+        return space(whitespace);
+    }
+
+    private boolean isWhitespace(ASTNode node) {
+        IElementType elementType = node.getElementType();
+        return elementType == KtTokens.WHITE_SPACE || elementType == KtTokens.BLOCK_COMMENT || elementType == KtTokens.EOL_COMMENT || elementType == KtTokens.DOC_COMMENT;
+    }
+
+    private Space space(PsiElement node) {
+        Space space = null;
+        for (; node != null; node = next(node)) {
+            PsiElement finalNode = node;
+            if (node instanceof PsiWhiteSpace) {
+                if (space == null) {
+                    space = Space.build(node.getText(), emptyList());
+                } else {
+                    space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(finalNode.getText())));
+                }
+            } else if (node instanceof PsiComment) {
+                if (space == null) {
+                    space = Space.EMPTY;
+                }
+                String nodeText = node.getText();
+                boolean isBlockComment = ((PsiComment) node).getTokenType() == KtTokens.BLOCK_COMMENT;
+                String comment = isBlockComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
+                space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(true, comment, "", Markers.EMPTY)));
+            } else {
+                break;
+            }
+        }
+        return space == null ? Space.EMPTY : space;
+    }
+
+    @Nullable
+    private PsiElement prev(PsiElement node) {
+        return PsiTreeUtil.prevLeaf(node);
+    }
+
+    @Nullable
+    private PsiElement next(PsiElement node) {
+        return PsiTreeUtil.nextLeaf(node);
     }
 
     @Nullable
