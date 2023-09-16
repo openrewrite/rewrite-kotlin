@@ -113,9 +113,15 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         List<JRightPadded<J.Import>> imports = new ArrayList<>();
         List<JRightPadded<Statement>> statements = new ArrayList<>();
 
-        for (KtDeclaration declaration : file.getDeclarations()) {
+        List<KtDeclaration> declarations = file.getDeclarations();
+        for (int i = 0; i < declarations.size(); i++) {
+            KtDeclaration declaration = declarations.get(i);
             if (declaration instanceof KtProperty) {
-                statements.add(padRight((Statement) declaration.accept(this, data), suffix(declaration)));
+                Statement statement = (Statement) declaration.accept(this, data);
+                if (i == 0) {
+                    statement = statement.withPrefix(prefix(declaration));
+                }
+                statements.add(padRight(statement, suffix(declaration)));
             }
         }
 
@@ -176,7 +182,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
         return new J.VariableDeclarations(
                 Tree.randomId(),
-                Space.EMPTY, // TODO for first statement we probably need to add whitespace (overlaps with right-padding)
+                Space.EMPTY, // overlaps with right-padding of previous statement
                 markers,
                 leadingAnnotations,
                 singletonList(modifier),
