@@ -115,8 +115,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
         for (KtDeclaration declaration : file.getDeclarations()) {
             if (declaration instanceof KtProperty) {
-                J.VariableDeclarations v = (J.VariableDeclarations) declaration.accept(this, data);
-                statements.add(padRight(v, suffix(declaration)));
+                statements.add(padRight((Statement) declaration.accept(this, data), suffix(declaration)));
             }
         }
 
@@ -139,7 +138,6 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitProperty(KtProperty property, ExecutionContext data) {
-        Space prefix = Space.EMPTY;
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         TypeTree typeExpression = null;
@@ -178,7 +176,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
         return new J.VariableDeclarations(
                 Tree.randomId(),
-                prefix,
+                Space.EMPTY, // TODO for first statement we probably need to add whitespace (overlaps with right-padding)
                 markers,
                 leadingAnnotations,
                 singletonList(modifier),
