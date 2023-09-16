@@ -36,6 +36,7 @@ import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.marker.TypeReferencePrefix;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.style.NamedStyles;
@@ -160,12 +161,20 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                         Markers.EMPTY,
                         createIdentifier(property.getNameIdentifier(), type(property)),
                         emptyList(),
-                        padLeft(prefix(property.getEqualsToken()),
-                                property.getInitializer().accept(this, data).withPrefix(prefix(property.getInitializer()))),
+                        property.getInitializer() != null ?
+                                padLeft(prefix(property.getEqualsToken()),
+                                        property.getInitializer().accept(this, data)
+                                                .withPrefix(prefix(property.getInitializer())))
+                                : null,
                         variableType(property)
                 );
 
         variables.add(padRight(namedVariable, Space.EMPTY));
+
+        if (property.getColon() != null) {
+            markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(property.getColon())));
+            typeExpression = null; // TODO
+        }
 
         return new J.VariableDeclarations(
                 Tree.randomId(),
