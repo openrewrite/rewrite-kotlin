@@ -27,6 +27,7 @@ import org.openrewrite.FileAttributes;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.tree.K;
@@ -72,10 +73,10 @@ public class KotlinTreeParser {
     }
 
     public K.CompilationUnit parse() {
-        return (K.CompilationUnit) map(kotlinSource.getKtFile());
+        return (K.CompilationUnit) visit(kotlinSource.getKtFile());
     }
 
-    private J map(PsiElement psiElement) {
+    private J visit(PsiElement psiElement) {
         String type = psiElement.getNode().getElementType().getDebugName();
 
         switch (type) {
@@ -85,6 +86,8 @@ public class KotlinTreeParser {
                 return mapVariableDeclarations(psiElement);
             case "INTEGER_CONSTANT":
                 return mapIntegerConstant(psiElement);
+            case "BINARY_EXPRESSION":
+                return mapBinary(psiElement);
 
             default:
                 throw new UnsupportedOperationException("Unsupported PSI type " + type);
@@ -109,7 +112,7 @@ public class KotlinTreeParser {
                     // todo
                     break;
                 case "PROPERTY":
-                    J.VariableDeclarations v = (J.VariableDeclarations) map(child);
+                    J.VariableDeclarations v = (J.VariableDeclarations) visit(child);
                     statements.add(padRight(v, Space.EMPTY));
                     break;
                 default:
@@ -192,21 +195,16 @@ public class KotlinTreeParser {
                     }
                     continue;
                 }
-                case "EOL_COMMENT": {
+                case "EOL_COMMENT":
+                case "BLOCK_COMMENT":{
+                    boolean isMultiLineComment = "BLOCK_COMMENT".equals(childType);
                     String comment;
-                    comment = nodeText.substring(2);
+                    // unwrap `//` or `/* */`
+                    comment = isMultiLineComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
                     if (space == null) {
                         space = Space.build("", new ArrayList<>());
                     }
-                    space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(false, comment, "", Markers.EMPTY)));
-                    continue;
-                }
-                case "BLOCK_COMMENT": {
-                    String comment = nodeText.substring(2, nodeText.length() - 2);
-                    if (space == null) {
-                        space = Space.build("", new ArrayList<>());
-                    }
-                    space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(true, comment, "", Markers.EMPTY)));
+                    space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(isMultiLineComment, comment, "", Markers.EMPTY)));
                     continue;
                 }
                 case "IDENTIFIER": {
@@ -225,13 +223,14 @@ public class KotlinTreeParser {
                 }
                 default: {
                     if (afterEQ) {
-                        Expression exp = convertToExpression(map(child));
+                        // build initializer
+                        Expression exp = convertToExpression(visit(child));
                         initializer = padLeft(spaceBeforeEQ != null ? spaceBeforeEQ : Space.EMPTY,
                                 exp.withPrefix(space != null? space : Space.EMPTY )) ;
                         space = null;
                         continue;
                     }
-                    throw new UnsupportedOperationException("Unsupported child PSI type in PROPERTY :" + child.getNode().getElementType());
+                    throw new UnsupportedOperationException("Unsupported child PSI type in PROPERTY :" + childType);
                 }
             }
         }
@@ -275,6 +274,92 @@ public class KotlinTreeParser {
         );
     }
 
+    private J.Binary mapBinary(PsiElement binaryExpression) {
+        List<PsiElement> childNodes = getAllChildren(binaryExpression);
+        Space space = null;
+        boolean afterOp = false;
+        Space binaryPrefix = null;
+        Space spaceBeforeOp = null;
+        JLeftPadded<J.Binary.Type> operator = null;
+        Expression left = null;
+
+        for (PsiElement child : childNodes) {
+            String nodeText = child.getText();
+            String childType = child.getNode().getElementType().getDebugName();
+            switch (childType) {
+                case "WHITE_SPACE": {
+                    if (space == null ) {
+                        space = Space.build(nodeText, new ArrayList<>());
+                    } else {
+                        space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(nodeText)));
+                    }
+                    continue;
+                }
+                case "EOL_COMMENT":
+                case "BLOCK_COMMENT":{
+                    boolean isMultiLineComment = "BLOCK_COMMENT".equals(childType);
+                    String comment;
+                    // unwrap `//` or `/* */`
+                    comment = isMultiLineComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
+                    if (space == null) {
+                        space = Space.build("", new ArrayList<>());
+                    }
+                    space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(isMultiLineComment, comment, "", Markers.EMPTY)));
+                    continue;
+                }
+                case "OPERATION_REFERENCE": {
+                    afterOp = true;
+                    J.Binary.Type javaBinaryType =  mapBinaryType(child); // J.Binary.Type.Addition;
+                    operator = padLeft(space, javaBinaryType);
+                            space = null;
+                    continue;
+                }
+
+                default:
+                    Expression exp = convertToExpression(visit(child));
+                    if (!afterOp) {
+                        binaryPrefix = space;
+                        space = null;
+                        left = exp;
+                    } else {
+                        return new J.Binary(
+                                randomId(),
+                                spaceOrEmpty(binaryPrefix),
+                                Markers.EMPTY,
+                                left,
+                                operator,
+                                exp.withPrefix(spaceOrEmpty(space)),
+                                type(binaryExpression)
+                        );
+                    }
+
+            }
+        }
+
+        throw new IllegalArgumentException("Parsing error with BINARY_EXPRESSION");
+    }
+
+    private J.Binary.Type mapBinaryType(PsiElement operationReference) {
+        List<PsiElement> childNodes = getAllChildren(operationReference);
+        if (childNodes.size() > 1) {
+            throw new IllegalArgumentException("Parsing error with OPERATION_REFERENCE, unknown case");
+        }
+        PsiElement child = childNodes.get(0);
+        switch (child.getNode().getElementType().getDebugName()) {
+            case "PLUS":
+                return J.Binary.Type.Addition;
+            case "MINUS":
+                return J.Binary.Type.Subtraction;
+            case "MUL":
+                return J.Binary.Type.Multiplication;
+            case "DIV":
+                return J.Binary.Type.Division;
+            default:
+                throw new IllegalArgumentException("Unsupported OPERATION_REFERENCE type :" + child.getNode().getElementType().getDebugName());
+        }
+    }
+
+
     /*====================================================================
      * Type related methods
      * ====================================================================*/
@@ -298,6 +383,11 @@ public class KotlinTreeParser {
     /*====================================================================
      * Other helper methods
      * ====================================================================*/
+    @NonNull
+    private Space spaceOrEmpty(@Nullable  Space space) {
+        return space != null ? space : Space.EMPTY;
+    }
+
     private List<PsiElement> getAllChildren(PsiElement parent) {
         List<PsiElement> children = new ArrayList<>();
         Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(parent).iterator();

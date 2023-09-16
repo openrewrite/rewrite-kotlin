@@ -37,9 +37,6 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
 
     fun initialize(file: FirFile) {
         this.file = file
-        // debug purpose only, to be removed
-        System.out.println(PsiTreePrinter.print(file))
-
         var depth = 0
         object : FirDefaultVisitor<Unit, MutableMap<PsiElement, MutableList<FirInfo>>>() {
             override fun visitElement(element: FirElement, data: MutableMap<PsiElement, MutableList<FirInfo>>) {

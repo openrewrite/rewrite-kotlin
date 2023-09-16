@@ -114,7 +114,7 @@ class VariableDeclarationTest implements RewriteTest {
     @Test
     void addition() {
         rewriteRun(
-          kotlin("val a = 1 + 1")
+          kotlin("val a =  1   +    2")
         );
     }
 

@@ -176,9 +176,13 @@ public class KotlinParser implements Parser {
                                         // PSI based parser
                                         PsiElementAssociations psiFirMapping = new PsiElementAssociations(new KotlinTypeMapping(typeCache, firSession));
                                         psiFirMapping.initialize(kotlinSource.getFirFile());
+                                        // debug purpose only, to be removed
+                                        System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
+
                                         KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, psiFirMapping, styles, relativeTo, new InMemoryExecutionContext());
                                         SourceFile kcu2 = psiParser.parse();
 
+                                        // switch parsers
                                         boolean usePsiBasedParsing = true;
                                         SourceFile kcu = usePsiBasedParsing ? kcu2 : kcu1;
 
