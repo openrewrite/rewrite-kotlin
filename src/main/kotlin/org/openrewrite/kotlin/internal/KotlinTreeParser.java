@@ -112,7 +112,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             if (elementType == KtNodeTypes.PACKAGE_DIRECTIVE || elementType == KtNodeTypes.IMPORT_LIST) {
                 // todo
             } else if (elementType == KtNodeTypes.PROPERTY) {
-                J.VariableDeclarations v = (J.VariableDeclarations) visitKtElement((KtElement) child, data);
+                J.VariableDeclarations v = (J.VariableDeclarations) ((KtElement) child).accept(this, data);
                 statements.add(padRight(v, Space.EMPTY));
             } else {
                 throw new UnsupportedOperationException("Unsupported child PSI type in kotlin.FILE :" + elementType);
@@ -210,7 +210,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             } else {
                 if (afterEQ) {
                     // build initializer
-                    Expression exp = convertToExpression(visitKtElement((KtElement) child, data));
+                    Expression exp = convertToExpression(((KtElement) child).accept(this, data));
                     initializer = padLeft(spaceBeforeEQ != null ? spaceBeforeEQ : Space.EMPTY,
                             exp.withPrefix(space != null ? space : Space.EMPTY));
                     space = null;
@@ -293,7 +293,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 operator = padLeft(space, javaBinaryType);
                 space = null;
             } else {
-                Expression exp = convertToExpression(visitKtElement((KtElement) child, data));
+                Expression exp = convertToExpression(((KtElement) child).accept(this, data));
                 if (!afterOp) {
                     binaryPrefix = space;
                     space = null;
