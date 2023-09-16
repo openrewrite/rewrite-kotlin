@@ -15,12 +15,15 @@
  */
 package org.openrewrite.kotlin.internal;
 
+import org.jetbrains.kotlin.KtNodeTypes;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
+import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.fir.declarations.FirVariable;
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
-import org.jetbrains.kotlin.psi.KtDeclaration;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.*;
 import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
@@ -45,7 +48,7 @@ import static org.openrewrite.Tree.randomId;
  * PSI based parser
  */
 @SuppressWarnings("UnstableApiUsage")
-public class KotlinTreeParser {
+public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     private final KotlinSource kotlinSource;
     private final PsiElementAssociations psiElementAssociations;
     private final List<NamedStyles> styles;
@@ -72,51 +75,47 @@ public class KotlinTreeParser {
         currentFile = kotlinSource.getFirFile();
     }
 
-    public K.CompilationUnit parse() {
-        return (K.CompilationUnit) visit(kotlinSource.getKtFile());
+    public K.CompilationUnit parse(ExecutionContext ctx) {
+        return (K.CompilationUnit) visitKtFile(kotlinSource.getKtFile(), ctx);
     }
 
-    private J visit(PsiElement psiElement) {
-        String type = psiElement.getNode().getElementType().getDebugName();
 
-        switch (type) {
-            case "kotlin.FILE":
-                return mapCompilationUnit(psiElement);
-            case "PROPERTY":
-                return mapVariableDeclarations(psiElement);
-            case "INTEGER_CONSTANT":
-                return mapIntegerConstant(psiElement);
-            case "BINARY_EXPRESSION":
-                return mapBinary(psiElement);
+    @Override
+    public J visitKtElement(KtElement element, ExecutionContext data) {
+        IElementType type = element.getNode().getElementType();
 
-            default:
-                throw new UnsupportedOperationException("Unsupported PSI type " + type);
-        }
+        if (type == KtNodeTypes.KT_FILE)
+            return element.accept(this, data);
+        else if (type == KtNodeTypes.PROPERTY)
+            return element.accept(this, data);
+        else if (type == KtNodeTypes.INTEGER_CONSTANT)
+            return element.accept(this, data);
+        else if (type == KtNodeTypes.BINARY_EXPRESSION)
+            return element.accept(this, data);
+        else
+            throw new UnsupportedOperationException("Unsupported PSI type " + type);
     }
 
     /*====================================================================
-    * PSI to J tree mapping methods
-    * ====================================================================*/
-    private K.CompilationUnit mapCompilationUnit(PsiElement kotlinFile) {
+     * PSI to J tree mapping methods
+     * ====================================================================*/
+    @Override
+    public J visitKtFile(KtFile file, ExecutionContext data) {
         List<J.Annotation> annotations = new ArrayList<>();
         @Nullable JRightPadded<J.Package> packageDeclaration = null;
         List<JRightPadded<J.Import>> imports = new ArrayList<>();
         List<JRightPadded<Statement>> statements = new ArrayList<>();
 
-        List<PsiElement> childNodes = getAllChildren(kotlinFile);
+        List<PsiElement> childNodes = getAllChildren(file);
         for (PsiElement child : childNodes) {
-
-            switch (child.getNode().getElementType().getDebugName()) {
-                case "PACKAGE_DIRECTIVE":
-                case "IMPORT_LIST":
-                    // todo
-                    break;
-                case "PROPERTY":
-                    J.VariableDeclarations v = (J.VariableDeclarations) visit(child);
-                    statements.add(padRight(v, Space.EMPTY));
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unsupported child PSI type in kotlin.FILE :" + child.getNode().getElementType());
+            IElementType elementType = child.getNode().getElementType();
+            if (elementType == KtNodeTypes.PACKAGE_DIRECTIVE || elementType == KtNodeTypes.IMPORT_LIST) {
+                // todo
+            } else if (elementType == KtNodeTypes.PROPERTY) {
+                J.VariableDeclarations v = (J.VariableDeclarations) visitKtElement((KtElement) child, data);
+                statements.add(padRight(v, Space.EMPTY));
+            } else {
+                throw new UnsupportedOperationException("Unsupported child PSI type in kotlin.FILE :" + elementType);
             }
         }
 
@@ -137,7 +136,8 @@ public class KotlinTreeParser {
         );
     }
 
-    private J.VariableDeclarations mapVariableDeclarations(PsiElement property) {
+    @Override
+    public J visitProperty(KtProperty property, ExecutionContext data) {
         Space prefix = Space.EMPTY;
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
@@ -150,88 +150,73 @@ public class KotlinTreeParser {
         boolean afterEQ = false;
         J.Identifier identifier = null;
         JLeftPadded<Expression> initializer = null;
-        String identifierName = "";
-        JavaType identifierType = null;
+        String identifierName;
+        JavaType identifierType;
         Space spaceBeforeEQ = null;
 
         for (PsiElement child : childNodes) {
             String nodeText = child.getText();
 
-            String childType = child.getNode().getElementType().getDebugName();
-            switch (childType) {
-                case "val":  {
-                    modifiers.add(
-                            new J.Modifier(
-                                    Tree.randomId(),
-                                    space != null ? space : Space.EMPTY,
-                                    Markers.EMPTY,
-                                    null,
-                                    J.Modifier.Type.Final,
-                                    Collections.emptyList() // FIXME
-                            )
-                    );
+            IElementType childType = child.getNode().getElementType();
+            if (childType == KtTokens.VAL_KEYWORD) {
+                modifiers.add(
+                        new J.Modifier(
+                                Tree.randomId(),
+                                space != null ? space : Space.EMPTY,
+                                Markers.EMPTY,
+                                null,
+                                J.Modifier.Type.Final,
+                                Collections.emptyList() // FIXME
+                        )
+                );
+                space = null;
+            } else if (childType == KtTokens.VAR_KEYWORD) {
+                modifiers.add(
+                        new J.Modifier(
+                                randomId(),
+                                space != null ? space : Space.EMPTY,
+                                Markers.EMPTY,
+                                "var",
+                                J.Modifier.Type.LanguageExtension,
+                                Collections.emptyList() // FIXME
+                        )
+                );
+                space = null;
+            } else if (childType == KtTokens.WHITE_SPACE) {
+                if (space == null) {
+                    space = Space.build(nodeText, new ArrayList<>());
+                } else {
+                    space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(nodeText)));
+                }
+            } else if (childType == KtTokens.EOL_COMMENT || childType == KtTokens.BLOCK_COMMENT) {
+                boolean isMultiLineComment = childType == KtTokens.BLOCK_COMMENT;
+                String comment;
+                // unwrap `//` or `/* */`
+                comment = isMultiLineComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
+                if (space == null) {
+                    space = Space.build("", new ArrayList<>());
+                }
+                space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(isMultiLineComment, comment, "", Markers.EMPTY)));
+            } else if (childType == KtTokens.IDENTIFIER) {
+                identifierName = nodeText;
+                identifierType = type(property);
+                identifier = createIdentifier(identifierName,
+                        Optional.ofNullable(space).orElse(Space.EMPTY), identifierType);
+                space = null;
+            } else if (childType == KtTokens.EQ) {
+                spaceBeforeEQ = space;
+                space = null;
+                afterEQ = true;
+            } else {
+                if (afterEQ) {
+                    // build initializer
+                    Expression exp = convertToExpression(visitKtElement((KtElement) child, data));
+                    initializer = padLeft(spaceBeforeEQ != null ? spaceBeforeEQ : Space.EMPTY,
+                            exp.withPrefix(space != null ? space : Space.EMPTY));
                     space = null;
                     continue;
                 }
-                case "var": {
-                    modifiers.add(
-                            new J.Modifier(
-                                    randomId(),
-                                    space != null ? space : Space.EMPTY,
-                                    Markers.EMPTY,
-                                    "var",
-                                    J.Modifier.Type.LanguageExtension,
-                                    Collections.emptyList() // FIXME
-                            )
-                    );
-                    space = null;
-                    continue;
-                }
-                case "WHITE_SPACE": {
-                    if (space == null ) {
-                        space = Space.build(nodeText, new ArrayList<>());
-                    } else {
-                        space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(nodeText)));
-                    }
-                    continue;
-                }
-                case "EOL_COMMENT":
-                case "BLOCK_COMMENT":{
-                    boolean isMultiLineComment = "BLOCK_COMMENT".equals(childType);
-                    String comment;
-                    // unwrap `//` or `/* */`
-                    comment = isMultiLineComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
-                    if (space == null) {
-                        space = Space.build("", new ArrayList<>());
-                    }
-                    space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(isMultiLineComment, comment, "", Markers.EMPTY)));
-                    continue;
-                }
-                case "IDENTIFIER": {
-                    identifierName = nodeText;
-                    identifierType = type(property);
-                    identifier = createIdentifier(identifierName,
-                            Optional.ofNullable(space).orElse(Space.EMPTY), identifierType);
-                    space = null;
-                    continue;
-                }
-                case "EQ": {
-                    spaceBeforeEQ = space;
-                    space = null;
-                    afterEQ = true;
-                    continue;
-                }
-                default: {
-                    if (afterEQ) {
-                        // build initializer
-                        Expression exp = convertToExpression(visit(child));
-                        initializer = padLeft(spaceBeforeEQ != null ? spaceBeforeEQ : Space.EMPTY,
-                                exp.withPrefix(space != null? space : Space.EMPTY )) ;
-                        space = null;
-                        continue;
-                    }
-                    throw new UnsupportedOperationException("Unsupported child PSI type in PROPERTY :" + childType);
-                }
+                throw new UnsupportedOperationException("Unsupported child PSI type in PROPERTY :" + childType);
             }
         }
 
@@ -261,83 +246,75 @@ public class KotlinTreeParser {
         );
     }
 
-    private J.Literal mapIntegerConstant(PsiElement integerConstant) {
-        Object value = Integer.valueOf(integerConstant.getText());
+    @Override
+    public J visitConstantExpression(KtConstantExpression expression, ExecutionContext data) {
+        Object value = Integer.valueOf(expression.getText());
         return new J.Literal(
                 Tree.randomId(),
                 Space.EMPTY,
                 Markers.EMPTY,
                 value,
-                integerConstant.getText(),
+                expression.getText(),
                 null,
                 JavaType.Primitive.Int
         );
     }
 
-    private J.Binary mapBinary(PsiElement binaryExpression) {
-        List<PsiElement> childNodes = getAllChildren(binaryExpression);
+    @Override
+    public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
+        List<PsiElement> childNodes = getAllChildren(expression);
         Space space = null;
         boolean afterOp = false;
         Space binaryPrefix = null;
-        Space spaceBeforeOp = null;
         JLeftPadded<J.Binary.Type> operator = null;
         Expression left = null;
 
         for (PsiElement child : childNodes) {
             String nodeText = child.getText();
-            String childType = child.getNode().getElementType().getDebugName();
-            switch (childType) {
-                case "WHITE_SPACE": {
-                    if (space == null ) {
-                        space = Space.build(nodeText, new ArrayList<>());
-                    } else {
-                        space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(nodeText)));
-                    }
-                    continue;
+            IElementType childType = child.getNode().getElementType();
+            if (childType == KtTokens.WHITE_SPACE) {
+                if (space == null) {
+                    space = Space.build(nodeText, new ArrayList<>());
+                } else {
+                    space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(nodeText)));
                 }
-                case "EOL_COMMENT":
-                case "BLOCK_COMMENT":{
-                    boolean isMultiLineComment = "BLOCK_COMMENT".equals(childType);
-                    String comment;
-                    // unwrap `//` or `/* */`
-                    comment = isMultiLineComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
-                    if (space == null) {
-                        space = Space.build("", new ArrayList<>());
-                    }
-                    space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(isMultiLineComment, comment, "", Markers.EMPTY)));
-                    continue;
+            } else if (childType == KtTokens.EOL_COMMENT || childType == KtTokens.BLOCK_COMMENT) {
+                boolean isMultiLineComment = childType == KtTokens.BLOCK_COMMENT;
+                String comment;
+                // unwrap `//` or `/* */`
+                comment = isMultiLineComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
+                if (space == null) {
+                    space = Space.build("", new ArrayList<>());
                 }
-                case "OPERATION_REFERENCE": {
-                    afterOp = true;
-                    J.Binary.Type javaBinaryType =  mapBinaryType(child); // J.Binary.Type.Addition;
-                    operator = padLeft(space, javaBinaryType);
-                            space = null;
-                    continue;
+                space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(isMultiLineComment, comment, "", Markers.EMPTY)));
+            } else if (childType == KtNodeTypes.OPERATION_REFERENCE) {
+                afterOp = true;
+                J.Binary.Type javaBinaryType = mapBinaryType(child); // J.Binary.Type.Addition;
+                operator = padLeft(space, javaBinaryType);
+                space = null;
+            } else {
+                Expression exp = convertToExpression(visitKtElement((KtElement) child, data));
+                if (!afterOp) {
+                    binaryPrefix = space;
+                    space = null;
+                    left = exp;
+                } else {
+                    return new J.Binary(
+                            randomId(),
+                            spaceOrEmpty(binaryPrefix),
+                            Markers.EMPTY,
+                            left,
+                            operator,
+                            exp.withPrefix(spaceOrEmpty(space)),
+                            type(expression)
+                    );
                 }
-
-                default:
-                    Expression exp = convertToExpression(visit(child));
-                    if (!afterOp) {
-                        binaryPrefix = space;
-                        space = null;
-                        left = exp;
-                    } else {
-                        return new J.Binary(
-                                randomId(),
-                                spaceOrEmpty(binaryPrefix),
-                                Markers.EMPTY,
-                                left,
-                                operator,
-                                exp.withPrefix(spaceOrEmpty(space)),
-                                type(binaryExpression)
-                        );
-                    }
-
             }
         }
 
         throw new IllegalArgumentException("Parsing error with BINARY_EXPRESSION");
     }
+
 
     private J.Binary.Type mapBinaryType(PsiElement operationReference) {
         List<PsiElement> childNodes = getAllChildren(operationReference);
@@ -345,18 +322,17 @@ public class KotlinTreeParser {
             throw new IllegalArgumentException("Parsing error with OPERATION_REFERENCE, unknown case");
         }
         PsiElement child = childNodes.get(0);
-        switch (child.getNode().getElementType().getDebugName()) {
-            case "PLUS":
-                return J.Binary.Type.Addition;
-            case "MINUS":
-                return J.Binary.Type.Subtraction;
-            case "MUL":
-                return J.Binary.Type.Multiplication;
-            case "DIV":
-                return J.Binary.Type.Division;
-            default:
-                throw new IllegalArgumentException("Unsupported OPERATION_REFERENCE type :" + child.getNode().getElementType().getDebugName());
-        }
+        IElementType elementType = child.getNode().getElementType();
+        if (elementType == KtTokens.PLUS)
+            return J.Binary.Type.Addition;
+        else if (elementType == KtTokens.MINUS)
+            return J.Binary.Type.Subtraction;
+        else if (elementType == KtTokens.MUL)
+            return J.Binary.Type.Multiplication;
+        else if (elementType == KtTokens.DIV)
+            return J.Binary.Type.Division;
+        else
+            throw new IllegalArgumentException("Unsupported OPERATION_REFERENCE type :" + elementType.getDebugName());
     }
 
 
@@ -384,7 +360,7 @@ public class KotlinTreeParser {
      * Other helper methods
      * ====================================================================*/
     @NonNull
-    private Space spaceOrEmpty(@Nullable  Space space) {
+    private Space spaceOrEmpty(@Nullable Space space) {
         return space != null ? space : Space.EMPTY;
     }
 
@@ -398,7 +374,7 @@ public class KotlinTreeParser {
         return children;
     }
 
-    private J.Identifier createIdentifier(String name, Space prefix, JavaType type) {
+    private J.Identifier createIdentifier(String name, Space prefix, @Nullable JavaType type) {
         return createIdentifier(name, prefix,
                 type instanceof JavaType.Variable ? ((JavaType.Variable) type).getType() : type,
                 type instanceof JavaType.Variable ? (JavaType.Variable) type : null);

@@ -171,7 +171,7 @@ public class KotlinParser implements Parser {
                                         );
 
                                         assert kotlinSource.getFirFile() != null;
-                                        SourceFile kcu1 = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), new InMemoryExecutionContext());
+                                        SourceFile kcu1 = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), ctx);
 
                                         // PSI based parser
                                         PsiElementAssociations psiFirMapping = new PsiElementAssociations(new KotlinTypeMapping(typeCache, firSession));
@@ -179,8 +179,8 @@ public class KotlinParser implements Parser {
                                         // debug purpose only, to be removed
                                         System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
 
-                                        KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, psiFirMapping, styles, relativeTo, new InMemoryExecutionContext());
-                                        SourceFile kcu2 = psiParser.parse();
+                                        KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, psiFirMapping, styles, relativeTo, ctx);
+                                        SourceFile kcu2 = psiParser.parse(ctx);
 
                                         // switch parsers
                                         boolean usePsiBasedParsing = true;

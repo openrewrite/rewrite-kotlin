@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.tree;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -31,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"UnusedReceiverParameter", "PropertyName", "RemoveCurlyBracesFromTemplate", "UnnecessaryStringEscape", "RedundantGetter", "ConstantConditionIf", "RedundantSetter"})
+@Tag("psi")
 class VariableDeclarationTest implements RewriteTest {
 
     @ParameterizedTest
