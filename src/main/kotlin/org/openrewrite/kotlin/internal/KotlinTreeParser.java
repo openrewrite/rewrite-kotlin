@@ -158,15 +158,6 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClass(@NotNull KtClass klass, ExecutionContext data) {
-        J.ClassDeclaration.Kind kind = new J.ClassDeclaration.Kind(
-                randomId(),
-                Space.EMPTY,
-                Markers.EMPTY,
-                emptyList(),
-                J.ClassDeclaration.Kind.Type.Class
-            );
-
-        J.Identifier name = createIdentifier(klass.getIdentifyingElement(), type(klass));
 
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = new ArrayList<>();
@@ -174,10 +165,25 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         JContainer<TypeTree> implementings =  null;
 
         if (klass.getModifierList() != null) {
-            // FIXME
-            // klass.getModifierList().accept(this, data);
-            // modifiers.add(new J.Modifier(randomId(), prefix, Markers.EMPTY, keyword, type, annotations));
+            PsiElement child = klass.getModifierList().getFirstChild();
+            while (child != null) {
+                if (!isWhitespace(child.getNode())) {
+                    modifiers.add(new J.Modifier(randomId(), prefix(child), Markers.EMPTY, child.getText(), mapModifierType(child), emptyList())
+                    );
+                }
+                child = child.getNextSibling();
+            }
         }
+
+        J.ClassDeclaration.Kind kind = new J.ClassDeclaration.Kind(
+                randomId(),
+                prefix(klass.getClassKeyword()),
+                Markers.EMPTY,
+                emptyList(),
+                J.ClassDeclaration.Kind.Type.Class
+        );
+
+        J.Identifier name = createIdentifier(klass.getIdentifyingElement(), type(klass));
 
         J.Block body;
         if (klass.getBody() != null) {
@@ -346,6 +352,20 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             throw new IllegalArgumentException("Unsupported OPERATION_REFERENCE type :" + elementType.getDebugName());
     }
 
+    private J.Modifier.Type mapModifierType(PsiElement modifier) {
+        switch (modifier.getText()) {
+            case "public":
+                return J.Modifier.Type.Public;
+            case "private":
+                return J.Modifier.Type.Private;
+            case "sealed":
+                return J.Modifier.Type.Sealed;
+            case "open":
+                return J.Modifier.Type.LanguageExtension;
+            default:
+                throw new IllegalArgumentException("Unsupported ModifierType : " + modifier);
+        }
+    }
 
     /*====================================================================
      * Type related methods
@@ -410,7 +430,11 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         return (J2) j;
     }
 
-    private Space prefix(PsiElement element) {
+    private Space prefix(@Nullable PsiElement element) {
+        if (element == null) {
+            return Space.EMPTY;
+        }
+
         PsiElement whitespace = element.getPrevSibling();
         if (whitespace == null || !isWhitespace(whitespace.getNode())) {
             return Space.EMPTY;
@@ -421,7 +445,11 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         return space(whitespace);
     }
 
-    private Space suffix(PsiElement element) {
+    private Space suffix(@Nullable PsiElement element) {
+        if (element == null) {
+            return Space.EMPTY;
+        }
+
         PsiElement whitespace = element.getLastChild();
         if (whitespace == null || !isWhitespace(whitespace.getNode())) {
             whitespace = element.getNextSibling();
