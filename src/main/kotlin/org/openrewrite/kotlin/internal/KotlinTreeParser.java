@@ -37,6 +37,7 @@ import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.marker.OmitBraces;
 import org.openrewrite.kotlin.marker.TypeReferencePrefix;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
@@ -122,7 +123,19 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 if (i == 0) {
                     statement = statement.withPrefix(prefix(declaration));
                 }
+
+                Space suffix = Space.EMPTY;
+                if (i == declarations.size() - 1) {
+                    suffix = suffix(declaration);
+                }
+
+                statements.add(padRight(statement, suffix));
+            } else if (declaration instanceof KtClass) {
+                // FIXME. can this be more generic?
+                Statement statement = (Statement) declaration.accept(this, data);
                 statements.add(padRight(statement, suffix(declaration)));
+            } else {
+                throw new IllegalArgumentException("Unsupported PSI type :" + declaration.getNode().getElementType());
             }
         }
 
@@ -139,6 +152,73 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 packageDeclaration,
                 imports,
                 statements,
+                Space.EMPTY
+        );
+    }
+
+    @Override
+    public J visitClass(@NotNull KtClass klass, ExecutionContext data) {
+        J.ClassDeclaration.Kind kind = new J.ClassDeclaration.Kind(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                emptyList(),
+                J.ClassDeclaration.Kind.Type.Class
+            );
+
+        J.Identifier name = createIdentifier(klass.getIdentifyingElement(), type(klass));
+
+        List<J.Annotation> leadingAnnotations = new ArrayList<>();
+        List<J.Modifier> modifiers = new ArrayList<>();
+        JContainer<J.TypeParameter> typeParams = null;
+        JContainer<TypeTree> implementings =  null;
+
+        if (klass.getModifierList() != null) {
+            // FIXME
+            // klass.getModifierList().accept(this, data);
+            // modifiers.add(new J.Modifier(randomId(), prefix, Markers.EMPTY, keyword, type, annotations));
+        }
+
+        J.Block body;
+        if (klass.getBody() != null) {
+            body = (J.Block) klass.getBody().accept(this, data);
+        } else {
+            body = new J.Block(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY.add(new OmitBraces(randomId())),
+                    padRight(false, Space.EMPTY),
+                    emptyList(),
+                    Space.EMPTY
+            );
+        }
+
+        return new J.ClassDeclaration(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                leadingAnnotations,
+                modifiers,
+                kind,
+                name,
+                typeParams,
+                null,
+                null,
+                implementings,
+                null,
+                body,
+                (JavaType.FullyQualified) type(klass)
+        );
+    }
+
+    @Override
+    public J visitClassBody(@NotNull KtClassBody classBody, ExecutionContext data) {
+        return new J.Block(
+                randomId(),
+                prefix(classBody),    // FIXME
+                Markers.EMPTY,
+                padRight(false, Space.EMPTY),
+                emptyList(),    // FIXME
                 Space.EMPTY
         );
     }
