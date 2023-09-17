@@ -25,6 +25,8 @@ import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.fir.FirElement;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
+import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
+import org.jetbrains.kotlin.fir.types.FirTypeRef;
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor;
 import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
 import org.openrewrite.InMemoryExecutionContext;
@@ -104,6 +106,15 @@ public class PsiTreePrinter {
                 ctx.getLines().add(line);
                 ctx.setDepth(ctx.getDepth() + 1);
                 firElement.acceptChildren(this, ctx);
+
+                if (firElement instanceof FirResolvedTypeRef) {
+                    // not sure why this isn't taken care of by `FirResolvedTypeRefImpl#acceptChildren()`
+                    FirTypeRef firTypeRef = ((FirResolvedTypeRef) firElement).getDelegatedTypeRef();
+                    if (firTypeRef != null) {
+                        firTypeRef.accept(this, ctx);
+                    }
+                }
+
                 ctx.setDepth(ctx.getDepth() - 1);
                 return null;
             }
