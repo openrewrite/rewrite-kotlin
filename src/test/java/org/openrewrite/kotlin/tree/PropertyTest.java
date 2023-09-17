@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.tree;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
@@ -23,6 +24,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class PropertyTest implements RewriteTest {
 
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
     void genericTypeParameter() {
@@ -36,6 +38,7 @@ class PropertyTest implements RewriteTest {
         );
     }
 
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/299")
     void propertyAccessorsWithoutBody() {

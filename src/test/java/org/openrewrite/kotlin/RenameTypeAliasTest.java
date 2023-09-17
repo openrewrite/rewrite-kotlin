@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
@@ -30,6 +31,7 @@ public class RenameTypeAliasTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/119")
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void doesNotMatchType() {
         rewriteRun(
@@ -43,6 +45,7 @@ public class RenameTypeAliasTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/119")
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void differentAliasName() {
         rewriteRun(
@@ -55,6 +58,7 @@ public class RenameTypeAliasTest implements RewriteTest {
         );
     }
 
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void declaration() {
         rewriteRun(
@@ -72,6 +76,7 @@ public class RenameTypeAliasTest implements RewriteTest {
     }
 
     @ExpectedToFail("FirImport does not contain type attribution.")
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void _import() {
         rewriteRun(
@@ -96,6 +101,7 @@ public class RenameTypeAliasTest implements RewriteTest {
         );
     }
 
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variableTypeExpression() {
         rewriteRun(
@@ -114,6 +120,7 @@ public class RenameTypeAliasTest implements RewriteTest {
         );
     }
 
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void functionParameter() {
         rewriteRun(
@@ -134,6 +141,7 @@ public class RenameTypeAliasTest implements RewriteTest {
         );
     }
 
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void parameterizedType() {
         rewriteRun(

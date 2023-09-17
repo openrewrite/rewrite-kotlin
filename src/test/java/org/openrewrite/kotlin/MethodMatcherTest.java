@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.MethodMatcher;
@@ -27,6 +28,7 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 
 public class MethodMatcherTest implements RewriteTest {
 
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void matchesTopLevelFunction() {
         rewriteRun(

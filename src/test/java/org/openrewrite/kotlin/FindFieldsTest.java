@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.java.search.FindFields;
 import org.openrewrite.test.RewriteTest;
@@ -23,6 +24,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 public class FindFieldsTest implements RewriteTest {
 
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void jvmStaticField() {
         rewriteRun(

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.cleanup;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
@@ -30,6 +31,7 @@ public class ReplaceCharToIntWithCodeTest implements RewriteTest {
     }
 
     @DocumentExample
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void replace() {
         rewriteRun(

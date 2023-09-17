@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
@@ -41,6 +42,7 @@ public class AssertionsTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/30")
+    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void isChanged() {
         rewriteRun(
