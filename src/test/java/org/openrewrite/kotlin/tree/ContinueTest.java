@@ -22,8 +22,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class ContinueTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void continueFromWhileLoop() {
         rewriteRun(

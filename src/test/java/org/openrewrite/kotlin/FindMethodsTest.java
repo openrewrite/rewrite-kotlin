@@ -23,8 +23,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 public class FindMethodsTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void jvmStaticMethod() {
         rewriteRun(
@@ -55,8 +53,6 @@ public class FindMethodsTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void extensionMethod() {
         rewriteRun(

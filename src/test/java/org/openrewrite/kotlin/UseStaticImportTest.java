@@ -23,8 +23,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 public class UseStaticImportTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noPriorImports() {
         rewriteRun(
@@ -41,8 +39,6 @@ public class UseStaticImportTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void withImports() {
         rewriteRun(

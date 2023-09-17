@@ -70,15 +70,11 @@ class NormalizeLineBreaksTest implements RewriteTest {
                           " */\n" +
                           "class Test {\n" +
                           "}";
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void trimKeepCRLF() {
         assertThat(StringUtils.trimIndent("\n  test\r\n  test".replace('\r', '⏎'))
           .replace('⏎', '\r')).isEqualTo("test\r\ntest");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void windowsToLinux() {
         rewriteRun(
@@ -86,8 +82,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
           kotlin(windows, linux)
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void linuxToWindows() {
         rewriteRun(
@@ -97,7 +91,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/980")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void doNotChangeWindowsJavadoc() {
         rewriteRun(
@@ -107,7 +100,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/980")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void doNotChangeLinuxJavadoc() {
         rewriteRun(
@@ -117,7 +109,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/980")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void windowsToLinuxJavadoc() {
         rewriteRun(
@@ -127,7 +118,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/980")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void linuxToWindowsJavadoc() {
         rewriteRun(
@@ -137,7 +127,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-docs/issues/67")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void preservesExistingWindowsEndingsByDefault() {
         rewriteRun(
@@ -147,7 +136,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-docs/issues/67")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void preservesExistingLinuxEndingsByDefault() {
         rewriteRun(

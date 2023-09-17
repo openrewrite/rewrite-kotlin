@@ -31,7 +31,6 @@ class EqualsMethodUsageTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void replace() {
         rewriteRun(
@@ -49,8 +48,6 @@ class EqualsMethodUsageTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void replaceWithComment() {
         rewriteRun(
@@ -68,8 +65,6 @@ class EqualsMethodUsageTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void replaceWithNotEqual() {
         rewriteRun(
@@ -87,8 +82,6 @@ class EqualsMethodUsageTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void replaceWithNotEqualWithComments() {
         rewriteRun(
@@ -106,8 +99,6 @@ class EqualsMethodUsageTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void replaceWithNotEqualInParentheses() {
         rewriteRun(

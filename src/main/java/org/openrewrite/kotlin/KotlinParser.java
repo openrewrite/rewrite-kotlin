@@ -179,12 +179,14 @@ public class KotlinParser implements Parser {
                                         // debug purpose only, to be removed
                                         System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
 
-                                        KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, psiFirMapping, styles, relativeTo, ctx);
-                                        SourceFile kcu2 = psiParser.parse(ctx);
+                                        SourceFile kcu = kcu1;
+                                        try {
+                                            KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, psiFirMapping, styles, relativeTo, ctx);
+                                            kcu = psiParser.parse(ctx);
+                                        } catch (UnsupportedOperationException ignore) {
+                                        }
 
                                         // switch parsers
-                                        boolean usePsiBasedParsing = true;
-                                        SourceFile kcu = usePsiBasedParsing ? kcu2 : kcu1;
 
                                         parsingListener.parsed(kotlinSource.getInput(), kcu);
                                         return requirePrintEqualsInput(kcu, kotlinSource.getInput(), relativeTo, ctx);

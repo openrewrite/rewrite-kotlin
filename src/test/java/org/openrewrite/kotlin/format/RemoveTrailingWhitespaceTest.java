@@ -35,7 +35,6 @@ public class RemoveTrailingWhitespaceTest implements RewriteTest {
 
     @DocumentExample
     @SuppressWarnings("TrailingWhitespacesInTextBlock")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void removeTrailing() {
         rewriteRun(
@@ -60,7 +59,6 @@ public class RemoveTrailingWhitespaceTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/1053")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void doNotRemoveTrailingComma() {
         rewriteRun(

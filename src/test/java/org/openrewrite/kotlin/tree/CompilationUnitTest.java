@@ -23,24 +23,18 @@ import org.openrewrite.test.SourceSpec;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class CompilationUnitTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void emptyFile() {
         rewriteRun(
           kotlin("")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void packageDecl() {
         rewriteRun(
           kotlin("package kotlin")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void imports() {
         rewriteRun(
@@ -53,8 +47,6 @@ class CompilationUnitTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void packageAndComments() {
         rewriteRun(

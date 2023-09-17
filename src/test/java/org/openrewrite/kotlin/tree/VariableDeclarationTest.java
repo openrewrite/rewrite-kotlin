@@ -35,8 +35,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 @SuppressWarnings({"UnusedReceiverParameter", "PropertyName", "RemoveCurlyBracesFromTemplate", "UnnecessaryStringEscape", "RedundantGetter", "ConstantConditionIf", "RedundantSetter"})
 @Tag("psi")
 class VariableDeclarationTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @ParameterizedTest
     @ValueSource(strings = {
@@ -72,8 +70,6 @@ class VariableDeclarationTest implements RewriteTest {
             """)
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void withComments() {
         rewriteRun(
@@ -131,9 +127,6 @@ class VariableDeclarationTest implements RewriteTest {
           kotlin("val a  :   Int    = 1")
         );
     }
-
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void anonymousObject() {
         rewriteRun(
@@ -145,8 +138,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void ifExpression() {
         rewriteRun(
@@ -161,8 +152,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void inline() {
         rewriteRun(
@@ -174,8 +163,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void getter() {
         rewriteRun(
@@ -188,16 +175,12 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void quotedIdentifier() {
         rewriteRun(
           kotlin("val `quoted-id` = true")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void stringTemplate() {
         rewriteRun(
@@ -212,8 +195,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void stringTemplateNoBraces() {
         rewriteRun(
@@ -228,8 +209,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void whitespaceAfter() {
         rewriteRun(
@@ -244,7 +223,6 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/172")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void propertyAccessor() {
         rewriteRun(
@@ -263,7 +241,6 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/172")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void multipleFieldAccess() {
         rewriteRun(
@@ -282,8 +259,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void tripleQuotedString() {
         rewriteRun(
@@ -296,8 +271,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void mapOf() {
         rewriteRun(
@@ -311,7 +284,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/13")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void wildcard() {
         rewriteRun(
@@ -329,8 +301,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void ifElseExpression() {
         rewriteRun(
@@ -345,7 +315,6 @@ class VariableDeclarationTest implements RewriteTest {
 
     @ExpectedToFail("a, expect kotlin.Triple<Generic{A}, Generic{B}, Generic{C}>{name=component1,return=kotlin.Int,parameters=[]} but {undefined}{name=a,type=kotlin.Int} ")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/58")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void destructuringVariableDeclaration() {
         rewriteRun(
@@ -361,7 +330,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/76")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void delegationByLazy() {
         rewriteRun(
@@ -377,7 +345,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/264")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void delegationByLazyWithType() {
         rewriteRun(
@@ -390,8 +357,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void delegatedProperty() {
         rewriteRun(
@@ -423,7 +388,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void provideDelegateBinaryType() {
         rewriteRun(
@@ -445,7 +409,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void provideDelegateExtension() {
         rewriteRun(
@@ -464,7 +427,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/82")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void genericIntersectionType() {
         rewriteRun(
@@ -481,7 +443,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/84")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void unresolvedNameFirSource() {
         rewriteRun(
@@ -495,7 +456,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/84")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void varargArgumentExpression() {
         rewriteRun(
@@ -514,7 +474,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void parameterizedReceiver() {
         rewriteRun(
@@ -530,7 +489,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void abstractReceiver() {
         rewriteRun(
@@ -548,7 +506,6 @@ class VariableDeclarationTest implements RewriteTest {
 
     @SuppressWarnings("RedundantSetter")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void setter() {
         rewriteRun(
@@ -565,7 +522,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void getterBeforeSetter() {
         rewriteRun(
@@ -585,7 +541,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void setterBeforeGetter() {
         rewriteRun(
@@ -605,7 +560,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/135")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void checkNonNull() {
         rewriteRun(
@@ -619,8 +573,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void hasFinalModifier() {
         rewriteRun(
@@ -639,7 +591,6 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/207")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void preserveTrailingSemicolon() {
         rewriteRun(
@@ -651,8 +602,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void anonymousObjectWithoutSupertype() {
         rewriteRun(
@@ -666,7 +615,6 @@ class VariableDeclarationTest implements RewriteTest {
 
 
     @ExpectedToFail("DESTRUCTURING")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void spaceBetweenEqualsInDestructuringDeclaration() {
         rewriteRun(
@@ -687,7 +635,6 @@ class VariableDeclarationTest implements RewriteTest {
 
     @ExpectedToFail("DESTRUCTURING")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/286")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void unusedUnderScoreVariableInDestructuringDeclaration() {
         rewriteRun(
@@ -704,8 +651,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void typeExpressionPresent() {
         rewriteRun(

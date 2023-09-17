@@ -27,8 +27,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
 public class MethodMatcherTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void matchesTopLevelFunction() {
         rewriteRun(

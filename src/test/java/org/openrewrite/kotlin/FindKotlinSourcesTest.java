@@ -31,7 +31,6 @@ public class FindKotlinSourcesTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void kotlinFile() {
         rewriteRun(

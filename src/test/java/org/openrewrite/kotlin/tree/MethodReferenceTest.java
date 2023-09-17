@@ -23,8 +23,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class MethodReferenceTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void fieldReference() {
         rewriteRun(
@@ -39,8 +37,6 @@ class MethodReferenceTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void fieldReferenceWithTypeParameter() {
         rewriteRun(
@@ -55,16 +51,12 @@ class MethodReferenceTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void methodReference() {
         rewriteRun(
           kotlin("val str = 42 :: toString ")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void getJavaClass() {
         rewriteRun(
@@ -73,7 +65,6 @@ class MethodReferenceTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/64")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noReceiver() {
         rewriteRun(
@@ -86,8 +77,6 @@ class MethodReferenceTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void conditionalFieldReference() {
         rewriteRun(
@@ -102,8 +91,6 @@ class MethodReferenceTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void anonymousClassArgument() {
         rewriteRun(

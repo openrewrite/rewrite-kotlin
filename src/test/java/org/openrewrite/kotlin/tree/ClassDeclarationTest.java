@@ -27,8 +27,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("ALL")
 class ClassDeclarationTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void crlf() {
         rewriteRun(
@@ -37,8 +35,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void whitespaceInPackage() {
         rewriteRun(
@@ -47,8 +43,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void whitespaceInImport() {
         rewriteRun(
@@ -62,8 +56,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void multipleClassDeclarationsInOneCompilationUnit() {
         rewriteRun(
@@ -76,8 +68,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void empty() {
         rewriteRun(
@@ -89,8 +79,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void classImplements() {
         rewriteRun(
@@ -104,8 +92,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void classExtends() {
         rewriteRun(
@@ -117,8 +103,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void extendsAndImplementsInMixedOrder() {
         rewriteRun(
@@ -133,8 +117,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void innerClass() {
         rewriteRun(
@@ -148,32 +130,24 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void modifierOrdering() {
         rewriteRun(
           kotlin("public /* comment */ abstract open class A")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotationClass() {
         rewriteRun(
           kotlin("annotation class A")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void enumClass() {
         rewriteRun(
           kotlin("enum class A")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotation() {
         rewriteRun(
@@ -192,24 +166,18 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void quotedIdentifier() {
         rewriteRun(
           kotlin("class `Quoted id here`")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void typeArguments() {
         rewriteRun(
           kotlin("open class B < T > { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void singleBoundedTypeParameters() {
         rewriteRun(
@@ -223,24 +191,18 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void primaryConstructor() {
         rewriteRun(
           kotlin("class Test ( val answer : Int )")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void primaryConstructorWithAnySupertype() {
         rewriteRun(
           kotlin("class Test : Any()")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void primaryConstructorWithParameterizedSupertype() {
         rewriteRun(
@@ -249,7 +211,6 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/74")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void secondaryConstructor() {
         rewriteRun(
@@ -264,15 +225,12 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/94")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void explicitInlineConstructor() {
         rewriteRun(
           kotlin("class Test internal constructor ( )")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void implicitConstructorWithSuperType() {
         rewriteRun(
@@ -284,8 +242,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void singleLineCommentBeforeModifier() {
         rewriteRun(
@@ -300,7 +256,6 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     // TODO: check why this test now succeeds
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void multipleBounds() {
         rewriteRun(
@@ -316,8 +271,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void object() {
         rewriteRun(
@@ -326,7 +279,6 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/190")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void companionObject() {
         rewriteRun(
@@ -354,8 +306,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variance() {
         rewriteRun(
@@ -365,7 +315,6 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/72")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void sealedClassWithPropertiesAndDataClass() {
         rewriteRun(
@@ -383,7 +332,6 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/72")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void sealedInterfaceWithPropertiesAndDataClass() {
         rewriteRun(
@@ -399,8 +347,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void sealedInterfaceWithPropertiesAndObject() {
         rewriteRun(
@@ -418,7 +364,6 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/68")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void init() {
         rewriteRun(
@@ -431,8 +376,6 @@ class ClassDeclarationTest implements RewriteTest {
             """)
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void valueClass() {
         rewriteRun(
@@ -441,7 +384,6 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/66")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void typeParameterReference() {
         rewriteRun(
@@ -468,7 +410,6 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/99")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void implicitThis() {
         rewriteRun(
@@ -483,8 +424,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void mixedAnnotationsAndModifiers() {
         rewriteRun(
@@ -499,8 +438,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void trailingComma() {
         rewriteRun(
@@ -511,8 +448,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void hasFinalModifier() {
         rewriteRun(
@@ -527,8 +462,6 @@ class ClassDeclarationTest implements RewriteTest {
             }))
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
     void onlySecondaryConstructors() {
@@ -559,8 +492,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
     void secondaryConstructorWithBody() {
@@ -576,8 +507,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void localClass() {
         rewriteRun(
@@ -590,8 +519,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void coneProjection() {
         rewriteRun(
@@ -603,8 +530,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void outerClassTypeParameters() {
         rewriteRun(
@@ -619,8 +544,6 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/301")
     void qualifiedSuperType() {

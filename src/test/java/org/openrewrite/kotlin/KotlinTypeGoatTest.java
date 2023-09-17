@@ -34,7 +34,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 //    @Language("kotlin")
 //    private static final String goat = StringUtils.readFully(KotlinTypeMappingTest.class.getResourceAsStream("/KotlinTypeGoat.kt"));
 //
-//    @Disabled("FIXME, to be supported by PSI parser")
+//
 //    @Test
 //    void printEqualsInput() {
 //        ExecutionContext ctx = new InMemoryExecutionContext();

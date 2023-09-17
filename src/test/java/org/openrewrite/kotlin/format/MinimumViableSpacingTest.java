@@ -45,8 +45,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           toRecipe(() -> new MinimumViableSpacingVisitor<>(null))
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void classDeclaration() {
         rewriteRun(
@@ -61,9 +59,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void classDeclarationWithFinalModifier() {
         rewriteRun(
@@ -78,8 +73,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void classDeclarationWithModifier() {
         rewriteRun(
@@ -94,8 +87,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void method() {
         rewriteRun(
@@ -112,8 +103,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void returnExpression() {
         rewriteRun(
@@ -131,8 +120,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void trailingLambda() {
         rewriteRun(
@@ -146,8 +133,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void ifElse() {
         rewriteRun(
@@ -163,8 +148,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variableDeclaration() {
         rewriteRun(
@@ -178,8 +161,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variableDeclarations() {
         rewriteRun(
@@ -195,8 +176,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variableDeclarationsInClass() {
         rewriteRun(
@@ -214,8 +193,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variableDeclarationsInClass2() {
         rewriteRun(
@@ -232,9 +209,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variableDeclarationsInMethod() {
         rewriteRun(
@@ -256,8 +230,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variableDeclarationsWithIn() {
         rewriteRun(
@@ -273,8 +245,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void forloop() {
         rewriteRun(
@@ -291,8 +261,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variableDeclarationsInForLoops() {
         rewriteRun(
@@ -319,8 +287,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noSpaceAferAnnotation() {
         rewriteRun(
@@ -341,8 +307,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void classConstructor() {
         rewriteRun(
@@ -361,8 +325,6 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void spaceAfterPublic() {
         rewriteRun(

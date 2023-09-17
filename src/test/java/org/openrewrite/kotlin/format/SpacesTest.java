@@ -60,8 +60,6 @@ class SpacesTest implements RewriteTest {
             )
           )));
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void spaceAfterAsKeyword() {
         rewriteRun(
@@ -79,7 +77,6 @@ class SpacesTest implements RewriteTest {
     @Nested
     class beforeParensTest {
         @DocumentExample
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensMethodDeclaration() {
             rewriteRun(
@@ -106,7 +103,6 @@ class SpacesTest implements RewriteTest {
         }
 
         @SuppressWarnings("TrailingWhitespacesInTextBlock")
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensMethodDeclarationFalseWithLineBreakIgnored() {
             rewriteRun(
@@ -120,8 +116,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensMethodDeclarationWithComment() {
             rewriteRun(
@@ -134,8 +128,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeClassBody() {
             rewriteRun(
@@ -154,8 +146,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensMethodCall() {
             rewriteRun(
@@ -176,8 +166,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensIfParenthesesFalse() {
             rewriteRun(
@@ -198,8 +186,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensIfParenthesesTrue() {
             rewriteRun(
@@ -220,8 +206,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensForParenthesesFalse() {
             rewriteRun(
@@ -242,8 +226,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensForParenthesesTrue() {
             rewriteRun(
@@ -264,8 +246,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensWhileParenthesesFalse() {
             rewriteRun(
@@ -286,8 +266,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensWhileParenthesesTrue() {
             rewriteRun(
@@ -308,8 +286,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensCatchParenthesesFalse() {
             rewriteRun(
@@ -332,8 +308,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensCatchParenthesesTrue() {
             rewriteRun(
@@ -356,8 +330,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensAnnotationParameters() {
             rewriteRun(
@@ -376,8 +348,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensWhenParenthesesTrue() {
             rewriteRun(
@@ -398,8 +368,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void beforeParensWhenParenthesesFalse() {
             rewriteRun(
@@ -424,7 +392,6 @@ class SpacesTest implements RewriteTest {
 
     @Nested
     class aroundOperatorsTest {
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsAssignmentFalse() {
             rewriteRun(
@@ -445,8 +412,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsAssignmentTrue() {
             rewriteRun(
@@ -467,8 +432,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsLogicalFalse() {
             rewriteRun(
@@ -489,8 +452,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsLogicalTrue() {
             rewriteRun(
@@ -511,8 +472,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsEqualityFalse() {
             rewriteRun(
@@ -537,8 +496,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsEqualityTrue() {
             rewriteRun(
@@ -563,8 +520,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsRelationalFalse() {
             rewriteRun(
@@ -589,8 +544,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsRelationalTrue() {
             rewriteRun(
@@ -615,8 +568,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsBitwise() {
             rewriteRun(
@@ -645,8 +596,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsAdditiveFalse() {
             rewriteRun(
@@ -667,8 +616,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsAdditiveTrue() {
             rewriteRun(
@@ -689,8 +636,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsMultiplicativeFalse() {
             rewriteRun(
@@ -713,8 +658,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsMultiplicativeTrue() {
             rewriteRun(
@@ -737,8 +680,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsUnaryFalse() {
             rewriteRun(
@@ -773,8 +714,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsUnaryTrue() {
             rewriteRun(
@@ -809,8 +748,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsRangeOperatorsFalse() {
             rewriteRun(
@@ -833,8 +770,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsRangeOperatorsTrue() {
             rewriteRun(
@@ -857,8 +792,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsLambda() {
             rewriteRun(
@@ -881,8 +814,6 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void aroundOperatorsMethodReferenceDoubleColon() {
             rewriteRun(
@@ -909,7 +840,6 @@ class SpacesTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/192")
     @SuppressWarnings("RedundantNullableReturnType")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void visitsMarkerLocation() {
         rewriteRun(
@@ -968,7 +898,6 @@ class SpacesTest implements RewriteTest {
         @Nested
         class otherBeforeComma {
             // 1. Method parameters
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeCommaFalseMethodParameters() {
                 rewriteRun(
@@ -993,8 +922,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeCommaTrueMethodParameters() {
                 rewriteRun(
@@ -1021,7 +948,6 @@ class SpacesTest implements RewriteTest {
             }
 
             // 2. Array
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeCommaFalseArray() {
                 rewriteRun(
@@ -1038,8 +964,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeCommaTrueArray() {
                 rewriteRun(
@@ -1059,7 +983,6 @@ class SpacesTest implements RewriteTest {
 
             // 3. Destructuring Declaration
             @ExpectedToFail("destruct type")
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeCommaFalseDestruct() {
                 rewriteRun(
@@ -1084,7 +1007,6 @@ class SpacesTest implements RewriteTest {
             }
 
             @ExpectedToFail("destruct type")
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeCommaTrueDestruct() {
                 rewriteRun(
@@ -1112,7 +1034,6 @@ class SpacesTest implements RewriteTest {
         @Nested
         class otherAfterComma {
             // 1. Method parameters
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterCommaTrueMethodParameters() {
                 rewriteRun(
@@ -1129,8 +1050,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterCommaFalseMethodParameters() {
                 rewriteRun(
@@ -1149,7 +1068,6 @@ class SpacesTest implements RewriteTest {
             }
 
             // 2. Array
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterCommaTrueArray() {
                 rewriteRun(
@@ -1166,8 +1084,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterCommaFalseArray() {
                 rewriteRun(
@@ -1187,7 +1103,6 @@ class SpacesTest implements RewriteTest {
 
             // 3. Destructuring Declaration
             @ExpectedToFail("name, expect Person{name=component1,return=kotlin.String,parameters=[]} but {undefined}{name=name,type=kotlin.String}")
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterCommaTrueDestruct() {
                 rewriteRun(
@@ -1212,7 +1127,6 @@ class SpacesTest implements RewriteTest {
             }
 
             @ExpectedToFail("name, expect Person{name=component1,return=kotlin.String,parameters=[]} but {undefined}{name=name,type=kotlin.String}")
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterCommaFalseDestruct() {
                 rewriteRun(
@@ -1239,7 +1153,6 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherBeforeColonAfterDeclarationName {
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameFalseVariableDeclaration() {
                 rewriteRun(
@@ -1260,8 +1173,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameTrueVariableDeclaration() {
                 rewriteRun(
@@ -1282,8 +1193,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameFalseFunctionTypeParameter() {
                 rewriteRun(
@@ -1298,8 +1207,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameTrueFunctionTypeParameter() {
                 rewriteRun(
@@ -1314,8 +1221,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameFalseMethodDeclaration() {
                 rewriteRun(
@@ -1334,8 +1239,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameTrueMethodDeclaration() {
                 rewriteRun(
@@ -1354,8 +1257,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameFalseTryCatch() {
                 rewriteRun(
@@ -1378,8 +1279,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameTrueTryCatch() {
                 rewriteRun(
@@ -1402,8 +1301,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameFalseMethodDeclarationParameters() {
                 rewriteRun(
@@ -1424,8 +1321,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeColonAfterDeclarationNameTrueMethodDeclarationParameters() {
                 rewriteRun(
@@ -1451,7 +1346,6 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherAfterColonBeforeDeclarationType {
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterColonBeforeDeclarationTypeTrueVariableDeclaration() {
                 rewriteRun(
@@ -1472,8 +1366,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterColonBeforeDeclarationTypeFalseVariableDeclaration() {
                 rewriteRun(
@@ -1494,8 +1386,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterColonBeforeDeclarationTypeTrueMethodDeclaration() {
                 rewriteRun(
@@ -1514,8 +1404,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterColonBeforeDeclarationTypeFalseMethodDeclaration() {
                 rewriteRun(
@@ -1534,8 +1422,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterColonBeforeDeclarationTypeTrueTryCatch() {
                 rewriteRun(
@@ -1558,8 +1444,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterColonBeforeDeclarationTypeFalseTryCatch() {
                 rewriteRun(
@@ -1582,8 +1466,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterColonBeforeDeclarationTypeTrueMethodDeclarationParameters() {
                 rewriteRun(
@@ -1604,8 +1486,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAfterColonBeforeDeclarationTypeFalseMethodDeclarationParameters() {
                 rewriteRun(
@@ -1632,7 +1512,7 @@ class SpacesTest implements RewriteTest {
         class otherBeforeColonInNewTypeDefinition {
 
             @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
-            // @Disabled("FIXME, to be supported by PSI parser")
+            //
     @Test
             void otherBeforeColonInNewTypeDefinitionTrue() {
                 rewriteRun(
@@ -1653,7 +1533,7 @@ class SpacesTest implements RewriteTest {
             }
 
             @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
-            // @Disabled("FIXME, to be supported by PSI parser")
+            //
     @Test
             void otherBeforeColonInNewTypeDefinitionFalse() {
                 rewriteRun(
@@ -1678,7 +1558,7 @@ class SpacesTest implements RewriteTest {
         class otherAfterColonInNewTypeDefinition {
 
             @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
-            // @Disabled("FIXME, to be supported by PSI parser")
+            //
     @Test
             void otherAfterColonInNewTypeDefinitionTrue() {
                 rewriteRun(
@@ -1699,7 +1579,7 @@ class SpacesTest implements RewriteTest {
             }
 
             @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
-            // @Disabled("FIXME, to be supported by PSI parser")
+            //
     @Test
             void otherAfterColonInNewTypeDefinitionFalse() {
                 rewriteRun(
@@ -1722,8 +1602,6 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherInSimpleOneLineMethods {
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherInSimpleOneLineMethodsTrue() {
                 rewriteRun(
@@ -1738,8 +1616,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherInSimpleOneLineMethodsFalse() {
                 rewriteRun(
@@ -1758,8 +1634,6 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherAroundArrowInFunctionType {
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAroundArrowInFunctionTypeTrue() {
                 rewriteRun(
@@ -1775,8 +1649,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAroundArrowInFunctionTypeFalse() {
                 rewriteRun(
@@ -1795,8 +1667,6 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherAroundArrowInWhenClause {
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAroundArrowInWhenClauseTrueArrowToConstant() {
                 rewriteRun(
@@ -1827,8 +1697,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAroundArrowInWhenClauseFalseArrowToConstant() {
                 rewriteRun(
@@ -1859,8 +1727,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAroundArrowInWhenClauseTrueArrowToMethodInvocation() {
                 rewriteRun(
@@ -1895,8 +1761,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherAroundArrowInWhenClauseFalseArrowToMethodInvocation() {
                 rewriteRun(
@@ -1935,8 +1799,6 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherBeforeLambdaArrow {
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeLambdaArrowTrue() {
                 rewriteRun(
@@ -1951,8 +1813,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherBeforeLambdaArrowFalse() {
                 rewriteRun(
@@ -1972,8 +1832,6 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherDefaults {
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeParensTryParentheses() {
                 rewriteRun(
@@ -1996,8 +1854,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceClassLeftBrace() {
                 rewriteRun(
@@ -2014,8 +1870,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceMethodLeftBrace() {
                 rewriteRun(
@@ -2036,9 +1890,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceIfLeftBraceFalse() {
                 rewriteRun(
@@ -2063,9 +1914,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceElseLeftBraceFalse() {
                 rewriteRun(
@@ -2092,8 +1940,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceForLeftBraceFalse() {
                 rewriteRun(
@@ -2114,8 +1960,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceWhileLeftBraceFalse() {
                 rewriteRun(
@@ -2136,8 +1980,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceDoLeftBraceFalse() {
                 rewriteRun(
@@ -2162,8 +2004,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceTryLeftBraceFalse() {
                 rewriteRun(
@@ -2190,8 +2030,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceCatchLeftBraceFalse() {
                 rewriteRun(
@@ -2218,8 +2056,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceFinallyLeftBraceFalse() {
                 rewriteRun(
@@ -2248,8 +2084,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeLeftBraceAnnotationArrayInitializerLeftBraceTrue() {
                 rewriteRun(
@@ -2278,8 +2112,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeKeywordsElseKeywordTrue() {
                 rewriteRun(
@@ -2306,8 +2138,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeKeywordsWhileKeywordTrue() {
                 rewriteRun(
@@ -2332,8 +2162,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeKeywordsCatchKeywordTrue() {
                 rewriteRun(
@@ -2360,8 +2188,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void beforeKeywordsFinallyKeywordTrue() {
                 rewriteRun(
@@ -2390,9 +2216,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinCodeBracesFalse() {
                 rewriteRun(
@@ -2409,8 +2232,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinBracketsFalse() {
                 rewriteRun(
@@ -2433,9 +2254,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinArrayInitializerBracesFalse() {
                 rewriteRun(
@@ -2458,8 +2276,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinGroupingParenthesesTrue() {
                 rewriteRun(
@@ -2482,8 +2298,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinMethodDeclarationParenthesesFalse() {
                 rewriteRun(
@@ -2504,8 +2318,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinEmptyMethodDeclarationParenthesesFalse() {
                 rewriteRun(
@@ -2526,8 +2338,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinMethodCallParenthesesFalse() {
                 rewriteRun(
@@ -2554,8 +2364,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinEmptyMethodCallParenthesesFalse() {
                 rewriteRun(
@@ -2582,8 +2390,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinIfParenthesesFalse() {
                 rewriteRun(
@@ -2608,8 +2414,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinForParenthesesFalse() {
                 rewriteRun(
@@ -2634,8 +2438,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void withinWhileParenthesesFalse() {
                 rewriteRun(
@@ -2664,8 +2466,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
             @Test
             void withinCatchParenthesesFalse() {
                 rewriteRun(
@@ -2692,8 +2492,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
             @Test
             void withinAngleBracketsFalse() {
                 rewriteRun(
@@ -2722,8 +2520,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
             @Test
             void typeArgumentsAfterComma() {
                 rewriteRun(
@@ -2762,8 +2558,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void otherInsideOneLineEnumBracesFalse() {
                 rewriteRun(
@@ -2778,8 +2572,6 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void typeParametersBeforeOpeningAngleBracketFalse() {
                 rewriteRun(

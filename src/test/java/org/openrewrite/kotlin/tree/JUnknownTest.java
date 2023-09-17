@@ -26,8 +26,6 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class JUnknownTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void fileDeclaration() {
         try {
@@ -49,8 +47,6 @@ class JUnknownTest implements RewriteTest {
             assertThat(e).cause().hasMessage("Parsing error, J.Unknown detected");
         }
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void expression() {
         try {

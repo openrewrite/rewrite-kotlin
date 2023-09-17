@@ -25,7 +25,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 class TypeMappingTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/199")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void parameterizedTypeMapping() {
         rewriteRun(

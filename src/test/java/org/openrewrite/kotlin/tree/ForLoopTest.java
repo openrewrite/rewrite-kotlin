@@ -23,8 +23,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"ControlFlowWithEmptyBody", "RemoveForLoopIndices"})
 class ForLoopTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void inList() {
         rewriteRun(
@@ -40,8 +38,6 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void inMap() {
         rewriteRun(
@@ -59,8 +55,6 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void inRange() {
         rewriteRun(
@@ -75,8 +69,6 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void rangeUntil() {
         rewriteRun(
@@ -91,8 +83,6 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void arrayWithIndex() {
         rewriteRun(
@@ -106,8 +96,6 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void downToWithStep() {
         rewriteRun(

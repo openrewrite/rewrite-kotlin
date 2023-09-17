@@ -30,56 +30,42 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"UnusedReceiverParameter", "RedundantSuspendModifier"})
 class MethodDeclarationTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void methodDeclaration() {
         rewriteRun(
           kotlin("fun method ( ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void parameters() {
         rewriteRun(
           kotlin("fun method ( i : Int ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void functionTypeReference() {
         rewriteRun(
           kotlin("fun method( input : (  ) -> String ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void typedFunctionTypeReference() {
         rewriteRun(
           kotlin("fun method( input : ( Int , Int ) -> Boolean ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void functionTypeWithReceiver() {
         rewriteRun(
           kotlin("fun method ( arg : String . ( ) -> String ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void assignment() {
         rewriteRun(
           kotlin("fun method ( ) : Boolean = true")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void returnType() {
         rewriteRun(
@@ -92,8 +78,6 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void methodDeclarationDeclaringType() {
         rewriteRun(
@@ -107,8 +91,6 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void constructor() {
         rewriteRun(
@@ -121,8 +103,6 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void infix() {
         rewriteRun(
@@ -146,40 +126,30 @@ class MethodDeclarationTest implements RewriteTest {
           kotlin("infix fun Spec . version ( version : String ) : Spec = version ( version )")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void quotedIdentifier() {
         rewriteRun(
           kotlin("fun `some quoted id` ( ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void defaults() {
         rewriteRun(
           kotlin("fun apply ( plugin : String ? = null ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void reifiedGeneric() {
         rewriteRun(
           kotlin("inline fun < reified T > method ( value : T ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void genericTypeParameters() {
         rewriteRun(
           kotlin("fun < T : Number > method ( type : T ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void receiverType() {
         rewriteRun(
@@ -187,8 +157,6 @@ class MethodDeclarationTest implements RewriteTest {
           kotlin("fun Test . method ( ) { }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void methodInvocationOnReceiverType() {
         rewriteRun(
@@ -209,8 +177,6 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void nullableReturnType() {
         rewriteRun(
@@ -222,8 +188,6 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void typeParameterAndTypeReceiver() {
         rewriteRun(
@@ -236,7 +200,6 @@ class MethodDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/56")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void lambdaMethodParameterWithModifier() {
         rewriteRun(
@@ -252,7 +215,6 @@ class MethodDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/70")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void crossinline() {
         rewriteRun(
@@ -266,7 +228,6 @@ class MethodDeclarationTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/70")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noinline() {
         rewriteRun(
@@ -278,8 +239,6 @@ class MethodDeclarationTest implements RewriteTest {
               """)
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @ParameterizedTest
     @ValueSource(strings = {
       "out Number",
@@ -294,7 +253,6 @@ class MethodDeclarationTest implements RewriteTest {
 
     @ExpectedToFail
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/205")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void genericTypeConstraint() {
         rewriteRun(
@@ -307,8 +265,6 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void hasFinalModifier() {
         rewriteRun(
@@ -324,8 +280,6 @@ class MethodDeclarationTest implements RewriteTest {
             }))
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/271")
     void negativeSingleExpression() {
@@ -337,8 +291,6 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void parenthesizedSingleExpression() {
         rewriteRun(
@@ -349,8 +301,6 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void multiplatformExpectDeclaration() {
         rewriteRun(

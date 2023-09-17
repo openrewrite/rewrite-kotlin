@@ -31,8 +31,6 @@ class AutodetectTest implements RewriteTest {
     private static KotlinParser kp() {
         return KotlinParser.builder().build();
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void continuationIndent() {
         var cus = kp().parse(
@@ -57,8 +55,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(8);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/3552")
     void continuationIndentFromParameters() {
@@ -80,8 +76,6 @@ class AutodetectTest implements RewriteTest {
 
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(5);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/3550")
     void alignParametersWhenMultiple() {
@@ -105,7 +99,6 @@ class AutodetectTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/1221")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void springDemoApp() {
         //language=kotlin
@@ -136,7 +129,6 @@ class AutodetectTest implements RewriteTest {
     }
 
     @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void springCloudTabsAndIndents() {
         //language=kotlin
@@ -178,7 +170,6 @@ class AutodetectTest implements RewriteTest {
     }
 
     @SuppressWarnings("InfiniteRecursion")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void spinnakerTabsAndIndents() {
         var cus = kp().parse(
@@ -221,8 +212,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(2);
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(4);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void rewriteTabsAndIndents() {
         var cus = kp().parse(
@@ -255,8 +244,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(8);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void defaultTabIndentSizeToOne() {
         var cus = kp().parse(
@@ -281,8 +268,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void mixedTabAndWhiteSpacesIndentsWithTabSize4() {
         var cus = kp().parse(
@@ -316,7 +301,7 @@ class AutodetectTest implements RewriteTest {
 
     // TabSize 3 is atypical but not unheard of
     @Disabled
-    // @Disabled("FIXME, to be supported by PSI parser")
+    //
     @Test
     void mixedTabAndWhiteSpacesIndentsWithTabSize3() {
         var cus = kp().parse(
@@ -347,8 +332,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(3);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(3);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void mixedTabAndWhiteSpacesIndentsWithTabSize4AndUseTabIsFalse() {
         var cus = kp().parse(
@@ -379,8 +362,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void inconsistentIndents() {
         var cus = kp().parse(
@@ -406,8 +387,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void mixedTabAndWhiteSpacesIndentsWithTabSize4WithSomeErrors() {
         var cus = kp().parse(
@@ -438,8 +417,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void defaultKotlinImportLayout() {
         var cus = kp().parse(
@@ -497,8 +474,6 @@ class AutodetectTest implements RewriteTest {
 
         assertThat(importLayout.getLayout().get(4)).isInstanceOf(ImportLayoutStyle.Block.AllAliases.class);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void customizedKotlinImportLayout() {
         var cus = kp().parse(
@@ -556,8 +531,6 @@ class AutodetectTest implements RewriteTest {
 
         assertThat(importLayout.getLayout().get(4)).isInstanceOf(ImportLayoutStyle.Block.AllOthers.class);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void partialImportLayout() {
         var cus = kp().parse(
@@ -604,7 +577,7 @@ class AutodetectTest implements RewriteTest {
     }
 
     @Disabled
-    // @Disabled("FIXME, to be supported by PSI parser")
+    //
     @Test
     void detectStarImport() {
         var cus = kp().parse(
@@ -630,8 +603,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(importLayout.getTopLevelSymbolsToUseStarImport()).isEqualTo(6);
         // assertThat(importLayout.getClassCountToUseStarImport()).isEqualTo(6);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void detectImportCounts() {
         var cus = kp().parse(
@@ -669,8 +640,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(importLayout.getTopLevelSymbolsToUseStarImport()).isEqualTo(5);
         assertThat(importLayout.getJavaStaticsAndEnumsToUseStarImport()).isEqualTo(3);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void detectMethodArgs() {
         var cus = kp().parse(
@@ -691,8 +660,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isTrue();
         assertThat(spacesStyle.getOther().getAfterComma()).isFalse();
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void detectMethodArgAfterComma() {
         var cus = kp().parse(
@@ -713,8 +680,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void detectMethodArgsNoArgs() {
         var cus = kp().parse(
@@ -735,8 +700,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void detectMethodArgsNoSpaceForComma() {
         var cus = kp().parse(
@@ -757,8 +720,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isFalse();
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void detectMethodArgsSpaceForComma() {
         var cus = kp().parse(
@@ -779,8 +740,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isTrue();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void detectAfterCommaInNewArray() {
         var cus = kp().parse(
@@ -801,8 +760,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/3172")
     void detectAfterCommaShouldIgnoreFirstElement() {
@@ -827,8 +784,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/3172")
     void detectAfterCommaBasedOnLambdas() {
@@ -862,7 +817,6 @@ class AutodetectTest implements RewriteTest {
 
 
     @SuppressWarnings("StatementWithEmptyBody")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void detectElseWithNoNewLine() {
         var cus = kp().parse(
@@ -887,7 +841,6 @@ class AutodetectTest implements RewriteTest {
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void detectElseOnNewLine() {
         var cus = kp().parse(
@@ -914,7 +867,7 @@ class AutodetectTest implements RewriteTest {
     }
 
     @Disabled
-    // @Disabled("FIXME, to be supported by PSI parser")
+    //
     @Test
     void mostCommonIndentTakesPrecedence() {
         var cus = kp().parse(
@@ -953,7 +906,6 @@ class AutodetectTest implements RewriteTest {
     }
 
     @SuppressWarnings({"ResultOfMethodCallIgnored", "RedundantStreamOptionalCall"})
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void continuationIndents() {
         var cus = kp().parse(

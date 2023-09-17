@@ -25,8 +25,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"KotlinConstantConditions", "ConstantConditionIf"})
 class AssignmentOperationTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minusEqual() {
         rewriteRun(
@@ -40,8 +38,6 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void plusEqual() {
         rewriteRun(
@@ -55,8 +51,6 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void timesEqual() {
         rewriteRun(
@@ -70,8 +64,6 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void divideEqual() {
         rewriteRun(
@@ -85,8 +77,6 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void conditionalAssignment() {
         rewriteRun(
@@ -100,8 +90,6 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/268")
     void augmentedAssign() {
@@ -123,8 +111,6 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/305")
     @ExpectedToFail

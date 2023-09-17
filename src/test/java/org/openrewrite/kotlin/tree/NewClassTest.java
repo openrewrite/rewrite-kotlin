@@ -22,8 +22,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class NewClassTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void multipleParameters() {
         rewriteRun(
@@ -31,8 +29,6 @@ class NewClassTest implements RewriteTest {
           kotlin("val t = Test ( 1 , 2 )")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void anonymousClass() {
         rewriteRun(
@@ -56,8 +52,6 @@ class NewClassTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void fullyQualified() {
         rewriteRun(
@@ -74,8 +68,6 @@ class NewClassTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void innerClass() {
         rewriteRun(
@@ -94,8 +86,6 @@ class NewClassTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void conditionalConstructorArg() {
         rewriteRun(

@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.format;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -58,8 +57,6 @@ class BlankLinesTest implements RewriteTest {
 
     @Nested
     class KeepMaximumBlankLinesTest {
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void keepMaximumBlankLinesInClassDeclarations() {
             rewriteRun(
@@ -82,7 +79,6 @@ class BlankLinesTest implements RewriteTest {
         }
 
         @DocumentExample
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void keepMaximumInDeclarations() {
             rewriteRun(
@@ -149,8 +145,6 @@ class BlankLinesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void keepMaximumInCode() {
             rewriteRun(
@@ -179,8 +173,6 @@ class BlankLinesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void keepMaximumBeforeEndOfBlock() {
             rewriteRun(
@@ -220,8 +212,6 @@ class BlankLinesTest implements RewriteTest {
               )
             );
         }
-
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         void keepMaximumBetweenHeaderAndPackage() {
             rewriteRun(
@@ -261,8 +251,6 @@ class BlankLinesTest implements RewriteTest {
 
         @Nested
         class AfterClassHeader {
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void minimumAfterClassHeader() {
                 rewriteRun(
@@ -284,7 +272,6 @@ class BlankLinesTest implements RewriteTest {
             }
 
             @Issue("https://github.com/openrewrite/rewrite/issues/1171")
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void minimumAfterClassHeaderNestedClasses() {
                 rewriteRun(
@@ -320,7 +307,6 @@ class BlankLinesTest implements RewriteTest {
             }
 
             @Issue("https://github.com/openrewrite/rewrite/issues/1171")
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void minimumAfterClassHeaderNestedEnum() {
                 rewriteRun(
@@ -350,7 +336,6 @@ class BlankLinesTest implements RewriteTest {
 
         @Nested
         class AroundWhenBranchesWithBlockTest {
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void AroundWhenBranchesWithBlock() {
                 rewriteRun(
@@ -395,8 +380,6 @@ class BlankLinesTest implements RewriteTest {
 
         @Nested
         class BeforeDeclarationWithCommentOrAnnotationTest {
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void BeforeDeclarationWithComment() {
                 rewriteRun(
@@ -431,8 +414,6 @@ class BlankLinesTest implements RewriteTest {
                   )
                 );
             }
-
-            @Disabled("FIXME, to be supported by PSI parser")
     @Test
             void BeforeAnnotation() {
                 rewriteRun(
@@ -487,7 +468,6 @@ class BlankLinesTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/621")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void leaveTrailingComments() {
         rewriteRun(
@@ -507,7 +487,6 @@ class BlankLinesTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/620")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noBlankLineForFirstEnum() {
         rewriteRun(
@@ -522,8 +501,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void eachMethodOnItsOwnLine() {
         rewriteRun(
@@ -548,8 +525,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/314")
     void blankLinesBetweenTopLevelStatements() {
@@ -575,8 +550,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minimumBeforePackage() {
         rewriteRun(
@@ -601,8 +574,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minimumBeforeImportsWithPackage() {
         rewriteRun(
@@ -627,8 +598,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minimumBeforeImports() {
         rewriteRun(
@@ -652,8 +621,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minimumAfterPackageWithImport() {
         rewriteRun(
@@ -677,8 +644,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minimumAfterPackage() {
         rewriteRun(
@@ -698,8 +663,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minimumAfterImports() {
         rewriteRun(
@@ -719,8 +682,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minimumAroundClass() {
         rewriteRun(
@@ -758,7 +719,6 @@ class BlankLinesTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/1171")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minimumAroundClassNestedEnum() {
         rewriteRun(
@@ -802,8 +762,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void unchanged() {
         rewriteRun(
@@ -818,8 +776,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void maximumBlankLinesBetweenHeaderAndPackage() {
         // keepMaximumBlankLines_BetweenHeaderAndPackage defaults to 2
@@ -853,8 +809,6 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void minimumBlankLinesBeforePackageStatement() {
         // minimumBlankLines_BeforePackageStatement defaults to 0

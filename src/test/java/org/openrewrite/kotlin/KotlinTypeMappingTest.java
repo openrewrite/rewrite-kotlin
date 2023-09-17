@@ -88,14 +88,10 @@ class KotlinTypeMappingTest {
     public JavaType firstMethodParameter(String methodName) {
         return methodType(methodName).getParameterTypes().get(0);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void extendsKotlinAny() {
         assertThat(goatType.getSupertype().getFullyQualifiedName()).isEqualTo("kotlin.Any");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void fieldType() {
         J.VariableDeclarations.NamedVariable variable = getField("field").getVariables().get(0);
@@ -106,21 +102,15 @@ class KotlinTypeMappingTest {
         assertThat(id.getType()).isInstanceOf(JavaType.Class.class);
         assertThat(id.getType().toString()).isEqualTo("kotlin.Int");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void kotlinAnyHasNoSuperType() {
         assertThat(goatType.getSupertype().getSupertype()).isNull();
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void className() {
         JavaType.Class clazz = (JavaType.Class) this.firstMethodParameter("clazz");
         assertThat(TypeUtils.asFullyQualified(clazz).getFullyQualifiedName()).isEqualTo("org.openrewrite.kotlin.C");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void interfacesContainImplicitAbstractFlag() {
         JavaType.Class clazz = (JavaType.Class) firstMethodParameter("clazz");
@@ -128,30 +118,22 @@ class KotlinTypeMappingTest {
         assertThat(clazz.getFlags()).contains(Flag.Abstract);
         assertThat(methodType.getFlags()).contains(Flag.Abstract);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void constructor() {
         JavaType.Method ctor = methodType("<constructor>");
         assertThat(ctor.getDeclaringType().getFullyQualifiedName()).isEqualTo("org.openrewrite.kotlin.KotlinTypeGoat");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void parameterized() {
         JavaType.Parameterized parameterized = (JavaType.Parameterized) firstMethodParameter("parameterized");
         assertThat(parameterized.getType().getFullyQualifiedName()).isEqualTo("org.openrewrite.kotlin.PT");
         assertThat(TypeUtils.asFullyQualified(parameterized.getTypeParameters().get(0)).getFullyQualifiedName()).isEqualTo("org.openrewrite.kotlin.C");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void primitive() {
         JavaType.Class kotlinPrimitive = (JavaType.Class) firstMethodParameter("primitive");
         assertThat(kotlinPrimitive.getFullyQualifiedName()).isEqualTo("kotlin.Int");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void generic() {
         JavaType.GenericTypeVariable generic = (JavaType.GenericTypeVariable) TypeUtils.asParameterized(firstMethodParameter("generic")).getTypeParameters().get(0);
@@ -159,8 +141,6 @@ class KotlinTypeMappingTest {
         assertThat(generic.getVariance()).isEqualTo(COVARIANT);
         assertThat(TypeUtils.asFullyQualified(generic.getBounds().get(0)).getFullyQualifiedName()).isEqualTo("org.openrewrite.kotlin.C");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void genericContravariant() {
         JavaType.GenericTypeVariable generic = (JavaType.GenericTypeVariable) TypeUtils.asParameterized(firstMethodParameter("genericContravariant")).getTypeParameters().get(0);
@@ -171,7 +151,7 @@ class KotlinTypeMappingTest {
     }
 
     @Disabled("Requires parsing intersection types")
-    // @Disabled("FIXME, to be supported by PSI parser")
+    //
     @Test
     void genericMultipleBounds() {
         List<JavaType> typeParameters = goatType.getTypeParameters();
@@ -182,8 +162,6 @@ class KotlinTypeMappingTest {
         assertThat(TypeUtils.asFullyQualified(generic.getBounds().get(1)).getFullyQualifiedName()).
           isEqualTo("org.openrewrite.kotlin.C");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void genericUnbounded() {
         JavaType.GenericTypeVariable generic = (JavaType.GenericTypeVariable) TypeUtils.asParameterized(firstMethodParameter("genericUnbounded")).getTypeParameters().get(0);
@@ -193,7 +171,7 @@ class KotlinTypeMappingTest {
     }
 
     @Disabled
-    // @Disabled("FIXME, to be supported by PSI parser")
+    //
     @Test
     void genericRecursive() {
         JavaType.Parameterized param = (JavaType.Parameterized) firstMethodParameter("genericRecursive");
@@ -208,8 +186,6 @@ class KotlinTypeMappingTest {
         assertThat(elemType.getVariance()).isEqualTo(COVARIANT);
         assertThat(elemType.getBounds()).hasSize(1);
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void innerClass() {
         JavaType.FullyQualified clazz = TypeUtils.asFullyQualified(firstMethodParameter("inner"));
@@ -217,7 +193,7 @@ class KotlinTypeMappingTest {
     }
 
     @Disabled("Requires parsing intersection types")
-    // @Disabled("FIXME, to be supported by PSI parser")
+    //
     @Test
     void inheritedJavaTypeGoat() {
         JavaType.Parameterized clazz = (JavaType.Parameterized) firstMethodParameter("InheritedKotlinTypeGoat");
@@ -227,7 +203,7 @@ class KotlinTypeMappingTest {
     }
 
     @Disabled("Requires parsing intersection types")
-    // @Disabled("FIXME, to be supported by PSI parser")
+    //
     @Test
     void genericIntersectionType() {
         JavaType.GenericTypeVariable clazz = (JavaType.GenericTypeVariable) firstMethodParameter("genericIntersection");
@@ -236,8 +212,6 @@ class KotlinTypeMappingTest {
         assertThat(clazz.getBounds().get(2).toString()).isEqualTo("org.openrewrite.java.C");
         assertThat(clazz.toString()).isEqualTo("Generic{U extends org.openrewrite.java.JavaTypeGoat$TypeA & org.openrewrite.java.PT<Generic{U}> & org.openrewrite.java.C}");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void enumTypeA() {
         JavaType.Class clazz = (JavaType.Class) firstMethodParameter("enumTypeA");
@@ -251,8 +225,6 @@ class KotlinTypeMappingTest {
         assertThat(supertype).isNotNull();
         assertThat(supertype.toString()).isEqualTo("kotlin.Enum<org.openrewrite.kotlin.KotlinTypeGoat$EnumTypeA>");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void enumTypeB() {
         JavaType.Class clazz = (JavaType.Class) firstMethodParameter("enumTypeB");
@@ -266,8 +238,6 @@ class KotlinTypeMappingTest {
         assertThat(supertype).isNotNull();
         assertThat(supertype.toString()).isEqualTo("kotlin.Enum<org.openrewrite.kotlin.KotlinTypeGoat$EnumTypeB>");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void ignoreSourceRetentionAnnotations() {
         JavaType.Parameterized goat = goatType;
@@ -280,14 +250,12 @@ class KotlinTypeMappingTest {
     }
 
     @Disabled("Requires parsing intersection types")
-    // @Disabled("FIXME, to be supported by PSI parser")
+    //
     @Test
     void recursiveIntersection() {
         JavaType.GenericTypeVariable clazz = TypeUtils.asGeneric(firstMethodParameter("recursiveIntersection"));
         assertThat(clazz.toString()).isEqualTo("Generic{U extends org.openrewrite.java.JavaTypeGoat$Extension<Generic{U}> & org.openrewrite.java.Intersection<Generic{U}>}");
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void javaLangObject() {
         // These assertions are all based on the JavaTypeMapper.
@@ -308,7 +276,6 @@ class KotlinTypeMappingTest {
 
     @Nested
     class ParsingTest implements RewriteTest {
-        @Disabled("FIXME, to be supported by PSI parser")
     @Test
         @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/303")
         @ExpectedToFail

@@ -27,7 +27,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 class WhileLoopTest implements RewriteTest {
 
     @SuppressWarnings("ControlFlowWithEmptyBody")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void whileLoop() {
         rewriteRun(
@@ -40,8 +39,6 @@ class WhileLoopTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void statementTerminatorForSingleLineWhileLoops() {
         rewriteRun(
@@ -56,7 +53,6 @@ class WhileLoopTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/139")
-    @Disabled("FIXME, to be supported by PSI parser")
     @ParameterizedTest
     @ValueSource(strings = {
       "-- len",

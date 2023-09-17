@@ -28,8 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AnonymousFunctionTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/287")
     void noArgs() {
@@ -54,8 +52,6 @@ class AnonymousFunctionTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/287")
     void singleArg() {
@@ -69,7 +65,6 @@ class AnonymousFunctionTest implements RewriteTest {
     }
 
     @ExpectedToFail("SAFE_ACCESS_EXPRESSION")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void nestedWithWhitespace() {
         rewriteRun(

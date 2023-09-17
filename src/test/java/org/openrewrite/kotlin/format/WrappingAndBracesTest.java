@@ -62,8 +62,6 @@ class WrappingAndBracesTest implements RewriteTest {
             )
           )));
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void classConstructor() {
         rewriteRun(
@@ -80,7 +78,6 @@ class WrappingAndBracesTest implements RewriteTest {
     }
 
     @SuppressWarnings({"ClassInitializerMayBeStatic", "ReassignedVariable", "UnusedAssignment"})
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void blockLevelStatements() {
         rewriteRun(
@@ -103,8 +100,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void blockEndOnOwnLine() {
         rewriteRun(
@@ -121,8 +116,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedMethod() {
         rewriteRun(
@@ -145,8 +138,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void leadingAnnotationNewLine() {
         rewriteRun(
@@ -168,8 +159,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedMethodWithPublicModifier() {
         rewriteRun(
@@ -192,8 +181,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedMethodWithFinalModifier() {
         rewriteRun(
@@ -216,8 +203,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedMethodWithModifiers() {
         rewriteRun(
@@ -240,8 +225,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedMethodWithTypeParameter() {
         rewriteRun(
@@ -264,8 +247,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void multipleAnnotatedMethod() {
         rewriteRun(
@@ -289,8 +270,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedConstructor() {
         rewriteRun(
@@ -312,8 +291,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedClassDecl() {
         rewriteRun(
@@ -330,8 +307,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedClassDeclMultiAnnotations() {
         rewriteRun(
@@ -349,8 +324,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedClassDeclAlreadyCorrect() {
         rewriteRun(
@@ -363,8 +336,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedClassDeclWithModifiers() {
         rewriteRun(
@@ -381,8 +352,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedVariableDecl() {
         rewriteRun(
@@ -405,8 +374,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedVariableDeclWithModifier() {
         rewriteRun(
@@ -425,8 +392,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotatedVariableDeclInMethodDeclaration() {
         rewriteRun(
@@ -442,7 +407,6 @@ class WrappingAndBracesTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/2469")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void elseOnNewLine() {
         rewriteRun(
@@ -483,7 +447,6 @@ class WrappingAndBracesTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/2469")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void elseNotOnNewLine() {
         rewriteRun(
@@ -524,7 +487,6 @@ class WrappingAndBracesTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite/issues/3191")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void emptyLineBeforeEnumConstants() {
         rewriteRun(
@@ -538,8 +500,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void singleStatementFunctionNoNewLines() {
         rewriteRun(
@@ -553,8 +513,6 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void nonSingleStatementFunctionNeedNewLines() {
         // An equivalent code with above test singleStatementFunctionNoNewLines, but not a single statement function

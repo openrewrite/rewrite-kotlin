@@ -31,7 +31,6 @@ class ImplicitParameterInLambdaTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void removeIt() {
         rewriteRun(
@@ -51,8 +50,6 @@ class ImplicitParameterInLambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noChangeWithType() {
         rewriteRun(
@@ -65,8 +62,6 @@ class ImplicitParameterInLambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noChangeIfAlreadyImplicit() {
         rewriteRun(
@@ -79,8 +74,6 @@ class ImplicitParameterInLambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noChangeWithMultiParameters() {
         rewriteRun(

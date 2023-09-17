@@ -27,8 +27,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"LiftReturnOrAssignment", "IntroduceWhenSubject"})
 class WhenTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void unaryConditions() {
         rewriteRun(
@@ -45,8 +43,6 @@ class WhenTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void binaryConditions() {
         rewriteRun(
@@ -67,7 +63,6 @@ class WhenTest implements RewriteTest {
     }
 
     @ExpectedToFail("2,3 expect kotlin.Boolean but kotlin.Int")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void multiCase() {
         rewriteRun(
@@ -85,8 +80,6 @@ class WhenTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void inRange() {
         rewriteRun(
@@ -103,8 +96,6 @@ class WhenTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void withOutCondition() {
         rewriteRun(
@@ -122,7 +113,6 @@ class WhenTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/81")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void typeOperatorCondition() {
         rewriteRun(
@@ -141,7 +131,6 @@ class WhenTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/81")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void typeOperatorWithoutCondition() {
         rewriteRun(
@@ -159,7 +148,6 @@ class WhenTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/86")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void propertyAccessOnWhen() {
         rewriteRun(
@@ -180,7 +168,6 @@ class WhenTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/86")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void logicalOperatorOnPropertyAccess() {
         rewriteRun(
@@ -201,7 +188,6 @@ class WhenTest implements RewriteTest {
 
     @ExpectedToFail("1, expect kotlin.Boolean but kotlin.Int")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/86")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void logicalOperatorOnMixed() {
         rewriteRun(
@@ -224,7 +210,6 @@ class WhenTest implements RewriteTest {
     }
 
     @SuppressWarnings("All")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void branchArrowToLiteral() {
         rewriteRun(
@@ -253,7 +238,6 @@ class WhenTest implements RewriteTest {
     }
 
     @ExpectedToFail("Iterable::class , expect kotlin.Boolean but kotlin.reflect.KClass<kotlin.collections.Iterable<Generic{T}>>")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void trailingComma() {
         rewriteRun(
@@ -270,8 +254,6 @@ class WhenTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/240")
     void subjectVariable() {

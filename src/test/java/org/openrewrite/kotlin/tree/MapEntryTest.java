@@ -23,8 +23,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class MapEntryTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void mapAccess() {
         rewriteRun(
@@ -38,7 +36,6 @@ class MapEntryTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/136")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void mapSetFunctionCall() {
         rewriteRun(

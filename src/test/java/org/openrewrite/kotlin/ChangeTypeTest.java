@@ -32,8 +32,6 @@ public class ChangeTypeTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new ChangeType("a.b.Original", "x.y.Target", true));
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void changeImport() {
         rewriteRun(
@@ -62,7 +60,6 @@ public class ChangeTypeTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/42")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void changeTypeWithGenericArgument() {
         rewriteRun(
@@ -94,8 +91,6 @@ public class ChangeTypeTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void changeTypeWithGenericArgumentFullyQualified() {
         rewriteRun(
@@ -125,8 +120,6 @@ public class ChangeTypeTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void changeType() {
         rewriteRun(
@@ -151,7 +144,6 @@ public class ChangeTypeTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void changeDefinition() {
         rewriteRun(

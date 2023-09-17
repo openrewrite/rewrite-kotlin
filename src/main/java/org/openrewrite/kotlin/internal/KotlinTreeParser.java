@@ -48,6 +48,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -135,7 +136,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 Statement statement = (Statement) declaration.accept(this, data);
                 statements.add(padRight(statement, suffix(declaration)));
             } else {
-                throw new IllegalArgumentException("Unsupported PSI type :" + declaration.getNode().getElementType());
+                throw new UnsupportedOperationException("Unsupported PSI type :" + declaration.getNode().getElementType());
             }
         }
 
@@ -162,7 +163,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = new ArrayList<>();
         JContainer<J.TypeParameter> typeParams = null;
-        JContainer<TypeTree> implementings =  null;
+        JContainer<TypeTree> implementings = null;
 
         if (klass.getModifierList() != null) {
             PsiElement child = klass.getModifierList().getFirstChild();
@@ -199,6 +200,14 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             );
         }
 
+        if (klass.getPrimaryConstructor() != null) {
+            throw new UnsupportedOperationException("TODO");
+        } else if (!klass.getSuperTypeListEntries().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
+        } else if (!klass.getTypeParameters().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         return new J.ClassDeclaration(
                 randomId(),
                 Space.EMPTY,
@@ -219,14 +228,33 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClassBody(@NotNull KtClassBody classBody, ExecutionContext data) {
+        if (!classBody.getDeclarations().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
+        } else if (classBody.getLBrace() != null && classBody.getLBrace().getNextSibling() != classBody.getRBrace()) {
+            throw new UnsupportedOperationException("TODO");
+        }
         return new J.Block(
                 randomId(),
                 prefix(classBody),    // FIXME
                 Markers.EMPTY,
                 padRight(false, Space.EMPTY),
-                emptyList(),    // FIXME
+                classBody.getDeclarations().stream()
+                        .map(d -> d.accept(this, data))
+                        .map(Statement.class::cast)
+                        .map(JRightPadded::build)
+                        .collect(Collectors.toList()),
                 Space.EMPTY
         );
+    }
+
+    @Override
+    public J visitNamedFunction(@NotNull KtNamedFunction function, ExecutionContext data) {
+        throw new UnsupportedOperationException("KtNamedFunction");
+    }
+
+    @Override
+    public J visitAnnotation(@NotNull KtAnnotation annotation, ExecutionContext data) {
+        throw new UnsupportedOperationException("KtAnnotation");
     }
 
     @Override
@@ -268,6 +296,12 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             typeExpression = typeExpression.withPrefix(suffix(property.getColon()));
         }
 
+        if (property.getGetter() != null || property.getSetter() != null) {
+            throw new UnsupportedOperationException("TODO");
+        } else if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         return new J.VariableDeclarations(
                 Tree.randomId(),
                 Space.EMPTY, // overlaps with right-padding of previous statement
@@ -288,7 +322,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitUserType(@NotNull KtUserType type, ExecutionContext data) {
-        return type.getReferenceExpression().accept(this,data);
+        return type.getReferenceExpression().accept(this, data);
     }
 
     @Override
@@ -363,7 +397,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             case "open":
                 return J.Modifier.Type.LanguageExtension;
             default:
-                throw new IllegalArgumentException("Unsupported ModifierType : " + modifier);
+                throw new UnsupportedOperationException("Unsupported ModifierType : " + modifier);
         }
     }
 

@@ -32,7 +32,6 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void variableDeclaration() {
         rewriteRun(
@@ -56,7 +55,6 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
     }
 
     @DocumentExample
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void doNotChangeVariableDeclarationsInSameLine() {
         rewriteRun(
@@ -69,8 +67,6 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void methodInvocation() {
         rewriteRun(
@@ -98,8 +94,6 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void operators() {
         rewriteRun(
@@ -127,8 +121,6 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void doNotChangeIfMethodInvocationsAreInASameLine() {
         rewriteRun(
@@ -144,8 +136,6 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void imports() {
         rewriteRun(
@@ -165,8 +155,6 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noSemicolonAfterReturn() {
         rewriteRun(
@@ -188,8 +176,6 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void noSemicolonAfterReturn2() {
         rewriteRun(
@@ -211,8 +197,6 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void ifStatement() {
         rewriteRun(

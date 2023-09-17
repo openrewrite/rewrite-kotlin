@@ -24,48 +24,36 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class ArrayTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void notInitialized() {
         rewriteRun(
           kotlin("val arr = IntArray ( 3 )")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void arrayWithTypeParameter() {
         rewriteRun(
           kotlin("val arr = Array < Int > ( 3 ) { 0 }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void initialized() {
         rewriteRun(
           kotlin("val arr = Array ( 3 ) { i -> i * 1 }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void constructed() {
         rewriteRun(
           kotlin("val arr = Array ( 3 , { i -> i * 1 } )")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void twoDimensional() {
         rewriteRun(
           kotlin("val arr = Array ( 1 ) { Array < Int > ( 2 ) { 3 } }")
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void arrayAccess() {
         rewriteRun(
@@ -77,8 +65,6 @@ class ArrayTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void conditionalArraySize() {
         rewriteRun(
@@ -89,8 +75,6 @@ class ArrayTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void conditionalArrayAccess() {
         rewriteRun(
@@ -102,8 +86,6 @@ class ArrayTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/291")
     @ExpectedToFail

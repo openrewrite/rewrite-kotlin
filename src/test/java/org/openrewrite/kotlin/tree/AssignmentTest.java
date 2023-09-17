@@ -22,8 +22,6 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AssignmentTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void assignment() {
         rewriteRun(
@@ -37,8 +35,6 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void unaryMinus() {
         rewriteRun(
@@ -58,8 +54,6 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void unaryPlus() {
         rewriteRun(
@@ -79,8 +73,6 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void preDecrement() {
         rewriteRun(
@@ -92,8 +84,6 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void preIncrement() {
         rewriteRun(
@@ -105,8 +95,6 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void postDecrement() {
         rewriteRun(
@@ -118,8 +106,6 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void postIncrement() {
         rewriteRun(
@@ -131,8 +117,6 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void not() {
         rewriteRun(
@@ -144,8 +128,6 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void annotation() {
         rewriteRun(

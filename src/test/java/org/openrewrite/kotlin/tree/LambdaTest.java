@@ -24,8 +24,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("RemoveRedundantQualifierName")
 class LambdaTest implements RewriteTest {
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void binaryExpressionAsBody() {
         rewriteRun(
@@ -38,8 +36,6 @@ class LambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void invokedLambda() {
         rewriteRun(
@@ -52,8 +48,6 @@ class LambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void destructuredLambdaParams() {
         rewriteRun(
@@ -73,8 +67,6 @@ class LambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void multipleDestructuredLambdaParams() {
         rewriteRun(
@@ -89,7 +81,6 @@ class LambdaTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/60")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void suspendLambda() {
         rewriteRun(
@@ -104,7 +95,6 @@ class LambdaTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/56")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void suspendLambdaWithParameter() {
         rewriteRun(
@@ -117,8 +107,6 @@ class LambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void ignored() {
         rewriteRun(
@@ -132,8 +120,6 @@ class LambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void underscore() {
         rewriteRun(
@@ -147,8 +133,6 @@ class LambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void trailingComma() {
         rewriteRun(
@@ -161,7 +145,6 @@ class LambdaTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/110")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void unusedVar() {
         rewriteRun(
@@ -190,7 +173,6 @@ class LambdaTest implements RewriteTest {
     }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/110")
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void fullyQualifiedKotlinTypeReference() {
         rewriteRun(
@@ -217,8 +199,6 @@ class LambdaTest implements RewriteTest {
           )
         );
     }
-
-    @Disabled("FIXME, to be supported by PSI parser")
     @Test
     void underScoreAsLamdbaParameters() {
         rewriteRun(
