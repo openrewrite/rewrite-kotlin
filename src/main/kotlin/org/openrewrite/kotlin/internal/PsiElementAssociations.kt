@@ -75,7 +75,16 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
         fir(psiElement) { it.source is KtRealPsiSourceElement }
 
     fun fir(psi: PsiElement?, filter: (FirElement) -> Boolean) : FirElement? {
-        val allFirInfos = elementMap[psi]!!
+        var p = psi
+        while (p != null && !elementMap.containsKey(p)) {
+            p = p.parent
+        }
+
+        if (p == null) {
+            return null
+        }
+
+        val allFirInfos = elementMap[p]!!
         val directFirInfos = allFirInfos.filter { filter.invoke(it.fir) }
         return if (directFirInfos.isNotEmpty())
             directFirInfos[0].fir

@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.internal;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.KtNodeTypes;
 import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
 import org.jetbrains.kotlin.com.intellij.psi.PsiComment;
@@ -177,7 +178,8 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
         if (property.getColon() != null) {
             markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(property.getColon())));
-            typeExpression = null; // TODO
+            typeExpression = (TypeTree) property.getTypeReference().accept(this, data);
+            typeExpression = typeExpression.withPrefix(suffix(property.getColon()));
         }
 
         return new J.VariableDeclarations(
@@ -191,6 +193,21 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 Collections.emptyList(),
                 variables
         );
+    }
+
+    @Override
+    public J visitTypeReference(@NotNull KtTypeReference typeReference, ExecutionContext data) {
+        return typeReference.getTypeElement().accept(this, data);
+    }
+
+    @Override
+    public J visitUserType(@NotNull KtUserType type, ExecutionContext data) {
+        return type.getReferenceExpression().accept(this,data);
+    }
+
+    @Override
+    public J visitSimpleNameExpression(@NotNull KtSimpleNameExpression expression, ExecutionContext data) {
+        return createIdentifier(expression, type(expression));
     }
 
     @Override

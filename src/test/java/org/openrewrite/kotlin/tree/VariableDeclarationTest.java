@@ -123,7 +123,7 @@ class VariableDeclarationTest implements RewriteTest {
     @Test
     void singleVariableDeclarationWithTypeConstraint() {
         rewriteRun(
-          kotlin("val a : Int = 1")
+          kotlin("val a  :   Int    = 1")
         );
     }
 
