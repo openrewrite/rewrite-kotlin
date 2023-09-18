@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -26,6 +25,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
 public class RemoveImportTest implements RewriteTest {
+
     @Test
     void jvmStaticMember() {
         rewriteRun(
@@ -48,6 +48,7 @@ public class RemoveImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void removeStarFoldPackage() {
         rewriteRun(
@@ -70,6 +71,7 @@ public class RemoveImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void keepStarFoldPackage() {
         rewriteRun(
@@ -89,6 +91,7 @@ public class RemoveImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void removeStarFoldTypeMembers() {
         rewriteRun(
@@ -114,6 +117,7 @@ public class RemoveImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void keepStarFoldTypeMembers() {
         rewriteRun(
@@ -131,6 +135,7 @@ public class RemoveImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void keepImportAlias() {
         rewriteRun(
@@ -147,6 +152,7 @@ public class RemoveImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void removeImportAlias() {
         // TODO check if this is really what we want to happen
@@ -171,6 +177,7 @@ public class RemoveImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void noImportOfImplicitTypes() {
         rewriteRun(

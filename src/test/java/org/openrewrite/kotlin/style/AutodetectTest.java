@@ -31,6 +31,7 @@ class AutodetectTest implements RewriteTest {
     private static KotlinParser kp() {
         return KotlinParser.builder().build();
     }
+
     @Test
     void continuationIndent() {
         var cus = kp().parse(
@@ -55,6 +56,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(8);
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/3552")
     void continuationIndentFromParameters() {
@@ -212,6 +214,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(2);
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(4);
     }
+
     @Test
     void rewriteTabsAndIndents() {
         var cus = kp().parse(
@@ -244,6 +247,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(8);
     }
+
     @Test
     void defaultTabIndentSizeToOne() {
         var cus = kp().parse(
@@ -268,6 +272,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
     }
+
     @Test
     void mixedTabAndWhiteSpacesIndentsWithTabSize4() {
         var cus = kp().parse(
@@ -301,7 +306,6 @@ class AutodetectTest implements RewriteTest {
 
     // TabSize 3 is atypical but not unheard of
     @Disabled
-    //
     @Test
     void mixedTabAndWhiteSpacesIndentsWithTabSize3() {
         var cus = kp().parse(
@@ -332,6 +336,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(3);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(3);
     }
+
     @Test
     void mixedTabAndWhiteSpacesIndentsWithTabSize4AndUseTabIsFalse() {
         var cus = kp().parse(
@@ -362,6 +367,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
     }
+
     @Test
     void inconsistentIndents() {
         var cus = kp().parse(
@@ -387,6 +393,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
     }
+
     @Test
     void mixedTabAndWhiteSpacesIndentsWithTabSize4WithSomeErrors() {
         var cus = kp().parse(
@@ -417,6 +424,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getTabSize()).isEqualTo(4);
         assertThat(tabsAndIndents.getIndentSize()).isEqualTo(4);
     }
+
     @Test
     void defaultKotlinImportLayout() {
         var cus = kp().parse(
@@ -474,6 +482,7 @@ class AutodetectTest implements RewriteTest {
 
         assertThat(importLayout.getLayout().get(4)).isInstanceOf(ImportLayoutStyle.Block.AllAliases.class);
     }
+
     @Test
     void customizedKotlinImportLayout() {
         var cus = kp().parse(
@@ -531,6 +540,7 @@ class AutodetectTest implements RewriteTest {
 
         assertThat(importLayout.getLayout().get(4)).isInstanceOf(ImportLayoutStyle.Block.AllOthers.class);
     }
+
     @Test
     void partialImportLayout() {
         var cus = kp().parse(
@@ -577,7 +587,6 @@ class AutodetectTest implements RewriteTest {
     }
 
     @Disabled
-    //
     @Test
     void detectStarImport() {
         var cus = kp().parse(
@@ -603,6 +612,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(importLayout.getTopLevelSymbolsToUseStarImport()).isEqualTo(6);
         // assertThat(importLayout.getClassCountToUseStarImport()).isEqualTo(6);
     }
+
     @Test
     void detectImportCounts() {
         var cus = kp().parse(
@@ -640,6 +650,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(importLayout.getTopLevelSymbolsToUseStarImport()).isEqualTo(5);
         assertThat(importLayout.getJavaStaticsAndEnumsToUseStarImport()).isEqualTo(3);
     }
+
     @Test
     void detectMethodArgs() {
         var cus = kp().parse(
@@ -660,6 +671,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isTrue();
         assertThat(spacesStyle.getOther().getAfterComma()).isFalse();
     }
+
     @Test
     void detectMethodArgAfterComma() {
         var cus = kp().parse(
@@ -680,6 +692,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
+
     @Test
     void detectMethodArgsNoArgs() {
         var cus = kp().parse(
@@ -700,6 +713,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
+
     @Test
     void detectMethodArgsNoSpaceForComma() {
         var cus = kp().parse(
@@ -720,6 +734,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isFalse();
     }
+
     @Test
     void detectMethodArgsSpaceForComma() {
         var cus = kp().parse(
@@ -740,6 +755,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isTrue();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
+
     @Test
     void detectAfterCommaInNewArray() {
         var cus = kp().parse(
@@ -760,6 +776,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/3172")
     void detectAfterCommaShouldIgnoreFirstElement() {
@@ -784,6 +801,7 @@ class AutodetectTest implements RewriteTest {
         assertThat(spacesStyle.getOther().getBeforeComma()).isFalse();
         assertThat(spacesStyle.getOther().getAfterComma()).isTrue();
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/3172")
     void detectAfterCommaBasedOnLambdas() {
@@ -867,7 +885,6 @@ class AutodetectTest implements RewriteTest {
     }
 
     @Disabled
-    //
     @Test
     void mostCommonIndentTakesPrecedence() {
         var cus = kp().parse(

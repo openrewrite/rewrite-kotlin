@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
@@ -39,6 +38,7 @@ class TryCatchTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void tryFinally() {
         rewriteRun(
@@ -53,6 +53,7 @@ class TryCatchTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void tryAsAVariable() {
         rewriteRun(

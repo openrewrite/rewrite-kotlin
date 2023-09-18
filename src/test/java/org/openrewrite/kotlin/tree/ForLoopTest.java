@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
@@ -23,6 +22,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"ControlFlowWithEmptyBody", "RemoveForLoopIndices"})
 class ForLoopTest implements RewriteTest {
+
     @Test
     void inList() {
         rewriteRun(
@@ -38,6 +38,7 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void inMap() {
         rewriteRun(
@@ -55,6 +56,7 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void inRange() {
         rewriteRun(
@@ -69,6 +71,7 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void rangeUntil() {
         rewriteRun(
@@ -83,6 +86,7 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void arrayWithIndex() {
         rewriteRun(
@@ -96,6 +100,7 @@ class ForLoopTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void downToWithStep() {
         rewriteRun(

@@ -16,9 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.intellij.lang.annotations.Language;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.KotlinParser;
@@ -53,6 +51,7 @@ class AnnotationTest implements RewriteTest {
               @Retention(AnnotationRetention.SOURCE)
               annotation class Ann
               """;
+
     @Test
     void fileScope() {
         rewriteRun(
@@ -66,6 +65,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void multipleFileScope() {
         rewriteRun(
@@ -79,6 +79,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotationWithDefaultArgument() {
         rewriteRun(
@@ -90,6 +91,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void leadingAnnotations() {
         rewriteRun(
@@ -110,6 +112,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void arrayArgument() {
         rewriteRun(
@@ -122,12 +125,13 @@ class AnnotationTest implements RewriteTest {
           ),
           kotlin(
             """
-    @Test( values = [ "a" , "b" , "c" ] )
+              @Test( values = [ "a" , "b" , "c" ] )
               val a = 42
               """
           )
         );
     }
+
     @Test
     void fullyQualifiedAnnotation() {
         rewriteRun(
@@ -140,13 +144,14 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingComma() {
         rewriteRun(
           kotlin(
             """
               annotation class Test ( val values : Array < String > )
-    @Test( values = [ "a" , "b" , /* trailing comma */ ] )
+              @Test( values = [ "a" , "b" , /* trailing comma */ ] )
               val a = 42
               """
           )
@@ -241,6 +246,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotationOnExplicitGetter() {
         rewriteRun(
@@ -262,6 +268,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void paramAnnotation() {
         rewriteRun(
@@ -273,6 +280,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void fieldAnnotation() {
         rewriteRun(
@@ -284,6 +292,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void receiverAnnotationUseSiteTarget() {
         rewriteRun(
@@ -295,6 +304,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void setParamAnnotationUseSiteTarget() {
         rewriteRun(
@@ -310,7 +320,6 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("a, expect kotlin.Triple<Generic{A}, Generic{B}, Generic{C}>{name=component1,return=kotlin.Int,parameters=[]} but {undefined}{name=a,type=kotlin.Int} ")
     @Test
     void destructuringVariableDeclaration() {
         rewriteRun(
@@ -324,6 +333,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotationsInManyLocations() {
         rewriteRun(
@@ -347,6 +357,7 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lambdaExpression() {
         rewriteRun(
@@ -361,6 +372,7 @@ class AnnotationTest implements RewriteTest {
             )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/267")
     void expressionAnnotationInsideLambda() {

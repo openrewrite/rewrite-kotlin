@@ -16,7 +16,6 @@
 package org.openrewrite.kotlin;
 
 import org.intellij.lang.annotations.Language;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
@@ -26,22 +25,17 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.ExecutionContext.REQUIRE_PRINT_EQUALS_INPUT;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-// FIXME, turn this on again
-// comment out temporally during implementing psi-based parser
+public class KotlinTypeGoatTest implements RewriteTest {
+    @Language("kotlin")
+    private static final String goat = StringUtils.readFully(KotlinTypeMappingTest.class.getResourceAsStream("/KotlinTypeGoat.kt"));
 
-
-//public class KotlinTypeGoatTest implements RewriteTest {
-//    @Language("kotlin")
-//    private static final String goat = StringUtils.readFully(KotlinTypeMappingTest.class.getResourceAsStream("/KotlinTypeGoat.kt"));
-//
-//
-//    @Test
-//    void printEqualsInput() {
-//        ExecutionContext ctx = new InMemoryExecutionContext();
-//        ctx.putMessage(REQUIRE_PRINT_EQUALS_INPUT, false);
-//        rewriteRun(
-//          spec -> spec.executionContext(ctx),
-//          kotlin(goat)
-//        );
-//    }
-//}
+    @Test
+    void printEqualsInput() {
+        ExecutionContext ctx = new InMemoryExecutionContext();
+        ctx.putMessage(REQUIRE_PRINT_EQUALS_INPUT, false);
+        rewriteRun(
+          spec -> spec.executionContext(ctx),
+          kotlin(goat)
+        );
+    }
+}

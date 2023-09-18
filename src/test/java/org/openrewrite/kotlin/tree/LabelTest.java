@@ -15,13 +15,13 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class LabelTest implements RewriteTest {
+
     @Test
     void anonymousFunction() {
         rewriteRun(
@@ -39,6 +39,7 @@ class LabelTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void breakFromLabeledWhileLoop() {
         rewriteRun(
@@ -53,6 +54,7 @@ class LabelTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void continueFromLabeledWhileLoop() {
         rewriteRun(
@@ -67,6 +69,7 @@ class LabelTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void doWhileLoop() {
         rewriteRun(
@@ -83,6 +86,7 @@ class LabelTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void forLoop() {
         rewriteRun(

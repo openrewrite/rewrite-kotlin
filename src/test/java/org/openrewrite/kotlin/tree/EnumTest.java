@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
@@ -23,12 +22,14 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class EnumTest implements RewriteTest {
+
     @Test
     void enumEmptyBody() {
         rewriteRun(
           kotlin("enum class A")
         );
     }
+
     @Test
     void enumDefinition() {
         rewriteRun(
@@ -64,6 +65,7 @@ class EnumTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void innerEnum() {
         rewriteRun(
@@ -78,6 +80,7 @@ class EnumTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void semiColon() {
         rewriteRun(
@@ -91,6 +94,7 @@ class EnumTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingComma() {
         rewriteRun(
@@ -104,6 +108,7 @@ class EnumTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingCommaTerminatingSemicolon() {
         rewriteRun(
@@ -117,6 +122,7 @@ class EnumTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void enumImplementingInterface() {
         rewriteRun(
@@ -131,6 +137,7 @@ class EnumTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/307")
     void enumWithFunction() {

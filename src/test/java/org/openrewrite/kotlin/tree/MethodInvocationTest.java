@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
@@ -28,6 +27,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"RedundantVisibilityModifier", "PropertyName", "RedundantNullableReturnType", "UnusedReceiverParameter", "ConstantConditionIf", "MoveLambdaOutsideParentheses"})
 class MethodInvocationTest implements RewriteTest {
+
     @Test
     void implicitFunctionCall() {
         rewriteRun(
@@ -45,6 +45,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void unqualifiedImportedCall() {
         rewriteRun(
@@ -68,6 +69,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void buildGradle() {
         rewriteRun(
@@ -119,6 +121,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodWithLambda() {
         rewriteRun(
@@ -134,7 +137,6 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("test ?. method ( ) , expect Test{name=method,return=kotlin.Unit,parameters=[]} but kotlin.Unit")
     @Test
     void nullSafeDereference() {
         rewriteRun(
@@ -151,6 +153,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void elvisOperator() {
         rewriteRun(
@@ -169,6 +172,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void listOf() {
         rewriteRun(
@@ -181,6 +185,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void mapOf() {
         rewriteRun(
@@ -191,6 +196,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void multipleTypesOfMethodArguments() {
         rewriteRun(
@@ -204,6 +210,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void parameterAssignment() {
         rewriteRun(
@@ -217,6 +224,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void typeParameters() {
         rewriteRun(
@@ -230,6 +238,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void anonymousObject() {
         rewriteRun(
@@ -247,6 +256,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lambdaArgument() {
         rewriteRun(
@@ -265,6 +275,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingLambdaArgument() {
         rewriteRun(
@@ -284,6 +295,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingLambdaArgumentWithParentheses() {
         rewriteRun(
@@ -318,6 +330,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void infixTrailingLambda() {
         rewriteRun(
@@ -333,7 +346,6 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("vararg Expect kotlin.Int but kotlin.IntArray")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/65")
     @Test
     void trailingVarargParameter() {
@@ -353,7 +365,6 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Expect kotlin.Int but kotlin.IntArray")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/65")
     @Test
     void varargParameter() {
@@ -372,6 +383,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void fullyQualifiedInvocation() {
         rewriteRun(
@@ -388,6 +400,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void unresolvedMethodInvocationName() {
         rewriteRun(
@@ -428,6 +441,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void errorNameRefOnSelect() {
         rewriteRun(
@@ -440,6 +454,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void errorNameRefOnSelectWithReference() {
         rewriteRun(
@@ -453,7 +468,6 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("vararg Expect kotlin.Int but kotlin.IntArray")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/131")
     @Test
     void spreadArgumentMethodInvocation() {
@@ -468,7 +482,6 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("vararg Expect kotlin.Int but kotlin.IntArray")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/131")
     @Test
     void spreadArgumentProperty() {
@@ -483,6 +496,7 @@ class MethodInvocationTest implements RewriteTest {
               """)
         );
     }
+
     @Test
     void conditionalArgument() {
         rewriteRun(
@@ -494,6 +508,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingComma() {
         rewriteRun(
@@ -506,6 +521,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingCommaMultipleArguments() {
         rewriteRun(
@@ -524,7 +540,6 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("SAFE_ACCESS_EXPRESSION")
     @Test
     void nullSafeOnMethodTarget() {
         rewriteRun(
@@ -535,6 +550,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingCommaAndTrailingLambda() {
         rewriteRun(
@@ -551,6 +567,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void parameterAndTrailingLambda() {
         rewriteRun(
@@ -584,6 +601,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
     void extensionFunctionCall() {
@@ -599,6 +617,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/233")
     void indexedAccess() {
@@ -611,6 +630,7 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/233")
     void customIndexedAccess() {
@@ -640,7 +660,6 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("SAFE_ACCESS_EXPRESSION")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/297")
     void spaceAfterLambdaParameter() {
@@ -657,7 +676,6 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("SAFE_ACCESS_EXPRESSION")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/308")
     void trailingLambdaAfterNullSafe() {

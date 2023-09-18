@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.MethodMatcher;
@@ -27,6 +26,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
 public class MethodMatcherTest implements RewriteTest {
+
     @Test
     void matchesTopLevelFunction() {
         rewriteRun(

@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
@@ -25,6 +24,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"RedundantExplicitType", "KotlinConstantConditions", "ControlFlowWithEmptyBody", "CascadeIf", "LiftReturnOrAssignment"})
 class IfTest implements RewriteTest {
+
     @Test
     void noElse() {
         rewriteRun(
@@ -39,6 +39,7 @@ class IfTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void ifElse() {
         rewriteRun(
@@ -58,6 +59,7 @@ class IfTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void singleLineIfElseStatements() {
         rewriteRun(
@@ -76,6 +78,7 @@ class IfTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void inRange() {
         rewriteRun(
@@ -136,6 +139,7 @@ class IfTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedIf() {
         rewriteRun(
@@ -150,6 +154,7 @@ class IfTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/298")
     @ExpectedToFail

@@ -15,13 +15,13 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AssignmentTest implements RewriteTest {
+
     @Test
     void assignment() {
         rewriteRun(
@@ -35,6 +35,7 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void unaryMinus() {
         rewriteRun(
@@ -54,6 +55,7 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void unaryPlus() {
         rewriteRun(
@@ -73,6 +75,7 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void preDecrement() {
         rewriteRun(
@@ -84,6 +87,7 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void preIncrement() {
         rewriteRun(
@@ -95,6 +99,7 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void postDecrement() {
         rewriteRun(
@@ -106,6 +111,7 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void postIncrement() {
         rewriteRun(
@@ -117,6 +123,7 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void not() {
         rewriteRun(
@@ -128,6 +135,7 @@ class AssignmentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotation() {
         rewriteRun(

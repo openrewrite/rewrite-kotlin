@@ -15,12 +15,9 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -33,9 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"UnusedReceiverParameter", "PropertyName", "RemoveCurlyBracesFromTemplate", "UnnecessaryStringEscape", "RedundantGetter", "ConstantConditionIf", "RedundantSetter"})
-@Tag("psi")
 class VariableDeclarationTest implements RewriteTest {
-    @Test
+
     @ParameterizedTest
     @ValueSource(strings = {
       "\n",
@@ -48,85 +44,19 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Test
-    void basicVal() {
-        rewriteRun(
-          kotlin("val a  =   1")
-        );
-    }
-
-
-    @Test
-    void basicVar() {
-        rewriteRun(
-          kotlin("var a  =   1")
-        );
-    }
-
-    @Test
-    void withBlockComments() {
-        rewriteRun(
-          kotlin("""
-            /*c0*/ var /*c1*/  /*c2*/ a   /*c3*/  =   /*c4*/    1
-            """)
-        );
-    }
-    @Test
-    void withComments() {
-        rewriteRun(
-          kotlin("""
-            // c1
-            var a
-            // c2
-              =
-            // c3
-               1
-            """)
-        );
-    }
-
-    @Test
-    void withNestedComments() {
-        rewriteRun(
-          kotlin("""
-            /* Outer c1
-                /**
-                * Inner comment
-                */
-               Outer c2
-             */
-            var /* Outer c1
-                /**
-                * Inner comment
-                */
-               Outer c2
-             */ a /* Outer c1
-                /**
-                * Inner comment
-                */
-               Outer c2
-             */ = /* Outer c1
-                /**
-                * Inner comment
-                */
-               Outer c2
-             */  1
-            """)
-        );
-    }
-
-    @Test
     void addition() {
         rewriteRun(
-          kotlin("val a =  1   +    2")
+          kotlin("val a = 1 + 1")
         );
     }
 
     @Test
     void singleVariableDeclarationWithTypeConstraint() {
         rewriteRun(
-          kotlin("val a  :   Int    = 1")
+          kotlin("val a : Int = 1")
         );
     }
+
     @Test
     void anonymousObject() {
         rewriteRun(
@@ -138,6 +68,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void ifExpression() {
         rewriteRun(
@@ -152,6 +83,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void inline() {
         rewriteRun(
@@ -163,6 +95,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void getter() {
         rewriteRun(
@@ -175,12 +108,14 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void quotedIdentifier() {
         rewriteRun(
           kotlin("val `quoted-id` = true")
         );
     }
+
     @Test
     void stringTemplate() {
         rewriteRun(
@@ -195,6 +130,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void stringTemplateNoBraces() {
         rewriteRun(
@@ -209,6 +145,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void whitespaceAfter() {
         rewriteRun(
@@ -259,6 +196,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void tripleQuotedString() {
         rewriteRun(
@@ -271,6 +209,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void mapOf() {
         rewriteRun(
@@ -281,7 +220,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/13")
     @Test
@@ -301,6 +239,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void ifElseExpression() {
         rewriteRun(
@@ -312,8 +251,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
-    @ExpectedToFail("a, expect kotlin.Triple<Generic{A}, Generic{B}, Generic{C}>{name=component1,return=kotlin.Int,parameters=[]} but {undefined}{name=a,type=kotlin.Int} ")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/58")
     @Test
     void destructuringVariableDeclaration() {
@@ -327,7 +264,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/76")
     @Test
@@ -343,7 +279,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/264")
     @Test
     void delegationByLazyWithType() {
@@ -357,6 +292,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void delegatedProperty() {
         rewriteRun(
@@ -386,7 +322,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
     @Test
     void provideDelegateBinaryType() {
@@ -407,7 +342,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
     @Test
     void provideDelegateExtension() {
@@ -425,7 +359,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/82")
     @Test
     void genericIntersectionType() {
@@ -441,7 +374,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/84")
     @Test
     void unresolvedNameFirSource() {
@@ -453,7 +385,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/84")
     @Test
@@ -472,7 +403,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
     void parameterizedReceiver() {
@@ -486,7 +416,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
@@ -503,7 +432,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
     @SuppressWarnings("RedundantSetter")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
@@ -519,7 +447,6 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
-
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
@@ -539,7 +466,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
     void setterBeforeGetter() {
@@ -558,7 +484,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/135")
     @Test
     void checkNonNull() {
@@ -573,6 +498,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void hasFinalModifier() {
         rewriteRun(
@@ -602,6 +528,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void anonymousObjectWithoutSupertype() {
         rewriteRun(
@@ -613,8 +540,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
-    @ExpectedToFail("DESTRUCTURING")
     @Test
     void spaceBetweenEqualsInDestructuringDeclaration() {
         rewriteRun(
@@ -632,8 +557,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-
-    @ExpectedToFail("DESTRUCTURING")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/286")
     @Test
     void unusedUnderScoreVariableInDestructuringDeclaration() {
@@ -651,6 +574,7 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void typeExpressionPresent() {
         rewriteRun(

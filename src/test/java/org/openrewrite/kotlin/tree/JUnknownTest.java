@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.internal.RecipeRunException;
 import org.openrewrite.kotlin.internal.KotlinParsingException;
@@ -26,6 +25,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class JUnknownTest implements RewriteTest {
+
     @Test
     void fileDeclaration() {
         try {
@@ -47,6 +47,7 @@ class JUnknownTest implements RewriteTest {
             assertThat(e).cause().hasMessage("Parsing error, J.Unknown detected");
         }
     }
+
     @Test
     void expression() {
         try {

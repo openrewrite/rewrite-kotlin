@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.format;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
 import org.openrewrite.Tree;
@@ -62,6 +61,7 @@ class WrappingAndBracesTest implements RewriteTest {
             )
           )));
     }
+
     @Test
     void classConstructor() {
         rewriteRun(
@@ -100,6 +100,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void blockEndOnOwnLine() {
         rewriteRun(
@@ -116,6 +117,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedMethod() {
         rewriteRun(
@@ -138,6 +140,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void leadingAnnotationNewLine() {
         rewriteRun(
@@ -159,6 +162,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedMethodWithPublicModifier() {
         rewriteRun(
@@ -181,6 +185,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedMethodWithFinalModifier() {
         rewriteRun(
@@ -203,6 +208,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedMethodWithModifiers() {
         rewriteRun(
@@ -225,6 +231,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedMethodWithTypeParameter() {
         rewriteRun(
@@ -247,6 +254,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void multipleAnnotatedMethod() {
         rewriteRun(
@@ -270,6 +278,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedConstructor() {
         rewriteRun(
@@ -291,6 +300,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedClassDecl() {
         rewriteRun(
@@ -307,6 +317,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedClassDeclMultiAnnotations() {
         rewriteRun(
@@ -324,6 +335,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedClassDeclAlreadyCorrect() {
         rewriteRun(
@@ -336,6 +348,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedClassDeclWithModifiers() {
         rewriteRun(
@@ -352,6 +365,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedVariableDecl() {
         rewriteRun(
@@ -374,6 +388,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedVariableDeclWithModifier() {
         rewriteRun(
@@ -392,6 +407,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedVariableDeclInMethodDeclaration() {
         rewriteRun(
@@ -500,6 +516,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void singleStatementFunctionNoNewLines() {
         rewriteRun(
@@ -513,6 +530,7 @@ class WrappingAndBracesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void nonSingleStatementFunctionNeedNewLines() {
         // An equivalent code with above test singleStatementFunctionNoNewLines, but not a single statement function

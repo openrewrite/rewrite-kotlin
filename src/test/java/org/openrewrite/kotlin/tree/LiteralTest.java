@@ -15,13 +15,13 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class LiteralTest implements RewriteTest {
+
     @Test
     void intentionallyBadUnicodeCharacter() {
         rewriteRun(
@@ -34,18 +34,21 @@ class LiteralTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void literalField() {
         rewriteRun(
           kotlin("val n : Int = 0 ")
         );
     }
+
     @Test
     void literalCharacter() {
         rewriteRun(
           kotlin("val c : Char = 'c' ")
         );
     }
+
     @Test
     void literalNumerics() {
         rewriteRun(
@@ -59,6 +62,7 @@ class LiteralTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void nullLiteral() {
         rewriteRun(
@@ -70,6 +74,7 @@ class LiteralTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void literalBinary() {
         rewriteRun(
@@ -83,6 +88,7 @@ class LiteralTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void literalHex() {
         rewriteRun(
@@ -95,6 +101,7 @@ class LiteralTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void unmatchedSurrogatePair() {
         rewriteRun(
@@ -106,6 +113,7 @@ class LiteralTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void unmatchedSurrogatePairInString() {
         rewriteRun(

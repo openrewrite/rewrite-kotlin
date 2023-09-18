@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
@@ -23,6 +22,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class MethodReferenceTest implements RewriteTest {
+
     @Test
     void fieldReference() {
         rewriteRun(
@@ -37,6 +37,7 @@ class MethodReferenceTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void fieldReferenceWithTypeParameter() {
         rewriteRun(
@@ -51,12 +52,14 @@ class MethodReferenceTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodReference() {
         rewriteRun(
           kotlin("val str = 42 :: toString ")
         );
     }
+
     @Test
     void getJavaClass() {
         rewriteRun(
@@ -77,6 +80,7 @@ class MethodReferenceTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void conditionalFieldReference() {
         rewriteRun(
@@ -91,6 +95,7 @@ class MethodReferenceTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void anonymousClassArgument() {
         rewriteRun(

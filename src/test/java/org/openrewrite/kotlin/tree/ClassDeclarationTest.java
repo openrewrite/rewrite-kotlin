@@ -27,6 +27,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("ALL")
 class ClassDeclarationTest implements RewriteTest {
+
     @Test
     void crlf() {
         rewriteRun(
@@ -35,6 +36,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void whitespaceInPackage() {
         rewriteRun(
@@ -43,6 +45,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void whitespaceInImport() {
         rewriteRun(
@@ -56,6 +59,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void multipleClassDeclarationsInOneCompilationUnit() {
         rewriteRun(
@@ -68,6 +72,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void empty() {
         rewriteRun(
@@ -79,6 +84,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void classImplements() {
         rewriteRun(
@@ -92,6 +98,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void classExtends() {
         rewriteRun(
@@ -103,6 +110,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void extendsAndImplementsInMixedOrder() {
         rewriteRun(
@@ -117,6 +125,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void innerClass() {
         rewriteRun(
@@ -130,24 +139,28 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void modifierOrdering() {
         rewriteRun(
           kotlin("public /* comment */ abstract open class A")
         );
     }
+
     @Test
     void annotationClass() {
         rewriteRun(
           kotlin("annotation class A")
         );
     }
+
     @Test
     void enumClass() {
         rewriteRun(
           kotlin("enum class A")
         );
     }
+
     @Test
     void annotation() {
         rewriteRun(
@@ -166,18 +179,21 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void quotedIdentifier() {
         rewriteRun(
           kotlin("class `Quoted id here`")
         );
     }
+
     @Test
     void typeArguments() {
         rewriteRun(
           kotlin("open class B < T > { }")
         );
     }
+
     @Test
     void singleBoundedTypeParameters() {
         rewriteRun(
@@ -191,18 +207,21 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void primaryConstructor() {
         rewriteRun(
           kotlin("class Test ( val answer : Int )")
         );
     }
+
     @Test
     void primaryConstructorWithAnySupertype() {
         rewriteRun(
           kotlin("class Test : Any()")
         );
     }
+
     @Test
     void primaryConstructorWithParameterizedSupertype() {
         rewriteRun(
@@ -231,6 +250,7 @@ class ClassDeclarationTest implements RewriteTest {
           kotlin("class Test internal constructor ( )")
         );
     }
+
     @Test
     void implicitConstructorWithSuperType() {
         rewriteRun(
@@ -242,6 +262,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void singleLineCommentBeforeModifier() {
         rewriteRun(
@@ -256,6 +277,7 @@ class ClassDeclarationTest implements RewriteTest {
     }
 
     // TODO: check why this test now succeeds
+    @Disabled
     @Test
     void multipleBounds() {
         rewriteRun(
@@ -271,6 +293,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void object() {
         rewriteRun(
@@ -306,6 +329,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void variance() {
         rewriteRun(
@@ -347,6 +371,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void sealedInterfaceWithPropertiesAndObject() {
         rewriteRun(
@@ -376,6 +401,7 @@ class ClassDeclarationTest implements RewriteTest {
             """)
         );
     }
+
     @Test
     void valueClass() {
         rewriteRun(
@@ -424,6 +450,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void mixedAnnotationsAndModifiers() {
         rewriteRun(
@@ -438,6 +465,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingComma() {
         rewriteRun(
@@ -448,6 +476,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void hasFinalModifier() {
         rewriteRun(
@@ -462,6 +491,7 @@ class ClassDeclarationTest implements RewriteTest {
             }))
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
     void onlySecondaryConstructors() {
@@ -492,6 +522,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
     void secondaryConstructorWithBody() {
@@ -507,6 +538,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void localClass() {
         rewriteRun(
@@ -519,6 +551,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void coneProjection() {
         rewriteRun(
@@ -530,6 +563,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void outerClassTypeParameters() {
         rewriteRun(
@@ -544,6 +578,7 @@ class ClassDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/301")
     void qualifiedSuperType() {

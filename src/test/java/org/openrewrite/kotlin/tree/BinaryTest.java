@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -26,6 +25,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"KotlinConstantConditions", "ControlFlowWithEmptyBody"})
 class BinaryTest implements RewriteTest {
+
     @Test
     void equals() {
         rewriteRun(
@@ -39,6 +39,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void notEquals() {
         rewriteRun(
@@ -52,6 +53,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void greaterThan() {
         rewriteRun(
@@ -65,6 +67,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void greaterThanOrEqual() {
         rewriteRun(
@@ -78,6 +81,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lessThan() {
         rewriteRun(
@@ -91,6 +95,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lessThanOrEqual() {
         rewriteRun(
@@ -104,6 +109,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void endOfLineBreaks() {
         rewriteRun(
@@ -118,6 +124,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void bitwiseAnd() {
         rewriteRun(
@@ -131,6 +138,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void bitwiseOr() {
         rewriteRun(
@@ -144,6 +152,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void bitwiseXOr() {
         rewriteRun(
@@ -157,6 +166,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void inversion() {
         rewriteRun(
@@ -170,6 +180,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void shiftLeft() {
         rewriteRun(
@@ -183,6 +194,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void shiftRight() {
         rewriteRun(
@@ -196,6 +208,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void unsignedShiftRight() {
         rewriteRun(
@@ -209,6 +222,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void identityOperation() {
         rewriteRun(
@@ -221,6 +235,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void notIdentityOperation() {
         rewriteRun(
@@ -248,6 +263,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void doubleLogicParenthesized() {
         rewriteRun(
@@ -259,6 +275,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void rem() {
         rewriteRun(
@@ -272,6 +289,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @ParameterizedTest
     @ValueSource(strings = {
       "1 == 1 == true",
@@ -289,6 +307,7 @@ class BinaryTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void notIn() {
         rewriteRun(

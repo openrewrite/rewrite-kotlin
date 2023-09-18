@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.cleanup;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
@@ -67,6 +66,7 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodInvocation() {
         rewriteRun(
@@ -94,6 +94,7 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void operators() {
         rewriteRun(
@@ -121,6 +122,7 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void doNotChangeIfMethodInvocationsAreInASameLine() {
         rewriteRun(
@@ -136,6 +138,7 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void imports() {
         rewriteRun(
@@ -155,6 +158,7 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void noSemicolonAfterReturn() {
         rewriteRun(
@@ -176,6 +180,7 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void noSemicolonAfterReturn2() {
         rewriteRun(
@@ -197,6 +202,7 @@ class RemoveTrailingSemicolonTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void ifStatement() {
         rewriteRun(

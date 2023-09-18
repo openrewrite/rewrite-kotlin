@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
@@ -30,6 +29,7 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 
 @SuppressWarnings("RedundantNullableReturnType")
 class FieldAccessTest implements RewriteTest {
+
     @Test
     void thisAccess() {
         rewriteRun(
@@ -45,6 +45,7 @@ class FieldAccessTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void notNullAssertionAfterFieldAccess() {
         rewriteRun(
@@ -77,6 +78,7 @@ class FieldAccessTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void constructorDelegationWithExpression() {
         rewriteRun(
@@ -110,6 +112,7 @@ class FieldAccessTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void nullSafeDereference() {
         rewriteRun(
@@ -125,6 +128,7 @@ class FieldAccessTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void elvisOperator() {
         rewriteRun(
@@ -140,6 +144,7 @@ class FieldAccessTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void qualifier() {
         rewriteRun(
@@ -152,6 +157,7 @@ class FieldAccessTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void platformFieldType() {
         rewriteRun(
@@ -174,6 +180,7 @@ class FieldAccessTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void propertyFieldType() {
         rewriteRun(

@@ -15,9 +15,7 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RewriteTest;
@@ -27,6 +25,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"LiftReturnOrAssignment", "IntroduceWhenSubject"})
 class WhenTest implements RewriteTest {
+
     @Test
     void unaryConditions() {
         rewriteRun(
@@ -43,6 +42,7 @@ class WhenTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void binaryConditions() {
         rewriteRun(
@@ -62,7 +62,6 @@ class WhenTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("2,3 expect kotlin.Boolean but kotlin.Int")
     @Test
     void multiCase() {
         rewriteRun(
@@ -80,6 +79,7 @@ class WhenTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void inRange() {
         rewriteRun(
@@ -96,6 +96,7 @@ class WhenTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void withOutCondition() {
         rewriteRun(
@@ -186,7 +187,6 @@ class WhenTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("1, expect kotlin.Boolean but kotlin.Int")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/86")
     @Test
     void logicalOperatorOnMixed() {
@@ -237,7 +237,6 @@ class WhenTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Iterable::class , expect kotlin.Boolean but kotlin.reflect.KClass<kotlin.collections.Iterable<Generic{T}>>")
     @Test
     void trailingComma() {
         rewriteRun(
@@ -254,6 +253,7 @@ class WhenTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/240")
     void subjectVariable() {

@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
@@ -24,6 +23,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class FunctionTypeTest implements RewriteTest {
+
     @Test
     void nested() {
         rewriteRun(
@@ -34,6 +34,7 @@ class FunctionTypeTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/310")
     void generic() {
@@ -45,6 +46,7 @@ class FunctionTypeTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void namedParameter() {
         rewriteRun(
@@ -55,6 +57,7 @@ class FunctionTypeTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/275")
     void parenthesizedNullableType() {
@@ -66,6 +69,7 @@ class FunctionTypeTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/292")
     @ExpectedToFail

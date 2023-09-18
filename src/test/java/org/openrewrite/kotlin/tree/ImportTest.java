@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
@@ -24,24 +23,28 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("UnusedReceiverParameter")
 class ImportTest implements RewriteTest {
+
     @Test
     void jdkImport() {
         rewriteRun(
           kotlin("import java.util.ArrayList")
         );
     }
+
     @Test
     void kotlinImport() {
         rewriteRun(
           kotlin("import kotlin.collections.List")
         );
     }
+
     @Test
     void wildCard() {
         rewriteRun(
           kotlin("import kotlin.collections.*")
         );
     }
+
     @Test
     void inlineImport() {
         rewriteRun(
@@ -72,6 +75,7 @@ class ImportTest implements RewriteTest {
           kotlin("import createInstance")
         );
     }
+
     @Test
     void alias() {
         rewriteRun(
@@ -84,6 +88,7 @@ class ImportTest implements RewriteTest {
               """)
         );
     }
+
     @Test
     void aliasFieldAccess() {
         rewriteRun(

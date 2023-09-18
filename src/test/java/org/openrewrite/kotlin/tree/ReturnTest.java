@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
@@ -23,6 +22,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"RedundantUnitReturnType", "CatchMayIgnoreException", "ConstantConditionIf"})
 class ReturnTest implements RewriteTest {
+
     @Test
     void returnValue() {
         rewriteRun(
@@ -35,6 +35,7 @@ class ReturnTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void implicitReturn() {
         rewriteRun(
@@ -47,6 +48,7 @@ class ReturnTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void returnUnit() {
         rewriteRun(
@@ -59,6 +61,7 @@ class ReturnTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void whenExpression() {
         rewriteRun(
@@ -74,6 +77,7 @@ class ReturnTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void returnStatement() {
         rewriteRun(
@@ -88,6 +92,7 @@ class ReturnTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void conditionalReturnedValue() {
         rewriteRun(
@@ -100,6 +105,7 @@ class ReturnTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void returnLabel() {
         rewriteRun(
@@ -115,6 +121,7 @@ class ReturnTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void returnLabel_2() {
         rewriteRun(

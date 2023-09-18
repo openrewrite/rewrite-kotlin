@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.format;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.tree.J;
@@ -34,6 +33,7 @@ class AutoFormatVisitorTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new AutoFormat());
     }
+
     @Test
     void keepMaximumBetweenHeaderAndPackage() {
         rewriteRun(
@@ -65,6 +65,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void primaryConstructor() {
         rewriteRun(
@@ -82,6 +83,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void tabsAndIndents() {
         rewriteRun(
@@ -176,6 +178,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void classConstructor() {
         rewriteRun(
@@ -191,6 +194,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void composite() {
         rewriteRun(
@@ -203,7 +207,7 @@ class AutoFormatVisitorTest implements RewriteTest {
 
               class GraphQLMultiQueryRequestTest {
                   @Suppress
-    @Test
+                  @Test
                   fun testSerializeInputClassWithProjectionAndMultipleQueries() {
                   }
 
@@ -214,6 +218,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void extensionMethod() {
         rewriteRun(
@@ -226,6 +231,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void extensionProperty() {
         rewriteRun(
@@ -237,6 +243,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingLambda() {
         rewriteRun(
@@ -249,6 +256,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingLambdaWithParam() {
         rewriteRun(
@@ -259,6 +267,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingLambdaWithParamTrailingComment() {
         rewriteRun(
@@ -269,6 +278,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingLambdaWithMethodRefParam() {
         rewriteRun(
@@ -279,6 +289,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void composite2() {
         rewriteRun(
@@ -297,6 +308,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void companionType() {
         rewriteRun(

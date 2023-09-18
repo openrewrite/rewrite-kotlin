@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
@@ -25,6 +24,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"KotlinConstantConditions", "ConstantConditionIf"})
 class AssignmentOperationTest implements RewriteTest {
+
     @Test
     void minusEqual() {
         rewriteRun(
@@ -38,6 +38,7 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void plusEqual() {
         rewriteRun(
@@ -51,6 +52,7 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void timesEqual() {
         rewriteRun(
@@ -64,6 +66,7 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void divideEqual() {
         rewriteRun(
@@ -77,6 +80,7 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void conditionalAssignment() {
         rewriteRun(
@@ -90,6 +94,7 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/268")
     void augmentedAssign() {
@@ -111,6 +116,7 @@ class AssignmentOperationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/305")
     @ExpectedToFail

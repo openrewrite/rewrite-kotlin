@@ -57,7 +57,8 @@ class BlankLinesTest implements RewriteTest {
 
     @Nested
     class KeepMaximumBlankLinesTest {
-    @Test
+
+        @Test
         void keepMaximumBlankLinesInClassDeclarations() {
             rewriteRun(
               blankLines(style -> style.withKeepMaximum(style.getKeepMaximum().withInDeclarations(1))),
@@ -79,7 +80,7 @@ class BlankLinesTest implements RewriteTest {
         }
 
         @DocumentExample
-    @Test
+        @Test
         void keepMaximumInDeclarations() {
             rewriteRun(
               blankLines(style -> style.withKeepMaximum(style.getKeepMaximum().withInDeclarations(0))),
@@ -145,7 +146,8 @@ class BlankLinesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void keepMaximumInCode() {
             rewriteRun(
               blankLines(style -> style.withKeepMaximum(style.getKeepMaximum().withInCode(0))),
@@ -173,7 +175,8 @@ class BlankLinesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void keepMaximumBeforeEndOfBlock() {
             rewriteRun(
               blankLines(style -> style.withKeepMaximum(style.getKeepMaximum().withBeforeEndOfBlock(0))),
@@ -212,7 +215,8 @@ class BlankLinesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void keepMaximumBetweenHeaderAndPackage() {
             rewriteRun(
               blankLines(),
@@ -251,7 +255,8 @@ class BlankLinesTest implements RewriteTest {
 
         @Nested
         class AfterClassHeader {
-    @Test
+
+            @Test
             void minimumAfterClassHeader() {
                 rewriteRun(
                   blankLines(style -> style.withMinimum(style.getMinimum().withAfterClassHeader(1))),
@@ -272,7 +277,7 @@ class BlankLinesTest implements RewriteTest {
             }
 
             @Issue("https://github.com/openrewrite/rewrite/issues/1171")
-    @Test
+            @Test
             void minimumAfterClassHeaderNestedClasses() {
                 rewriteRun(
                   blankLines(style -> style.withMinimum(style.getMinimum().withAfterClassHeader(1))),
@@ -307,7 +312,7 @@ class BlankLinesTest implements RewriteTest {
             }
 
             @Issue("https://github.com/openrewrite/rewrite/issues/1171")
-    @Test
+            @Test
             void minimumAfterClassHeaderNestedEnum() {
                 rewriteRun(
                   blankLines(style -> style.withMinimum(style.getMinimum().withAfterClassHeader(1))),
@@ -336,7 +341,7 @@ class BlankLinesTest implements RewriteTest {
 
         @Nested
         class AroundWhenBranchesWithBlockTest {
-    @Test
+            @Test
             void AroundWhenBranchesWithBlock() {
                 rewriteRun(
                   blankLines(style -> style.withMinimum(style.getMinimum().withAroundWhenBranchWithBraces(2))),
@@ -380,7 +385,8 @@ class BlankLinesTest implements RewriteTest {
 
         @Nested
         class BeforeDeclarationWithCommentOrAnnotationTest {
-    @Test
+
+            @Test
             void BeforeDeclarationWithComment() {
                 rewriteRun(
                   blankLines(style -> style.withMinimum(style.getMinimum().withBeforeDeclarationWithCommentOrAnnotation(3))),
@@ -414,7 +420,8 @@ class BlankLinesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void BeforeAnnotation() {
                 rewriteRun(
                   blankLines(style -> style.withMinimum(style.getMinimum().withBeforeDeclarationWithCommentOrAnnotation(3))),
@@ -501,6 +508,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void eachMethodOnItsOwnLine() {
         rewriteRun(
@@ -525,6 +533,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/314")
     void blankLinesBetweenTopLevelStatements() {
@@ -550,6 +559,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void minimumBeforePackage() {
         rewriteRun(
@@ -574,6 +584,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void minimumBeforeImportsWithPackage() {
         rewriteRun(
@@ -598,6 +609,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void minimumBeforeImports() {
         rewriteRun(
@@ -621,6 +633,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void minimumAfterPackageWithImport() {
         rewriteRun(
@@ -644,6 +657,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void minimumAfterPackage() {
         rewriteRun(
@@ -663,6 +677,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void minimumAfterImports() {
         rewriteRun(
@@ -682,6 +697,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void minimumAroundClass() {
         rewriteRun(
@@ -762,6 +778,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void unchanged() {
         rewriteRun(
@@ -776,6 +793,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void maximumBlankLinesBetweenHeaderAndPackage() {
         // keepMaximumBlankLines_BetweenHeaderAndPackage defaults to 2
@@ -809,6 +827,7 @@ class BlankLinesTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void minimumBlankLinesBeforePackageStatement() {
         // minimumBlankLines_BeforePackageStatement defaults to 0

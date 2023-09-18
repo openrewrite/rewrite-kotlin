@@ -15,9 +15,7 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -28,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AnonymousFunctionTest implements RewriteTest {
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/287")
     void noArgs() {
@@ -52,6 +51,7 @@ class AnonymousFunctionTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/287")
     void singleArg() {
@@ -64,7 +64,6 @@ class AnonymousFunctionTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("SAFE_ACCESS_EXPRESSION")
     @Test
     void nestedWithWhitespace() {
         rewriteRun(

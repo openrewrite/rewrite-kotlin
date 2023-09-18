@@ -16,7 +16,6 @@
 package org.openrewrite.kotlin.format;
 
 import org.intellij.lang.annotations.Language;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
 import org.openrewrite.internal.StringUtils;
@@ -70,11 +69,13 @@ class NormalizeLineBreaksTest implements RewriteTest {
                           " */\n" +
                           "class Test {\n" +
                           "}";
+
     @Test
     void trimKeepCRLF() {
         assertThat(StringUtils.trimIndent("\n  test\r\n  test".replace('\r', '⏎'))
           .replace('⏎', '\r')).isEqualTo("test\r\ntest");
     }
+
     @Test
     void windowsToLinux() {
         rewriteRun(
@@ -82,6 +83,7 @@ class NormalizeLineBreaksTest implements RewriteTest {
           kotlin(windows, linux)
         );
     }
+
     @Test
     void linuxToWindows() {
         rewriteRun(

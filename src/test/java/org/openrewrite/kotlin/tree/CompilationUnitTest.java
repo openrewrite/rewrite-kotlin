@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpec;
@@ -23,18 +22,21 @@ import org.openrewrite.test.SourceSpec;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class CompilationUnitTest implements RewriteTest {
+
     @Test
     void emptyFile() {
         rewriteRun(
           kotlin("")
         );
     }
+
     @Test
     void packageDecl() {
         rewriteRun(
           kotlin("package kotlin")
         );
     }
+
     @Test
     void imports() {
         rewriteRun(
@@ -47,6 +49,7 @@ class CompilationUnitTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void packageAndComments() {
         rewriteRun(

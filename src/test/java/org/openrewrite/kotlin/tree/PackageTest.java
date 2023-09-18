@@ -15,13 +15,13 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class PackageTest implements RewriteTest {
+
     @Test
     void regular() {
         rewriteRun(
@@ -33,6 +33,7 @@ class PackageTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingSemiColon() {
         rewriteRun(

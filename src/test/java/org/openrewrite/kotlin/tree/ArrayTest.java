@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
@@ -24,36 +23,42 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class ArrayTest implements RewriteTest {
+
     @Test
     void notInitialized() {
         rewriteRun(
           kotlin("val arr = IntArray ( 3 )")
         );
     }
+
     @Test
     void arrayWithTypeParameter() {
         rewriteRun(
           kotlin("val arr = Array < Int > ( 3 ) { 0 }")
         );
     }
+
     @Test
     void initialized() {
         rewriteRun(
           kotlin("val arr = Array ( 3 ) { i -> i * 1 }")
         );
     }
+
     @Test
     void constructed() {
         rewriteRun(
           kotlin("val arr = Array ( 3 , { i -> i * 1 } )")
         );
     }
+
     @Test
     void twoDimensional() {
         rewriteRun(
           kotlin("val arr = Array ( 1 ) { Array < Int > ( 2 ) { 3 } }")
         );
     }
+
     @Test
     void arrayAccess() {
         rewriteRun(
@@ -65,6 +70,7 @@ class ArrayTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void conditionalArraySize() {
         rewriteRun(
@@ -75,6 +81,7 @@ class ArrayTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void conditionalArrayAccess() {
         rewriteRun(
@@ -86,6 +93,7 @@ class ArrayTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/291")
     @ExpectedToFail

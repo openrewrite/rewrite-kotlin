@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.format;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -45,6 +44,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           toRecipe(() -> new MinimumViableSpacingVisitor<>(null))
         );
     }
+
     @Test
     void classDeclaration() {
         rewriteRun(
@@ -59,6 +59,8 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
+
     @Test
     void classDeclarationWithFinalModifier() {
         rewriteRun(
@@ -73,6 +75,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void classDeclarationWithModifier() {
         rewriteRun(
@@ -87,6 +90,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void method() {
         rewriteRun(
@@ -103,6 +107,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void returnExpression() {
         rewriteRun(
@@ -120,6 +125,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingLambda() {
         rewriteRun(
@@ -133,6 +139,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void ifElse() {
         rewriteRun(
@@ -148,6 +155,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void variableDeclaration() {
         rewriteRun(
@@ -161,6 +169,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void variableDeclarations() {
         rewriteRun(
@@ -176,6 +185,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void variableDeclarationsInClass() {
         rewriteRun(
@@ -193,6 +203,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void variableDeclarationsInClass2() {
         rewriteRun(
@@ -209,6 +220,8 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
+
     @Test
     void variableDeclarationsInMethod() {
         rewriteRun(
@@ -230,6 +243,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void variableDeclarationsWithIn() {
         rewriteRun(
@@ -245,6 +259,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void forloop() {
         rewriteRun(
@@ -261,6 +276,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void variableDeclarationsInForLoops() {
         rewriteRun(
@@ -287,6 +303,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void noSpaceAferAnnotation() {
         rewriteRun(
@@ -307,6 +324,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void classConstructor() {
         rewriteRun(
@@ -325,6 +343,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void spaceAfterPublic() {
         rewriteRun(

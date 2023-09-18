@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -26,6 +25,7 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
 public class AddImportTest implements RewriteTest {
+
     @Test
     void normalClass() {
         rewriteRun(
@@ -59,6 +59,7 @@ public class AddImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void jvmStaticMember() {
         rewriteRun(
@@ -80,6 +81,7 @@ public class AddImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void starFoldPackageTypes() {
         rewriteRun(
@@ -101,6 +103,7 @@ public class AddImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void noStarFoldTypeMembers() {
         rewriteRun(
@@ -120,6 +123,7 @@ public class AddImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void starFoldTypeMembers() {
         rewriteRun(
@@ -139,6 +143,7 @@ public class AddImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void importAlias() {
         rewriteRun(
@@ -161,6 +166,7 @@ public class AddImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void packageLevelFunction() {
         rewriteRun(
@@ -196,6 +202,7 @@ public class AddImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void noImportOfImplicitTypes() {
         rewriteRun(
@@ -215,6 +222,7 @@ public class AddImportTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void addJavaStaticImport() {
         rewriteRun(

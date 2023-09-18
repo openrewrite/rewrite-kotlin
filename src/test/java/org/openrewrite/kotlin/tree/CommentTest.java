@@ -15,13 +15,13 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class CommentTest implements RewriteTest {
+
     @Test
     void backToBackMultilineComments() {
         rewriteRun(
@@ -39,6 +39,7 @@ class CommentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void multilineNestedInsideSingleLine() {
         rewriteRun(
@@ -50,6 +51,7 @@ class CommentTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void leadingComments() {
         rewriteRun(

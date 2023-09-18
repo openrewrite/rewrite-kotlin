@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -30,42 +29,49 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"UnusedReceiverParameter", "RedundantSuspendModifier"})
 class MethodDeclarationTest implements RewriteTest {
+
     @Test
     void methodDeclaration() {
         rewriteRun(
           kotlin("fun method ( ) { }")
         );
     }
+
     @Test
     void parameters() {
         rewriteRun(
           kotlin("fun method ( i : Int ) { }")
         );
     }
+
     @Test
     void functionTypeReference() {
         rewriteRun(
           kotlin("fun method( input : (  ) -> String ) { }")
         );
     }
+
     @Test
     void typedFunctionTypeReference() {
         rewriteRun(
           kotlin("fun method( input : ( Int , Int ) -> Boolean ) { }")
         );
     }
+
     @Test
     void functionTypeWithReceiver() {
         rewriteRun(
           kotlin("fun method ( arg : String . ( ) -> String ) { }")
         );
     }
+
     @Test
     void assignment() {
         rewriteRun(
           kotlin("fun method ( ) : Boolean = true")
         );
     }
+
     @Test
     void returnType() {
         rewriteRun(
@@ -78,6 +84,7 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodDeclarationDeclaringType() {
         rewriteRun(
@@ -91,6 +98,7 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void constructor() {
         rewriteRun(
@@ -103,6 +111,7 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void infix() {
         rewriteRun(
@@ -126,30 +135,35 @@ class MethodDeclarationTest implements RewriteTest {
           kotlin("infix fun Spec . version ( version : String ) : Spec = version ( version )")
         );
     }
+
     @Test
     void quotedIdentifier() {
         rewriteRun(
           kotlin("fun `some quoted id` ( ) { }")
         );
     }
+
     @Test
     void defaults() {
         rewriteRun(
           kotlin("fun apply ( plugin : String ? = null ) { }")
         );
     }
+
     @Test
     void reifiedGeneric() {
         rewriteRun(
           kotlin("inline fun < reified T > method ( value : T ) { }")
         );
     }
+
     @Test
     void genericTypeParameters() {
         rewriteRun(
           kotlin("fun < T : Number > method ( type : T ) { }")
         );
     }
+
     @Test
     void receiverType() {
         rewriteRun(
@@ -157,6 +171,7 @@ class MethodDeclarationTest implements RewriteTest {
           kotlin("fun Test . method ( ) { }")
         );
     }
+
     @Test
     void methodInvocationOnReceiverType() {
         rewriteRun(
@@ -177,6 +192,7 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void nullableReturnType() {
         rewriteRun(
@@ -188,6 +204,7 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void typeParameterAndTypeReceiver() {
         rewriteRun(
@@ -239,6 +256,7 @@ class MethodDeclarationTest implements RewriteTest {
               """)
         );
     }
+
     @ParameterizedTest
     @ValueSource(strings = {
       "out Number",
@@ -265,6 +283,7 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void hasFinalModifier() {
         rewriteRun(
@@ -280,6 +299,7 @@ class MethodDeclarationTest implements RewriteTest {
             }))
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/271")
     void negativeSingleExpression() {
@@ -291,6 +311,7 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void parenthesizedSingleExpression() {
         rewriteRun(
@@ -301,6 +322,7 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void multiplatformExpectDeclaration() {
         rewriteRun(

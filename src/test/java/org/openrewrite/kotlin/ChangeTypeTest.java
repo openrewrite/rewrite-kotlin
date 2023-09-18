@@ -32,6 +32,7 @@ public class ChangeTypeTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new ChangeType("a.b.Original", "x.y.Target", true));
     }
+
     @Test
     void changeImport() {
         rewriteRun(
@@ -91,6 +92,7 @@ public class ChangeTypeTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void changeTypeWithGenericArgumentFullyQualified() {
         rewriteRun(
@@ -120,6 +122,7 @@ public class ChangeTypeTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void changeType() {
         rewriteRun(

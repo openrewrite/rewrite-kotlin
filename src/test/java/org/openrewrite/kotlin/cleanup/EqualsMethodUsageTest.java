@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.cleanup;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
@@ -48,6 +47,7 @@ class EqualsMethodUsageTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void replaceWithComment() {
         rewriteRun(
@@ -65,6 +65,7 @@ class EqualsMethodUsageTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void replaceWithNotEqual() {
         rewriteRun(
@@ -82,6 +83,7 @@ class EqualsMethodUsageTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void replaceWithNotEqualWithComments() {
         rewriteRun(
@@ -99,6 +101,7 @@ class EqualsMethodUsageTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void replaceWithNotEqualInParentheses() {
         rewriteRun(

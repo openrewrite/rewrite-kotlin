@@ -54,6 +54,7 @@ class TabsAndIndentsTest implements RewriteTest {
             )
           )));
     }
+
     @Test
     void resetIndentationAfterParametersList() {
         rewriteRun(
@@ -252,6 +253,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotatedFiled() {
         rewriteRun(
@@ -275,6 +277,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotationArguments() {
         rewriteRun(
@@ -291,6 +294,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodChain() {
         rewriteRun(
@@ -309,6 +313,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void returnExpression() {
         rewriteRun(
@@ -331,7 +336,7 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("expected kotlin.Any but kotlin.Array<Generic{ extends kotlin.Any}>")
+
     @Issue("https://github.com/openrewrite/rewrite/issues/636")
     @Test
     void methodInvocationArgumentOnOpeningLineWithMethodSelect() {
@@ -358,7 +363,6 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("expected kotlin.Any but kotlin.Array<Generic{ extends kotlin.Any}>")
     @Test
     void methodInvocationArgumentOnNewLineWithMethodSelect() {
         rewriteRun(
@@ -382,7 +386,6 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("vararg")
     @Issue("https://github.com/openrewrite/rewrite/issues/636")
     @Test
     void methodInvocationArgumentsWithMethodSelectsOnEachNewLine() {
@@ -440,6 +443,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void ifElse() {
         rewriteRun(
@@ -458,6 +462,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lambda() {
         rewriteRun(
@@ -472,6 +477,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lambdaWithIfElse() {
         rewriteRun(
@@ -490,6 +496,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void whenBranch() {
         rewriteRun(
@@ -514,7 +521,6 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("expected kotlin.Any but kotlin.Array<Generic{ extends kotlin.Any}>")
     @Issue("https://github.com/openrewrite/rewrite/issues/660")
     @Test
     void methodInvocationLambdaBlockWithClosingBracketOnSameLineIndent() {
@@ -543,7 +549,6 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("expected kotlin.Any but kotlin.Array<Generic{ extends kotlin.Any}>")
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/660")
     void methodInvocationLambdaBlockWithClosingBracketOnNewLineIndent() {
@@ -625,6 +630,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/679")
     void lambdaBodyWithNestedMethodInvocationLambdaExpressionBodyIndent() {
@@ -725,6 +731,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void tryCatchFinally() {
         rewriteRun(
@@ -758,6 +765,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void doWhile() {
         rewriteRun(
@@ -791,6 +799,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void elseBody() {
         rewriteRun(
@@ -866,6 +875,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodDeclaration() {
         rewriteRun(
@@ -886,6 +896,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lineComment() {
         rewriteRun(
@@ -905,6 +916,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void noIndexOutOfBoundsUsingSpaces() {
         rewriteRun(
@@ -924,6 +936,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void noIndexOutOfBoundsUsingTabs() {
         rewriteRun(
@@ -939,6 +952,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void blockComment() {
         rewriteRun(
@@ -998,6 +1012,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void moreAnnotations() {
         rewriteRun(
@@ -1016,6 +1031,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotations() {
         rewriteRun(
@@ -1049,7 +1065,6 @@ class TabsAndIndentsTest implements RewriteTest {
     }
 
     @Disabled("java doc is not parsed")
-    //
     @Test
     void javadoc() {
         rewriteRun(
@@ -1073,6 +1088,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void tabs() {
         rewriteRun(
@@ -1096,6 +1112,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void shiftRight() {
         rewriteRun(
@@ -1129,6 +1146,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void shiftRightTabs() {
         rewriteRun(
@@ -1163,6 +1181,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void shiftLeft() {
         rewriteRun(
@@ -1196,6 +1215,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void shiftLeftTabs() {
         rewriteRun(
@@ -1230,6 +1250,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void nestedIfElse() {
         rewriteRun(
@@ -1248,6 +1269,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void annotationOnSameLine() {
         rewriteRun(
@@ -1263,6 +1285,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void newClassAsMethodArgument() {
         rewriteRun(
@@ -1282,6 +1305,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodArgumentsThatDontStartOnNewLine() {
         rewriteRun(
@@ -1320,6 +1344,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodArgumentsThatDontStartOnNewLine2() {
         rewriteRun(
@@ -1340,6 +1365,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void identAndFieldAccess() {
         rewriteRun(
@@ -1367,6 +1393,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lambda1() {
         rewriteRun(
@@ -1396,6 +1423,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lambdaWithBlock() {
         rewriteRun(
@@ -1415,6 +1443,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void enums() {
         rewriteRun(
@@ -1428,6 +1457,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void twoThrows() {
         rewriteRun(
@@ -1450,6 +1480,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void twoTypeParameters() {
         rewriteRun(
@@ -1464,6 +1495,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void twoImplements() {
         rewriteRun(
@@ -1478,6 +1510,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void fieldsWhereClassHasAnnotation() {
         rewriteRun(
@@ -1492,6 +1525,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodWithAnnotation() {
         rewriteRun(
@@ -1521,6 +1555,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void methodInvocations() {
         rewriteRun(
@@ -1543,6 +1578,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void newClassAsArgument() {
         rewriteRun(
@@ -1564,6 +1600,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void variableWithAnnotation() {
         rewriteRun(
@@ -1580,6 +1617,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lambdaMethodParameter2() {
         rewriteRun(
@@ -1604,6 +1642,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void lambdaMethodParameter() {
         rewriteRun(
@@ -1652,6 +1691,8 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
+
     @Test
     void newClass() {
         rewriteRun(
@@ -1690,7 +1731,6 @@ class TabsAndIndentsTest implements RewriteTest {
 
     @Disabled("Parsing error")
     @Issue("https://github.com/openrewrite/rewrite/issues/642")
-    //
     @Test
     void alignLineComments() {
         rewriteRun(
@@ -1883,6 +1923,8 @@ class TabsAndIndentsTest implements RewriteTest {
 //          )
 //        );
 //    }
+
+
     @Test
     void alignInlineBlockComments() {
         rewriteRun(
@@ -1906,6 +1948,7 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void trailingMultilineString() {
         rewriteRun(
@@ -1955,7 +1998,6 @@ class TabsAndIndentsTest implements RewriteTest {
 
     @Disabled("java doc is not parsed")
     @Issue("https://github.com/openrewrite/rewrite/pull/659")
-    //
     @Test
     void alignJavaDocs() {
         rewriteRun(
@@ -2008,7 +2050,6 @@ class TabsAndIndentsTest implements RewriteTest {
 
     @Disabled("Parsing error")
     @Issue("https://github.com/openrewrite/rewrite/issues/709")
-    //
     @Test
     void useContinuationIndentExtendsOnNewLine() {
         rewriteRun(
@@ -2055,7 +2096,6 @@ class TabsAndIndentsTest implements RewriteTest {
 
     @Disabled("Weird alignment")
     @Issue("https://github.com/openrewrite/rewrite/issues/3089")
-    //
     @Test
     void enumConstants() {
         rewriteRun(

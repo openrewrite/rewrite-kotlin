@@ -18,7 +18,6 @@ package org.openrewrite.kotlin.format;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
@@ -60,6 +59,7 @@ class SpacesTest implements RewriteTest {
             )
           )));
     }
+
     @Test
     void spaceAfterAsKeyword() {
         rewriteRun(
@@ -77,7 +77,7 @@ class SpacesTest implements RewriteTest {
     @Nested
     class beforeParensTest {
         @DocumentExample
-    @Test
+        @Test
         void beforeParensMethodDeclaration() {
             rewriteRun(
               spaces(),
@@ -103,7 +103,7 @@ class SpacesTest implements RewriteTest {
         }
 
         @SuppressWarnings("TrailingWhitespacesInTextBlock")
-    @Test
+        @Test
         void beforeParensMethodDeclarationFalseWithLineBreakIgnored() {
             rewriteRun(
               spaces(),
@@ -116,7 +116,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensMethodDeclarationWithComment() {
             rewriteRun(
               spaces(),
@@ -128,7 +129,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeClassBody() {
             rewriteRun(
               spaces(),
@@ -146,7 +148,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensMethodCall() {
             rewriteRun(
               spaces(),
@@ -166,7 +169,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensIfParenthesesFalse() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withIfParentheses(false))),
@@ -186,7 +190,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensIfParenthesesTrue() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withIfParentheses(true))),
@@ -206,7 +211,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensForParenthesesFalse() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withForParentheses(false))),
@@ -226,7 +232,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensForParenthesesTrue() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withForParentheses(true))),
@@ -246,7 +253,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensWhileParenthesesFalse() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withWhileParentheses(false))),
@@ -266,7 +274,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensWhileParenthesesTrue() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withWhileParentheses(true))),
@@ -286,7 +295,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensCatchParenthesesFalse() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withCatchParentheses(false))),
@@ -308,7 +318,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensCatchParenthesesTrue() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withCatchParentheses(true))),
@@ -330,7 +341,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensAnnotationParameters() {
             rewriteRun(
               spaces(),
@@ -348,7 +360,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensWhenParenthesesTrue() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withWhenParentheses(true))),
@@ -368,7 +381,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void beforeParensWhenParenthesesFalse() {
             rewriteRun(
               spaces(style -> style.withBeforeParentheses(style.getBeforeParentheses().withWhenParentheses(false))),
@@ -392,7 +406,7 @@ class SpacesTest implements RewriteTest {
 
     @Nested
     class aroundOperatorsTest {
-    @Test
+        @Test
         void aroundOperatorsAssignmentFalse() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withAssignment(false))),
@@ -412,7 +426,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsAssignmentTrue() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withAssignment(true))),
@@ -432,7 +447,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsLogicalFalse() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withLogical(false))),
@@ -452,7 +468,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsLogicalTrue() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withLogical(true))),
@@ -472,7 +489,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsEqualityFalse() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withEquality(false))),
@@ -496,7 +514,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsEqualityTrue() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withEquality(true))),
@@ -520,7 +539,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsRelationalFalse() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withRelational(false))),
@@ -544,7 +564,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsRelationalTrue() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withRelational(true))),
@@ -568,7 +589,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsBitwise() {
             rewriteRun(
               spaces(),
@@ -596,7 +618,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsAdditiveFalse() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withAdditive(false))),
@@ -616,7 +639,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsAdditiveTrue() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withAdditive(true))),
@@ -636,7 +660,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsMultiplicativeFalse() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withMultiplicative(false))),
@@ -658,7 +683,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsMultiplicativeTrue() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withMultiplicative(true))),
@@ -680,7 +706,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsUnaryFalse() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withUnary(false))),
@@ -714,7 +741,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsUnaryTrue() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withUnary(true))),
@@ -748,7 +776,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsRangeOperatorsFalse() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withRange(false))),
@@ -770,7 +799,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsRangeOperatorsTrue() {
             rewriteRun(
               spaces(style -> style.withAroundOperators(style.getAroundOperators().withRange(true))),
@@ -792,7 +822,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsLambda() {
             rewriteRun(
               spaces(),
@@ -814,7 +845,8 @@ class SpacesTest implements RewriteTest {
               )
             );
         }
-    @Test
+
+        @Test
         void aroundOperatorsMethodReferenceDoubleColon() {
             rewriteRun(
               spaces(),
@@ -898,7 +930,7 @@ class SpacesTest implements RewriteTest {
         @Nested
         class otherBeforeComma {
             // 1. Method parameters
-    @Test
+            @Test
             void otherBeforeCommaFalseMethodParameters() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeComma(false))),
@@ -922,7 +954,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeCommaTrueMethodParameters() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeComma(true))),
@@ -948,7 +981,7 @@ class SpacesTest implements RewriteTest {
             }
 
             // 2. Array
-    @Test
+            @Test
             void otherBeforeCommaFalseArray() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeComma(false))),
@@ -964,7 +997,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeCommaTrueArray() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeComma(true))),
@@ -982,8 +1016,7 @@ class SpacesTest implements RewriteTest {
             }
 
             // 3. Destructuring Declaration
-            @ExpectedToFail("destruct type")
-    @Test
+            @Test
             void otherBeforeCommaFalseDestruct() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeComma(false))),
@@ -1006,8 +1039,7 @@ class SpacesTest implements RewriteTest {
                 );
             }
 
-            @ExpectedToFail("destruct type")
-    @Test
+            @Test
             void otherBeforeCommaTrueDestruct() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeComma(true))),
@@ -1034,7 +1066,7 @@ class SpacesTest implements RewriteTest {
         @Nested
         class otherAfterComma {
             // 1. Method parameters
-    @Test
+            @Test
             void otherAfterCommaTrueMethodParameters() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterComma(true))),
@@ -1050,7 +1082,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAfterCommaFalseMethodParameters() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterComma(false))),
@@ -1068,7 +1101,7 @@ class SpacesTest implements RewriteTest {
             }
 
             // 2. Array
-    @Test
+            @Test
             void otherAfterCommaTrueArray() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterComma(true))),
@@ -1084,7 +1117,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAfterCommaFalseArray() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterComma(false))),
@@ -1102,8 +1136,7 @@ class SpacesTest implements RewriteTest {
             }
 
             // 3. Destructuring Declaration
-            @ExpectedToFail("name, expect Person{name=component1,return=kotlin.String,parameters=[]} but {undefined}{name=name,type=kotlin.String}")
-    @Test
+            @Test
             void otherAfterCommaTrueDestruct() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterComma(true))),
@@ -1126,8 +1159,7 @@ class SpacesTest implements RewriteTest {
                 );
             }
 
-            @ExpectedToFail("name, expect Person{name=component1,return=kotlin.String,parameters=[]} but {undefined}{name=name,type=kotlin.String}")
-    @Test
+            @Test
             void otherAfterCommaFalseDestruct() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterComma(false))),
@@ -1153,7 +1185,7 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherBeforeColonAfterDeclarationName {
-    @Test
+            @Test
             void otherBeforeColonAfterDeclarationNameFalseVariableDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
@@ -1173,7 +1205,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeColonAfterDeclarationNameTrueVariableDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
@@ -1193,7 +1226,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeColonAfterDeclarationNameFalseFunctionTypeParameter() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
@@ -1207,7 +1241,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeColonAfterDeclarationNameTrueFunctionTypeParameter() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
@@ -1221,7 +1256,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeColonAfterDeclarationNameFalseMethodDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
@@ -1239,7 +1275,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeColonAfterDeclarationNameTrueMethodDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
@@ -1257,7 +1294,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeColonAfterDeclarationNameFalseTryCatch() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
@@ -1279,7 +1317,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeColonAfterDeclarationNameTrueTryCatch() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
@@ -1301,7 +1340,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeColonAfterDeclarationNameFalseMethodDeclarationParameters() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
@@ -1321,7 +1361,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeColonAfterDeclarationNameTrueMethodDeclarationParameters() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
@@ -1346,7 +1387,7 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherAfterColonBeforeDeclarationType {
-    @Test
+            @Test
             void otherAfterColonBeforeDeclarationTypeTrueVariableDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(true))),
@@ -1366,7 +1407,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAfterColonBeforeDeclarationTypeFalseVariableDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(false))),
@@ -1386,7 +1428,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAfterColonBeforeDeclarationTypeTrueMethodDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(true))),
@@ -1404,7 +1447,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAfterColonBeforeDeclarationTypeFalseMethodDeclaration() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(false))),
@@ -1422,7 +1466,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAfterColonBeforeDeclarationTypeTrueTryCatch() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(true))),
@@ -1444,7 +1489,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAfterColonBeforeDeclarationTypeFalseTryCatch() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(false))),
@@ -1466,7 +1512,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAfterColonBeforeDeclarationTypeTrueMethodDeclarationParameters() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(true))),
@@ -1486,7 +1533,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAfterColonBeforeDeclarationTypeFalseMethodDeclarationParameters() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAfterColonBeforeDeclarationType(false))),
@@ -1512,8 +1560,7 @@ class SpacesTest implements RewriteTest {
         class otherBeforeColonInNewTypeDefinition {
 
             @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
-            //
-    @Test
+            @Test
             void otherBeforeColonInNewTypeDefinitionTrue() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonInNewTypeDefinition(true))),
@@ -1533,8 +1580,7 @@ class SpacesTest implements RewriteTest {
             }
 
             @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
-            //
-    @Test
+            @Test
             void otherBeforeColonInNewTypeDefinitionFalse() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonInNewTypeDefinition(false))),
@@ -1558,8 +1604,7 @@ class SpacesTest implements RewriteTest {
         class otherAfterColonInNewTypeDefinition {
 
             @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
-            //
-    @Test
+            @Test
             void otherAfterColonInNewTypeDefinitionTrue() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonInNewTypeDefinition(true))),
@@ -1579,8 +1624,7 @@ class SpacesTest implements RewriteTest {
             }
 
             @Disabled("FIXME after parsing error fixed https://github.com/openrewrite/rewrite-kotlin/issues/205")
-            //
-    @Test
+            @Test
             void otherAfterColonInNewTypeDefinitionFalse() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeColonInNewTypeDefinition(false))),
@@ -1602,7 +1646,8 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherInSimpleOneLineMethods {
-    @Test
+
+            @Test
             void otherInSimpleOneLineMethodsTrue() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withInSimpleOneLineMethods(true))),
@@ -1616,7 +1661,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherInSimpleOneLineMethodsFalse() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withInSimpleOneLineMethods(false))),
@@ -1634,7 +1680,8 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherAroundArrowInFunctionType {
-    @Test
+
+            @Test
             void otherAroundArrowInFunctionTypeTrue() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAroundArrowInFunctionTypes(true)
@@ -1649,7 +1696,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAroundArrowInFunctionTypeFalse() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAroundArrowInFunctionTypes(false))),
@@ -1667,7 +1715,8 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherAroundArrowInWhenClause {
-    @Test
+
+            @Test
             void otherAroundArrowInWhenClauseTrueArrowToConstant() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(true))),
@@ -1697,7 +1746,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAroundArrowInWhenClauseFalseArrowToConstant() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(false))),
@@ -1727,7 +1777,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAroundArrowInWhenClauseTrueArrowToMethodInvocation() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(true))),
@@ -1761,7 +1812,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherAroundArrowInWhenClauseFalseArrowToMethodInvocation() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withAroundArrowInWhenClause(false))),
@@ -1799,7 +1851,8 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherBeforeLambdaArrow {
-    @Test
+
+            @Test
             void otherBeforeLambdaArrowTrue() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeLambdaArrow(true))),
@@ -1813,7 +1866,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherBeforeLambdaArrowFalse() {
                 rewriteRun(
                   spaces(style -> style.withOther(style.getOther().withBeforeLambdaArrow(false))),
@@ -1832,7 +1886,8 @@ class SpacesTest implements RewriteTest {
 
         @Nested
         class otherDefaults {
-    @Test
+
+            @Test
             void beforeParensTryParentheses() {
                 rewriteRun(
                   spaces(),
@@ -1854,7 +1909,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeLeftBraceClassLeftBrace() {
                 rewriteRun(
                   spaces(),
@@ -1870,7 +1926,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeLeftBraceMethodLeftBrace() {
                 rewriteRun(
                   spaces(),
@@ -1890,7 +1947,9 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+
+            @Test
             void beforeLeftBraceIfLeftBraceFalse() {
                 rewriteRun(
                   spaces(),
@@ -1914,7 +1973,9 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+
+            @Test
             void beforeLeftBraceElseLeftBraceFalse() {
                 rewriteRun(
                   spaces(),
@@ -1940,7 +2001,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeLeftBraceForLeftBraceFalse() {
                 rewriteRun(
                   spaces(),
@@ -1960,7 +2022,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeLeftBraceWhileLeftBraceFalse() {
                 rewriteRun(
                   spaces(),
@@ -1980,7 +2043,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeLeftBraceDoLeftBraceFalse() {
                 rewriteRun(
                   spaces(),
@@ -2004,7 +2068,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeLeftBraceTryLeftBraceFalse() {
                 rewriteRun(
                   spaces(),
@@ -2030,7 +2095,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeLeftBraceCatchLeftBraceFalse() {
                 rewriteRun(
                   spaces(),
@@ -2056,7 +2122,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeLeftBraceFinallyLeftBraceFalse() {
                 rewriteRun(
                   spaces(),
@@ -2084,7 +2151,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeLeftBraceAnnotationArrayInitializerLeftBraceTrue() {
                 rewriteRun(
                   spaces(),
@@ -2112,7 +2180,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeKeywordsElseKeywordTrue() {
                 rewriteRun(
                   spaces(),
@@ -2138,7 +2207,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeKeywordsWhileKeywordTrue() {
                 rewriteRun(
                   spaces(),
@@ -2162,7 +2232,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeKeywordsCatchKeywordTrue() {
                 rewriteRun(
                   spaces(),
@@ -2188,7 +2259,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void beforeKeywordsFinallyKeywordTrue() {
                 rewriteRun(
                   spaces(),
@@ -2216,7 +2288,9 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+
+            @Test
             void withinCodeBracesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2232,7 +2306,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void withinBracketsFalse() {
                 rewriteRun(
                   spaces(),
@@ -2254,7 +2329,9 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+
+            @Test
             void withinArrayInitializerBracesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2276,7 +2353,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void withinGroupingParenthesesTrue() {
                 rewriteRun(
                   spaces(),
@@ -2298,7 +2376,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void withinMethodDeclarationParenthesesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2318,7 +2397,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void withinEmptyMethodDeclarationParenthesesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2338,7 +2418,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void withinMethodCallParenthesesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2364,7 +2445,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void withinEmptyMethodCallParenthesesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2390,7 +2472,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void withinIfParenthesesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2414,7 +2497,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void withinForParenthesesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2438,7 +2522,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void withinWhileParenthesesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2466,6 +2551,7 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
+
             @Test
             void withinCatchParenthesesFalse() {
                 rewriteRun(
@@ -2492,6 +2578,7 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
+
             @Test
             void withinAngleBracketsFalse() {
                 rewriteRun(
@@ -2520,6 +2607,7 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
+
             @Test
             void typeArgumentsAfterComma() {
                 rewriteRun(
@@ -2558,7 +2646,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void otherInsideOneLineEnumBracesFalse() {
                 rewriteRun(
                   spaces(),
@@ -2572,7 +2661,8 @@ class SpacesTest implements RewriteTest {
                   )
                 );
             }
-    @Test
+
+            @Test
             void typeParametersBeforeOpeningAngleBracketFalse() {
                 rewriteRun(
                   spaces(),

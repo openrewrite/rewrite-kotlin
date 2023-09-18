@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.java.search.FindMethods;
 import org.openrewrite.test.RewriteTest;
@@ -23,6 +22,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 public class FindMethodsTest implements RewriteTest {
+
     @Test
     void jvmStaticMethod() {
         rewriteRun(
@@ -53,6 +53,7 @@ public class FindMethodsTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void extensionMethod() {
         rewriteRun(

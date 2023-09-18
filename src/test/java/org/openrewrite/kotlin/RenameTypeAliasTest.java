@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
@@ -55,6 +54,7 @@ public class RenameTypeAliasTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void declaration() {
         rewriteRun(
@@ -95,6 +95,7 @@ public class RenameTypeAliasTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void variableTypeExpression() {
         rewriteRun(
@@ -112,6 +113,7 @@ public class RenameTypeAliasTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void functionParameter() {
         rewriteRun(
@@ -131,6 +133,7 @@ public class RenameTypeAliasTest implements RewriteTest {
           )
         );
     }
+
     @Test
     void parameterizedType() {
         rewriteRun(
