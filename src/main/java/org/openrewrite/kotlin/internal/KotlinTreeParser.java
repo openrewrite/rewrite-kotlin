@@ -21,7 +21,6 @@ import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
 import org.jetbrains.kotlin.com.intellij.psi.PsiComment;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.PsiWhiteSpace;
-import org.jetbrains.kotlin.com.intellij.psi.stubs.IStubElementType;
 import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
@@ -29,6 +28,7 @@ import org.jetbrains.kotlin.fir.declarations.FirVariable;
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
 import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.parsing.ParseUtilsKt;
 import org.jetbrains.kotlin.psi.*;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
@@ -349,16 +349,14 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitConstantExpression(KtConstantExpression expression, ExecutionContext data) {
-        IStubElementType elementType = expression.getElementType();
+        IElementType elementType = expression.getElementType();
         Object value;
-        if (elementType == KtNodeTypes.INTEGER_CONSTANT) {
-            value = Integer.valueOf(expression.getText());
+        if (elementType == KtNodeTypes.INTEGER_CONSTANT || elementType == KtNodeTypes.FLOAT_CONSTANT) {
+            value = ParseUtilsKt.parseNumericLiteral(expression.getText(), elementType);
         } else if (elementType == KtNodeTypes.BOOLEAN_CONSTANT) {
-            value = Boolean.valueOf(expression.getText());
-        } else if (elementType == KtNodeTypes.FLOAT_CONSTANT) {
-            value = Float.valueOf(expression.getText());
+            value = ParseUtilsKt.parseBoolean(expression.getText());
         } else if (elementType == KtNodeTypes.CHARACTER_CONSTANT) {
-            value = Character.valueOf(expression.getText().charAt(0));
+            value = expression.getText().charAt(0);
         } else if (elementType == KtNodeTypes.NULL) {
             value = null;
         } else {
