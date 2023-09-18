@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
 import org.jetbrains.kotlin.com.intellij.psi.PsiComment;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.PsiWhiteSpace;
+import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.LeafPsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.PsiErrorElementImpl;
 import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
@@ -414,26 +415,28 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitStringTemplateExpression(@NotNull KtStringTemplateExpression expression, ExecutionContext data) {
         KtStringTemplateEntry[] entries = expression.getEntries();
-
         if (entries.length > 1) {
             throw new UnsupportedOperationException("Unsupported constant expression elementType, TODO");
         }
-
-        Object value = entries[0].accept(this, data);
-        return new J.Literal(
-                Tree.randomId(),
-                Space.EMPTY,
-                Markers.EMPTY,
-                value,
-                expression.getText(),
-                null,
-                primitiveType(expression)
-        );
+        return entries[0].accept(this, data).withPrefix(prefix(expression));
     }
 
     @Override
     public J visitStringTemplateEntry(@NotNull KtStringTemplateEntry entry, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        PsiElement leaf = entry.getFirstChild();
+        if (!(leaf instanceof LeafPsiElement)) {
+            throw new UnsupportedOperationException("Unsupported KtStringTemplateEntry child");
+        }
+
+        return new J.Literal(
+                Tree.randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                leaf.getText(),
+                "\"" + leaf.getText() + "\"",
+                null,
+                primitiveType(entry)
+        );
     }
 
     @Override
@@ -517,13 +520,8 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         return psiElementAssociations.type(psi, currentFile.getSymbol());
     }
 
-    private JavaType.Primitive primitiveType(KtConstantExpression expression) {
-        return typeMapping.primitive((ConeClassLikeType) ((FirResolvedTypeRef) ((FirConstExpression<?>) psiElementAssociations.primary(expression)).getTypeRef()).getType());
-    }
-
-    private JavaType.Primitive primitiveType(KtStringTemplateExpression expression) {
-        // todo
-        return null;
+    private JavaType.Primitive primitiveType(PsiElement expression) {
+        return  typeMapping.primitive((ConeClassLikeType) ((FirResolvedTypeRef) ((FirConstExpression<?>) psiElementAssociations.primary(expression)).getTypeRef()).getType());
     }
 
     @Nullable
