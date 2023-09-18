@@ -361,7 +361,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         } else if (elementType == KtNodeTypes.NULL) {
             value = null;
         } else {
-            throw new IllegalArgumentException();
+            throw new UnsupportedOperationException("Unsupported constant expression elementType : " + elementType);
         }
         return new J.Literal(
                 Tree.randomId(),
@@ -399,7 +399,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         else if (elementType == KtTokens.DIV)
             return J.Binary.Type.Division;
         else
-            throw new IllegalArgumentException("Unsupported OPERATION_REFERENCE type :" + elementType.getDebugName());
+            throw new UnsupportedOperationException("Unsupported OPERATION_REFERENCE type :" + elementType.getDebugName());
     }
 
     private J.Modifier.Type mapModifierType(PsiElement modifier) {
