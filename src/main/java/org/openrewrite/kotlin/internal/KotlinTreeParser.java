@@ -163,6 +163,51 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     }
 
     @Override
+    public J visitAnnotation(@NotNull KtAnnotation annotation, ExecutionContext data) {
+        throw new UnsupportedOperationException("KtAnnotation");
+    }
+
+    @Override
+    public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
+        return new J.Binary(
+                randomId(),
+                space(expression.getFirstChild()),
+                Markers.EMPTY,
+                convertToExpression(expression.getLeft().accept(this, data)),
+                padLeft(prefix(expression.getOperationReference()), mapBinaryType(expression.getOperationReference())),
+                convertToExpression((expression.getRight()).accept(this, data))
+                        .withPrefix(prefix(expression.getRight())),
+                type(expression)
+        );
+    }
+
+    @Override
+    public J visitConstantExpression(KtConstantExpression expression, ExecutionContext data) {
+        IElementType elementType = expression.getElementType();
+        Object value;
+        if (elementType == KtNodeTypes.INTEGER_CONSTANT || elementType == KtNodeTypes.FLOAT_CONSTANT) {
+            value = ParseUtilsKt.parseNumericLiteral(expression.getText(), elementType);
+        } else if (elementType == KtNodeTypes.BOOLEAN_CONSTANT) {
+            value = ParseUtilsKt.parseBoolean(expression.getText());
+        } else if (elementType == KtNodeTypes.CHARACTER_CONSTANT) {
+            value = expression.getText().charAt(0);
+        } else if (elementType == KtNodeTypes.NULL) {
+            value = null;
+        } else {
+            throw new UnsupportedOperationException("Unsupported constant expression elementType : " + elementType);
+        }
+        return new J.Literal(
+                Tree.randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                value,
+                expression.getText(),
+                null,
+                primitiveType(expression)
+        );
+    }
+
+    @Override
     public J visitClass(@NotNull KtClass klass, ExecutionContext data) {
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = new ArrayList<>();
@@ -264,13 +309,13 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     }
 
     @Override
-    public J visitNamedFunction(@NotNull KtNamedFunction function, ExecutionContext data) {
-        throw new UnsupportedOperationException("KtNamedFunction");
+    public J visitIfExpression(@NotNull KtIfExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
     }
 
     @Override
-    public J visitAnnotation(@NotNull KtAnnotation annotation, ExecutionContext data) {
-        throw new UnsupportedOperationException("KtAnnotation");
+    public J visitNamedFunction(@NotNull KtNamedFunction function, ExecutionContext data) {
+        throw new UnsupportedOperationException("KtNamedFunction");
     }
 
     @Override
@@ -334,6 +379,11 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     }
 
     @Override
+    public J visitSimpleNameExpression(@NotNull KtSimpleNameExpression expression, ExecutionContext data) {
+        return createIdentifier(expression, type(expression));
+    }
+
+    @Override
     public J visitTypeReference(@NotNull KtTypeReference typeReference, ExecutionContext data) {
         return typeReference.getTypeElement().accept(this, data);
     }
@@ -343,51 +393,9 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         return type.getReferenceExpression().accept(this, data);
     }
 
-    @Override
-    public J visitSimpleNameExpression(@NotNull KtSimpleNameExpression expression, ExecutionContext data) {
-        return createIdentifier(expression, type(expression));
-    }
-
-    @Override
-    public J visitConstantExpression(KtConstantExpression expression, ExecutionContext data) {
-        IElementType elementType = expression.getElementType();
-        Object value;
-        if (elementType == KtNodeTypes.INTEGER_CONSTANT || elementType == KtNodeTypes.FLOAT_CONSTANT) {
-            value = ParseUtilsKt.parseNumericLiteral(expression.getText(), elementType);
-        } else if (elementType == KtNodeTypes.BOOLEAN_CONSTANT) {
-            value = ParseUtilsKt.parseBoolean(expression.getText());
-        } else if (elementType == KtNodeTypes.CHARACTER_CONSTANT) {
-            value = expression.getText().charAt(0);
-        } else if (elementType == KtNodeTypes.NULL) {
-            value = null;
-        } else {
-            throw new UnsupportedOperationException("Unsupported constant expression elementType : " + elementType);
-        }
-        return new J.Literal(
-                Tree.randomId(),
-                Space.EMPTY,
-                Markers.EMPTY,
-                value,
-                expression.getText(),
-                null,
-                primitiveType(expression)
-        );
-    }
-
-    @Override
-    public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
-        return new J.Binary(
-                randomId(),
-                space(expression.getFirstChild()),
-                Markers.EMPTY,
-                convertToExpression(expression.getLeft().accept(this, data)),
-                padLeft(prefix(expression.getOperationReference()), mapBinaryType(expression.getOperationReference())),
-                convertToExpression((expression.getRight()).accept(this, data))
-                        .withPrefix(prefix(expression.getRight())),
-                type(expression)
-        );
-    }
-
+    /*====================================================================
+     * Type mapping methods
+     * ====================================================================*/
     private J.Binary.Type mapBinaryType(KtOperationReferenceExpression operationReference) {
         IElementType elementType = operationReference.getOperationSignTokenType();
         if (elementType == KtTokens.PLUS)
