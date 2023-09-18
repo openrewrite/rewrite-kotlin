@@ -126,18 +126,12 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
         List<KtDeclaration> declarations = file.getDeclarations();
         for (int i = 0; i < declarations.size(); i++) {
+            boolean last = i == declarations.size() - 1;
             KtDeclaration declaration = declarations.get(i);
-            if (declaration instanceof KtProperty) {
+            if (declaration instanceof KtProperty || declaration instanceof KtClass) {
                 Statement statement = (Statement) declaration.accept(this, data);
-                if (i == 0) {
-                    statement = statement.withPrefix(prefix(declaration));
-                }
-
-                statements.add(padRight(statement, suffix(declaration)));
-            } else if (declaration instanceof KtClass) {
-                // FIXME. can this be more generic?
-                Statement statement = (Statement) declaration.accept(this, data);
-                statements.add(padRight(statement, suffix(declaration)));
+                statement = statement.withPrefix(prefix(declaration));
+                statements.add(padRight(statement, last ? suffix(declaration) : Space.EMPTY));
             } else {
                 throw new UnsupportedOperationException("Unsupported PSI type :" + declaration.getNode().getElementType());
             }
@@ -225,7 +219,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
         return new J.ClassDeclaration(
                 randomId(),
-                Space.EMPTY,
+                prefix(klass),
                 Markers.EMPTY,
                 leadingAnnotations,
                 modifiers,

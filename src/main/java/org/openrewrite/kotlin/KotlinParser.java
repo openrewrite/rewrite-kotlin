@@ -162,6 +162,20 @@ public class KotlinParser implements Parser {
                         compilerCus.getSources().stream()
                                 .map(kotlinSource -> {
                                     try {
+                                        SourceFile kcu = null;
+                                        try {
+                                            // PSI based parser
+                                            PsiElementAssociations psiFirMapping = new PsiElementAssociations(new KotlinTypeMapping(typeCache, firSession));
+                                            psiFirMapping.initialize(kotlinSource.getFirFile());
+
+                                            // debug purpose only, to be removed
+                                            System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
+
+                                            KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, psiFirMapping, styles, relativeTo, ctx);
+                                            kcu = psiParser.parse(ctx);
+                                        } catch (UnsupportedOperationException ignore) {
+                                        }
+
                                         KotlinParserVisitor mappingVisitor = new KotlinParserVisitor(
                                                 kotlinSource,
                                                 relativeTo,
@@ -173,21 +187,11 @@ public class KotlinParser implements Parser {
 
                                         assert kotlinSource.getFirFile() != null;
                                         SourceFile kcu1 = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), ctx);
-
-                                        // PSI based parser
-                                        PsiElementAssociations psiFirMapping = new PsiElementAssociations(new KotlinTypeMapping(typeCache, firSession));
-                                        psiFirMapping.initialize(kotlinSource.getFirFile());
-                                        // debug purpose only, to be removed
-                                        System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
-
-                                        SourceFile kcu = kcu1;
-                                        try {
-                                            KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, psiFirMapping, styles, relativeTo, ctx);
-                                            kcu = psiParser.parse(ctx);
-                                        } catch (UnsupportedOperationException ignore) {
+                                        if (kcu == null) {
+                                            kcu = kcu1;
+                                        } else {
+                                            // TODO compare kcu and kcu1
                                         }
-
-                                        // switch parsers
 
                                         parsingListener.parsed(kotlinSource.getInput(), kcu);
                                         return requirePrintEqualsInput(kcu, kotlinSource.getInput(), relativeTo, ctx);
