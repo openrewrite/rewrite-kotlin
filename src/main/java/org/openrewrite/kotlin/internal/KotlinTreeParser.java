@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
 import org.jetbrains.kotlin.com.intellij.psi.PsiComment;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.PsiWhiteSpace;
+import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.PsiErrorElementImpl;
 import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
@@ -163,7 +164,6 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClass(@NotNull KtClass klass, ExecutionContext data) {
-
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = new ArrayList<>();
         JContainer<J.TypeParameter> typeParams = null;
@@ -172,7 +172,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         if (klass.getModifierList() != null) {
             PsiElement child = klass.getModifierList().getFirstChild();
             while (child != null) {
-                if (!isWhitespace(child.getNode())) {
+                if (!isSpace(child.getNode())) {
                     modifiers.add(new J.Modifier(randomId(), prefix(child), Markers.EMPTY, child.getText(), mapModifierType(child), emptyList())
                     );
                 }
@@ -490,10 +490,10 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         }
 
         PsiElement whitespace = element.getPrevSibling();
-        if (whitespace == null || !isWhitespace(whitespace.getNode())) {
+        if (whitespace == null || !isSpace(whitespace.getNode())) {
             return Space.EMPTY;
         }
-        while (whitespace.getPrevSibling() != null && isWhitespace(whitespace.getPrevSibling().getNode())) {
+        while (whitespace.getPrevSibling() != null && isSpace(whitespace.getPrevSibling().getNode())) {
             whitespace = whitespace.getPrevSibling();
         }
         return space(whitespace);
@@ -505,33 +505,55 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         }
 
         PsiElement whitespace = element.getLastChild();
-        if (whitespace == null || !isWhitespace(whitespace.getNode())) {
+        if (whitespace == null || !isSpace(whitespace.getNode())) {
             whitespace = element.getNextSibling();
         } else {
-            while (whitespace.getPrevSibling() != null && isWhitespace(whitespace.getPrevSibling().getNode())) {
+            while (whitespace.getPrevSibling() != null && isSpace(whitespace.getPrevSibling().getNode())) {
                 whitespace = whitespace.getPrevSibling();
             }
         }
-        if (whitespace == null || !isWhitespace(whitespace.getNode())) {
+        if (whitespace == null || !isSpace(whitespace.getNode())) {
             return Space.EMPTY;
         }
         return space(whitespace);
     }
 
-    private boolean isWhitespace(ASTNode node) {
+    private boolean isSpace(ASTNode node) {
         IElementType elementType = node.getElementType();
-        return elementType == KtTokens.WHITE_SPACE || elementType == KtTokens.BLOCK_COMMENT || elementType == KtTokens.EOL_COMMENT || elementType == KtTokens.DOC_COMMENT;
+        return elementType == KtTokens.WHITE_SPACE ||
+                elementType == KtTokens.BLOCK_COMMENT ||
+                elementType == KtTokens.EOL_COMMENT ||
+                elementType == KtTokens.DOC_COMMENT ||
+                isCRLF(node);
+    }
+
+    private boolean isWhiteSpace(@Nullable PsiElement node) {
+        if (node == null) {
+            return false;
+        }
+        return node instanceof PsiWhiteSpace || isCRLF(node.getNode());
+    }
+
+    private boolean isCRLF(ASTNode node) {
+        return node instanceof PsiErrorElementImpl && node.getText().equals("\r");
     }
 
     private Space space(PsiElement node) {
         Space space = null;
+        PsiElement preNode = null;
+
         for (; node != null; node = next(node)) {
             PsiElement finalNode = node;
-            if (node instanceof PsiWhiteSpace) {
+            if (isWhiteSpace(node)) {
                 if (space == null) {
                     space = Space.build(node.getText(), emptyList());
                 } else {
-                    space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(finalNode.getText())));
+                    if (isWhiteSpace(preNode)) {
+                        // merge space
+                        space = space.withWhitespace(space.getWhitespace() + node.getText());
+                    } else {
+                        space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix(finalNode.getText())));
+                    }
                 }
             } else if (node instanceof PsiComment) {
                 if (space == null) {
@@ -544,6 +566,8 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             } else {
                 break;
             }
+
+            preNode = node;
         }
         return space == null ? Space.EMPTY : space;
     }
