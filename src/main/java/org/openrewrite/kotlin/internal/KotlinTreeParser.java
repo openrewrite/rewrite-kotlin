@@ -120,6 +120,8 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         } else if (!file.getImportDirectives().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
+        } else if (!file.getAnnotationEntries().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
         }
 
         List<KtDeclaration> declarations = file.getDeclarations();
@@ -131,12 +133,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                     statement = statement.withPrefix(prefix(declaration));
                 }
 
-                Space suffix = Space.EMPTY;
-                if (i == declarations.size() - 1) {
-                    suffix = suffix(declaration);
-                }
-
-                statements.add(padRight(statement, suffix));
+                statements.add(padRight(statement, suffix(declaration)));
             } else if (declaration instanceof KtClass) {
                 // FIXME. can this be more generic?
                 Statement statement = (Statement) declaration.accept(this, data);
@@ -180,6 +177,18 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 }
                 child = child.getNextSibling();
             }
+        }
+        if (!klass.hasModifier(KtTokens.OPEN_KEYWORD)) {
+            modifiers.add(
+                    new J.Modifier(
+                            randomId(),
+                            Space.EMPTY,
+                            Markers.EMPTY,
+                            null,
+                            J.Modifier.Type.Final,
+                            emptyList()
+                    )
+            );
         }
 
         J.ClassDeclaration.Kind kind = new J.ClassDeclaration.Kind(
@@ -305,6 +314,8 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         if (property.getGetter() != null || property.getSetter() != null) {
             throw new UnsupportedOperationException("TODO");
         } else if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {
+            throw new UnsupportedOperationException("TODO");
+        } else if (!property.getAnnotationEntries().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
         }
 
