@@ -79,6 +79,27 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(5);
     }
     @Test
+    void continuationIndentFromChainedCalls() {
+        var cus = kp().parse(
+          """
+            class Test {
+                val s = ""
+                     .uppercase()
+                     .lowercase()
+                     .toString()
+            }
+            """
+        );
+
+        var detector = Autodetect.detector();
+        cus.forEach(detector::sample);
+        var styles = detector.build();
+        var tabsAndIndents = NamedStyles.merge(TabsAndIndentsStyle.class, singletonList(styles));
+
+        assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(5);
+    }
+
+    @Test
     @Issue("https://github.com/openrewrite/rewrite/issues/3550")
     void alignParametersWhenMultiple() {
         var cus = kp().parse(

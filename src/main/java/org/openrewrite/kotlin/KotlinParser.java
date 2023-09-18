@@ -108,6 +108,7 @@ public class KotlinParser implements Parser {
     private final JavaTypeCache typeCache;
     private final String moduleName;
     private final KotlinLanguageLevel languageLevel;
+    private final boolean isKotlinScript;
 
     @Override
     public Stream<SourceFile> parse(@Language("kotlin") String... sources) {
@@ -206,7 +207,8 @@ public class KotlinParser implements Parser {
 
     @Override
     public boolean accept(Path path) {
-        return path.toString().endsWith(".kt");
+        String p = path.toString();
+        return p.endsWith(".kt") || p.endsWith(".kts");
     }
 
     @Override
@@ -236,7 +238,7 @@ public class KotlinParser implements Parser {
 
     @Override
     public Path sourcePathFromSourceText(Path prefix, String sourceCode) {
-        return prefix.resolve("openRewriteFile.kt");
+        return prefix.resolve(isKotlinScript ? "openRewriteFile.kts" : "openRewriteFile.kt");
     }
 
     public static Builder builder() {
@@ -255,6 +257,7 @@ public class KotlinParser implements Parser {
         private final List<NamedStyles> styles = new ArrayList<>();
         private String moduleName = "main";
         private KotlinLanguageLevel languageLevel = KotlinLanguageLevel.KOTLIN_1_9;
+        private boolean isKotlinScript = false;
 
         public Builder() {
             super(K.CompilationUnit.class);
@@ -262,6 +265,11 @@ public class KotlinParser implements Parser {
 
         public Builder logCompilationWarningsAndErrors(boolean logCompilationWarningsAndErrors) {
             this.logCompilationWarningsAndErrors = logCompilationWarningsAndErrors;
+            return this;
+        }
+
+        public Builder isKotlinScript(boolean isKotlinScript) {
+            this.isKotlinScript = isKotlinScript;
             return this;
         }
 
@@ -315,7 +323,7 @@ public class KotlinParser implements Parser {
         }
 
         public KotlinParser build() {
-            return new KotlinParser(resolvedClasspath(), styles, logCompilationWarningsAndErrors, typeCache, moduleName, languageLevel);
+            return new KotlinParser(resolvedClasspath(), styles, logCompilationWarningsAndErrors, typeCache, moduleName, languageLevel, isKotlinScript);
         }
 
         @Override
@@ -359,7 +367,16 @@ public class KotlinParser implements Parser {
         List<KotlinSource> kotlinSources = new ArrayList<>(sources.size());
         for (int i = 0; i < sources.size(); i++) {
             Parser.Input source = sources.get(i);
-            String fileName = "openRewriteFile.kt".equals(source.getPath().toString()) ? "openRewriteFile" + i + ".kt" : source.getPath().toString();
+            String fileName;
+
+            if ("openRewriteFile.kt".equals(source.getPath().toString())) {
+                fileName = "openRewriteFile" + i + ".kt";
+            } else if ("openRewriteFile.kts".equals(source.getPath().toString())) {
+                fileName = "openRewriteFile" + i + ".kts";
+            } else {
+                fileName = source.getPath().toString();
+            }
+
             VirtualFile vFile = new LightVirtualFile(fileName, KotlinFileType.INSTANCE, source.getSource(ctx).readFully());
             final FileViewProvider fileViewProvider = new SingleRootFileViewProvider(
                     PsiManager.getInstance(environment.getProject()),
