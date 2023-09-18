@@ -78,6 +78,7 @@ class AutodetectTest implements RewriteTest {
 
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(5);
     }
+
     @Test
     void continuationIndentFromChainedCalls() {
         var cus = kp().parse(
