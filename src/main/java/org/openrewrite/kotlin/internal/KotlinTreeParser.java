@@ -116,6 +116,12 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         List<JRightPadded<J.Import>> imports = new ArrayList<>();
         List<JRightPadded<Statement>> statements = new ArrayList<>();
 
+        if (file.getPackageDirective() != null && file.getPackageDirective().getPackageNameExpression() != null) {
+            throw new UnsupportedOperationException("TODO");
+        } else if (!file.getImportDirectives().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         List<KtDeclaration> declarations = file.getDeclarations();
         for (int i = 0; i < declarations.size(); i++) {
             KtDeclaration declaration = declarations.get(i);
