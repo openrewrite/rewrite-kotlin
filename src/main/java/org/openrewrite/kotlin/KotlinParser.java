@@ -61,6 +61,9 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaSourceSet;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
+import org.openrewrite.java.tree.TypedTree;
 import org.openrewrite.kotlin.internal.*;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.style.NamedStyles;
@@ -165,13 +168,14 @@ public class KotlinParser implements Parser {
                                         SourceFile kcu = null;
                                         try {
                                             // PSI based parser
-                                            PsiElementAssociations psiFirMapping = new PsiElementAssociations(new KotlinTypeMapping(typeCache, firSession));
+                                            KotlinTypeMapping typeMapping = new KotlinTypeMapping(typeCache, firSession);
+                                            PsiElementAssociations psiFirMapping = new PsiElementAssociations(typeMapping);
                                             psiFirMapping.initialize(kotlinSource.getFirFile());
 
                                             // debug purpose only, to be removed
                                             System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
 
-                                            KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, psiFirMapping, styles, relativeTo, ctx);
+                                            KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, typeMapping, psiFirMapping, styles, relativeTo, ctx);
                                             kcu = psiParser.parse(ctx);
                                         } catch (UnsupportedOperationException ignore) {
                                         }
@@ -191,6 +195,21 @@ public class KotlinParser implements Parser {
                                             kcu = kcu1;
                                         } else {
                                             // TODO compare kcu and kcu1
+                                            KotlinIsoVisitor<List<JavaType>> typeCollector = new KotlinIsoVisitor<List<JavaType>>() {
+                                                @Override
+                                                public @Nullable J visit(@Nullable Tree tree, List<JavaType> types) {
+                                                    if (tree instanceof TypedTree) {
+                                                        types.add(((TypedTree) tree).getType());
+                                                    }
+                                                    return super.visit(tree, types);
+                                                }
+                                            };
+                                            List<JavaType> types = typeCollector.reduce(kcu, new ArrayList<>());
+                                            List<JavaType> types1 = typeCollector.reduce(kcu1, new ArrayList<>());
+                                            if (!types.equals(types1)) {
+                                                // TODO this probably needs some refinement
+                                                throw new AssertionError("Incorrect type attribution");
+                                            }
                                         }
 
                                         parsingListener.parsed(kotlinSource.getInput(), kcu);

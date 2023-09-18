@@ -25,8 +25,11 @@ import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.fir.declarations.FirVariable;
+import org.jetbrains.kotlin.fir.expressions.FirConstExpression;
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
+import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
+import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
 import org.jetbrains.kotlin.psi.*;
@@ -37,6 +40,7 @@ import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinTypeMapping;
 import org.openrewrite.kotlin.marker.OmitBraces;
 import org.openrewrite.kotlin.marker.TypeReferencePrefix;
 import org.openrewrite.kotlin.tree.K;
@@ -60,6 +64,7 @@ import static org.openrewrite.Tree.randomId;
 @SuppressWarnings("UnstableApiUsage")
 public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     private final KotlinSource kotlinSource;
+    private final KotlinTypeMapping typeMapping;
     private final PsiElementAssociations psiElementAssociations;
     private final List<NamedStyles> styles;
     private final Path sourcePath;
@@ -70,11 +75,13 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     private final FirFile currentFile;
 
     public KotlinTreeParser(KotlinSource kotlinSource,
+                            KotlinTypeMapping typeMapping,
                             PsiElementAssociations psiElementAssociations,
                             List<NamedStyles> styles,
                             @Nullable Path relativeTo,
                             ExecutionContext ctx) {
         this.kotlinSource = kotlinSource;
+        this.typeMapping = typeMapping;
         this.psiElementAssociations = psiElementAssociations;
         this.styles = styles;
         sourcePath = kotlinSource.getInput().getRelativePath(relativeTo);
@@ -363,7 +370,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 value,
                 expression.getText(),
                 null,
-                JavaType.Primitive.Int
+                primitiveType(expression)
         );
     }
 
@@ -416,6 +423,10 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     @Nullable
     private JavaType type(PsiElement psi) {
         return psiElementAssociations.type(psi, currentFile.getSymbol());
+    }
+
+    private JavaType.Primitive primitiveType(KtConstantExpression expression) {
+        return typeMapping.primitive((ConeClassLikeType) ((FirResolvedTypeRef) ((FirConstExpression<?>) psiElementAssociations.primary(expression)).getTypeRef()).getType());
     }
 
     @Nullable
