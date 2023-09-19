@@ -128,6 +128,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public J visitClassDeclaration(K.ClassDeclaration classDeclaration, PrintOutputCapture<P> p) {
+        return delegate.visitClassDeclaration0(classDeclaration.getClassDeclaration(), classDeclaration.getTypeConstraints(), p);
+    }
+
+    @Override
     public J visitConstructor(K.Constructor constructor, PrintOutputCapture<P> p) {
         J.MethodDeclaration method = constructor.getMethodDeclaration();
 
@@ -561,6 +566,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         @Override
         public J visitClassDeclaration(J.ClassDeclaration classDecl, PrintOutputCapture<P> p) {
+            return visitClassDeclaration0(classDecl, null, p);
+        }
+
+        @NotNull
+        private J.ClassDeclaration visitClassDeclaration0(J.ClassDeclaration classDecl, @Nullable K.TypeConstraints typeConstraints, PrintOutputCapture<P> p) {
             beforeSyntax(classDecl, Space.Location.CLASS_DECLARATION_PREFIX, p);
             visit(classDecl.getLeadingAnnotations(), p);
             for (J.Modifier m : classDecl.getModifiers()) {
@@ -634,6 +644,10 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                     }
                 }
                 afterSyntax(container.getMarkers(), p);
+            }
+
+            if (typeConstraints != null) {
+                visitContainer("where", typeConstraints.getPadding().getConstraints(), JContainer.Location.TYPE_PARAMETERS, ",", "", p);
             }
 
             if (!classDecl.getBody().getMarkers().findFirst(OmitBraces.class).isPresent()) {
