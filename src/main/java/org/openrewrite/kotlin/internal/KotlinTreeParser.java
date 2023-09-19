@@ -330,7 +330,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
         return new J.Block(
                 randomId(),
-                prefix(classBody),    // FIXME
+                prefix(classBody),
                 Markers.EMPTY,
                 padRight(false, Space.EMPTY),
                 classBody.getDeclarations().stream()
@@ -338,7 +338,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                         .map(Statement.class::cast)
                         .map(JRightPadded::build)
                         .collect(Collectors.toList()),
-                Space.EMPTY
+                prefix(classBody.getRBrace())
         );
     }
 
@@ -372,11 +372,8 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         KtValueArgumentList ktArgs = declaration.getSuperTypeList().getEntries().get(0).getStubOrPsiChild(KtStubElementTypes.VALUE_ARGUMENT_LIST);
         if (ktArgs.getArguments().isEmpty()) {
             args = JContainer.build(
-                    Space.EMPTY,
-                    singletonList(
-                            padRight(
-                                    new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY), Space.EMPTY
-                            )
+                    prefix(ktArgs),
+                    singletonList(padRight(new J.Empty(randomId(), prefix(ktArgs.getRightParenthesis()), Markers.EMPTY), Space.EMPTY)
                     ), Markers.EMPTY
             );
         } else {
@@ -393,10 +390,10 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
         return new J.NewClass(
                 randomId(),
-                Space.EMPTY,   // todo
+                Space.EMPTY,
                 markers,
                 null,
-                Space.EMPTY,   // todo
+                prefix(declaration.getSuperTypeList()),
                 clazz,
                 args,
                 body,
