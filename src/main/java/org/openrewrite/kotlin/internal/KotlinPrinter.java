@@ -946,7 +946,12 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             KObject kObject = newClass.getMarkers().findFirst(KObject.class).orElse(null);
             if (kObject != null) {
                 p.append("object");
-                kotlinPrinter.visitSpace(kObject.getSuffix(), KSpace.Location.OBJECT_PREFIX, p);
+                kotlinPrinter.visitSpace(kObject.getPrefix(), KSpace.Location.OBJECT_PREFIX, p);
+            }
+
+            TypeReferencePrefix typeReferencePrefix = newClass.getMarkers().findFirst(TypeReferencePrefix.class).orElse(null);
+            if (typeReferencePrefix != null) {
+                kotlinPrinter.visitSpace(typeReferencePrefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p);
             }
 
             if (kObject != null && newClass.getClazz() != null) {

@@ -563,7 +563,8 @@ class KotlinParserVisitor(
         var clazz: TypeTree? = null
         if (skip("object")) {
             val objectSuffix = whitespace()
-            markers = markers.addIfAbsent(KObject(randomId(), objectSuffix))
+            markers = markers.addIfAbsent(KObject(randomId(), Space.EMPTY))
+            markers = markers.addIfAbsent(TypeReferencePrefix(randomId(), objectSuffix))
             if (skip(":")) {
                 typeExpressionPrefix = whitespace()
                 clazz = visitElement(anonymousObject.superTypeRefs[0], data) as TypeTree?

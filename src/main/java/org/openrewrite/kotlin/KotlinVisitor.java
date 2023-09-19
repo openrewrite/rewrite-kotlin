@@ -403,7 +403,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
             m = ins.withPrefix(visitSpace(ins.getPrefix(), KSpace.Location.IS_NULLABLE_PREFIX, p));
         } else if (marker instanceof KObject) {
             KObject ko = (KObject) marker;
-            m = ko.withSuffix(visitSpace(ko.getSuffix(), KSpace.Location.OBJECT_PREFIX, p));
+            m = ko.withPrefix(visitSpace(ko.getPrefix(), KSpace.Location.OBJECT_PREFIX, p));
         } else if (marker instanceof SpreadArgument) {
             SpreadArgument sa = (SpreadArgument) marker;
             m = sa.withPrefix(visitSpace(sa.getPrefix(), KSpace.Location.SPREAD_ARGUMENT_PREFIX, p));
