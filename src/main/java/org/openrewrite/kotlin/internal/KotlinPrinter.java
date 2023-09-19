@@ -198,7 +198,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         }
 
         if (!destructuringDeclaration.getInitializer().getVariables().isEmpty() &&
-            destructuringDeclaration.getInitializer().getVariables().get(0).getPadding().getInitializer() != null) {
+                destructuringDeclaration.getInitializer().getVariables().get(0).getPadding().getInitializer() != null) {
             visitSpace(Objects.requireNonNull(destructuringDeclaration.getInitializer().getVariables().get(0).getPadding()
                     .getInitializer()).getBefore(), Space.Location.LANGUAGE_EXTENSION, p);
             p.append("=");
@@ -340,14 +340,14 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         Extension extension = vd.getMarkers().findFirst(Extension.class).orElse(null);
         if (extension != null) {
             if (property.getSetter() != null &&
-                !property.getSetter().getParameters().isEmpty() &&
-                property.getSetter().getParameters().get(0) instanceof J.VariableDeclarations) {
+                    !property.getSetter().getParameters().isEmpty() &&
+                    property.getSetter().getParameters().get(0) instanceof J.VariableDeclarations) {
                 visit(((J.VariableDeclarations) property.getSetter().getParameters().get(0)).getTypeExpression(), p);
                 delegate.visitSpace(property.getSetter().getPadding().getParameters().getPadding().getElements().get(0).getAfter(), Space.Location.LANGUAGE_EXTENSION, p);
                 p.append(".");
             } else if (property.getGetter() != null &&
-                       !property.getGetter().getParameters().isEmpty() &&
-                       property.getGetter().getParameters().get(0) instanceof J.VariableDeclarations) {
+                    !property.getGetter().getParameters().isEmpty() &&
+                    property.getGetter().getParameters().get(0) instanceof J.VariableDeclarations) {
                 visit(((J.VariableDeclarations) property.getGetter().getParameters().get(0)).getTypeExpression(), p);
                 delegate.visitSpace(property.getGetter().getPadding().getParameters().getPadding().getElements().get(0).getAfter(), Space.Location.LANGUAGE_EXTENSION, p);
                 p.append(".");
@@ -605,8 +605,8 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             if (classDecl.getMarkers().findFirst(PrimaryConstructor.class).isPresent()) {
                 for (Statement statement : classDecl.getBody().getStatements()) {
                     if (statement instanceof J.MethodDeclaration &&
-                        statement.getMarkers().findFirst(PrimaryConstructor.class).isPresent() &&
-                        !statement.getMarkers().findFirst(Implicit.class).isPresent()) {
+                            statement.getMarkers().findFirst(PrimaryConstructor.class).isPresent() &&
+                            !statement.getMarkers().findFirst(Implicit.class).isPresent()) {
                         J.MethodDeclaration method = (J.MethodDeclaration) statement;
                         beforeSyntax(method, Space.Location.METHOD_DECLARATION_PREFIX, p);
                         visit(method.getLeadingAnnotations(), p);
@@ -1029,6 +1029,9 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                     delimiter = "in";
                 }
             } else if (typeParam.getBounds() != null && !typeParam.getBounds().isEmpty()) {
+                typeParam.getMarkers().findFirst(TypeReferencePrefix.class).ifPresent(prefix ->
+                        kotlinPrinter.visitSpace(prefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p)
+                );
                 delimiter = ":";
             }
             visitContainer(delimiter, typeParam.getPadding().getBounds(), JContainer.Location.TYPE_BOUNDS, "&", "", p);

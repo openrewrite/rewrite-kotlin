@@ -4091,11 +4091,11 @@ class KotlinParserVisitor(
                         J.TypeParameter(
                                 randomId(),
                                 paramPrefix,
-                                Markers.EMPTY,
+                                Markers.EMPTY.addIfAbsent(TypeReferencePrefix(randomId(),colon)),
                                 annotations,
                                 typeParamName,
                                 JContainer.build(
-                                        colon,
+                                        Space.EMPTY,
                                         listOf(padRight(visitElement(bound!!, data) as TypeTree, null)),
                                         Markers.EMPTY
                                 )
@@ -4104,7 +4104,11 @@ class KotlinParserVisitor(
                 )
                 skip(",")
             }
-            typeConstraints = K.TypeConstraints(randomId(), Markers.EMPTY, JContainer.build(before, params, Markers.EMPTY))
+            typeConstraints = K.TypeConstraints(
+                    randomId(),
+                    Markers.EMPTY,
+                    JContainer.build(before, params, Markers.EMPTY)
+            )
         }
 
         saveCursor = cursor

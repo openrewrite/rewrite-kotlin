@@ -314,6 +314,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
     public J visitTypeConstraints(K.TypeConstraints typeConstraints, P p) {
         K.TypeConstraints t = typeConstraints;
         t = t.withMarkers(visitMarkers(t.getMarkers(), p));
+        t = t.getPadding().withConstraints(visitContainer(t.getPadding().getConstraints(), p));
         return t;
     }
 
