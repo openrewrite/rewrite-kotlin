@@ -32,9 +32,12 @@ import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
+import org.jetbrains.kotlin.lexer.KtToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
 import org.jetbrains.kotlin.psi.*;
+import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
+import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
 import org.openrewrite.Tree;
@@ -43,6 +46,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinTypeMapping;
+import org.openrewrite.kotlin.marker.KObject;
 import org.openrewrite.kotlin.marker.OmitBraces;
 import org.openrewrite.kotlin.marker.TypeReferencePrefix;
 import org.openrewrite.kotlin.tree.K;
@@ -53,6 +57,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -312,8 +317,17 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         if (!classBody.getDeclarations().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
         } else if (classBody.getLBrace() != null && classBody.getLBrace().getNextSibling() != classBody.getRBrace()) {
-            throw new UnsupportedOperationException("TODO");
+            boolean isEmptyBody = getAllChildren(classBody).stream().noneMatch(child ->
+                    !isSpace(child.getNode()) &&
+                    child.getNode().getElementType() != KtTokens.LBRACE &&
+                    child.getNode().getElementType() != KtTokens.RBRACE
+            );
+
+            if (!isEmptyBody) {
+                throw new UnsupportedOperationException("TODO");
+            }
         }
+
         return new J.Block(
                 randomId(),
                 prefix(classBody),    // FIXME
@@ -343,6 +357,51 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitNamedFunction(@NotNull KtNamedFunction function, ExecutionContext data) {
         throw new UnsupportedOperationException("KtNamedFunction");
+    }
+
+    @Override
+    public J visitObjectLiteralExpression(@NotNull KtObjectLiteralExpression expression, ExecutionContext data) {
+        return expression.getObjectDeclaration().accept(this, data).withPrefix(prefix(expression));
+    }
+
+    @Override
+    public J visitObjectDeclaration(@NotNull KtObjectDeclaration declaration, ExecutionContext data) {
+        TypeTree clazz = null;
+        Markers markers = Markers.EMPTY;
+        JContainer<Expression> args = null;
+        KtValueArgumentList ktArgs = declaration.getSuperTypeList().getEntries().get(0).getStubOrPsiChild(KtStubElementTypes.VALUE_ARGUMENT_LIST);
+        if (ktArgs.getArguments().isEmpty()) {
+            args = JContainer.build(
+                    Space.EMPTY,
+                    singletonList(
+                            padRight(
+                                    new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY), Space.EMPTY
+                            )
+                    ), Markers.EMPTY
+            );
+        } else {
+            throw new UnsupportedOperationException("TODO, support multiple ObjectDeclaration arguments");
+        }
+
+        J.Block body = (J.Block) declaration.getBody().accept(this, data);
+
+        if (declaration.getObjectKeyword() != null) {
+            markers = markers.add(new KObject(randomId(), prefix(declaration.getObjectKeyword())));
+        }
+
+        clazz = (TypeTree) declaration.getSuperTypeList().accept(this, data);
+
+        return new J.NewClass(
+                randomId(),
+                Space.EMPTY,   // todo
+                markers,
+                null,
+                Space.EMPTY,   // todo
+                clazz,
+                args,
+                body,
+                null
+        );
     }
 
     @Override
@@ -433,10 +492,25 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 Space.EMPTY,
                 Markers.EMPTY,
                 leaf.getText(),
-                "\"" + leaf.getText() + "\"",
+                "\"" + leaf.getText() + "\"", // todo, support text block
                 null,
                 primitiveType(entry)
         );
+    }
+
+    @Override
+    public J visitSuperTypeList(@NotNull KtSuperTypeList list, ExecutionContext data) {
+        List<KtSuperTypeListEntry> typeListEntries = list.getEntries();
+
+        if (typeListEntries.size() > 1) {
+            throw new UnsupportedOperationException("KtSuperTypeList size is bigger than 1, TODO");
+        }
+        return typeListEntries.get(0).accept(this, data);
+    }
+
+    @Override
+    public J visitSuperTypeCallEntry(@NotNull KtSuperTypeCallEntry call, ExecutionContext data) {
+        return call.getTypeReference().accept(this, data);
     }
 
     @Override
@@ -682,6 +756,16 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     @Nullable
     private PsiElement next(PsiElement node) {
         return PsiTreeUtil.nextLeaf(node);
+    }
+
+    private List<PsiElement> getAllChildren(PsiElement parent) {
+        List<PsiElement> children = new ArrayList<>();
+        Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(parent).iterator();
+        while (iterator.hasNext()) {
+            PsiElement it = iterator.next();
+            children.add(it);
+        }
+        return children;
     }
 
     @Nullable
