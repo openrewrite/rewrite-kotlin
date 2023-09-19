@@ -333,6 +333,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         Extension extension = vd.getMarkers().findFirst(Extension.class).orElse(null);
         if (extension != null) {
+            if (property.getReceiverName() != null) {
+                visitRightPadded(property.getPadding().getReceiverName(), p);
+                p.append(".");
+            }
+
             if (property.getSetter() != null &&
                 !property.getSetter().getParameters().isEmpty() &&
                 property.getSetter().getParameters().get(0) instanceof J.VariableDeclarations) {

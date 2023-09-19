@@ -1418,7 +1418,17 @@ public interface K extends J {
 
         boolean isSetterFirst;
 
-        public Property(UUID id, Space prefix, Markers markers, @Nullable JContainer<TypeParameter> typeParameters, VariableDeclarations variableDeclarations, @Nullable J.MethodDeclaration getter, @Nullable J.MethodDeclaration setter, boolean isSetterFirst) {
+        @Nullable
+        JRightPadded<J> receiverName;
+
+        @Nullable
+        public J getReceiverName() {
+            return receiverName == null ? null : receiverName.getElement();
+        }
+
+        public Property(UUID id, Space prefix, Markers markers, @Nullable JContainer<TypeParameter> typeParameters, VariableDeclarations variableDeclarations,
+                        @Nullable J.MethodDeclaration getter, @Nullable J.MethodDeclaration setter, boolean isSetterFirst,
+                        @Nullable JRightPadded<J> receiverName) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
@@ -1427,6 +1437,7 @@ public interface K extends J {
             this.getter = getter;
             this.setter = setter;
             this.isSetterFirst = isSetterFirst;
+            this.receiverName = receiverName;
         }
 
         @Override
@@ -1470,7 +1481,17 @@ public interface K extends J {
             }
 
             public Property withTypeParameters(@Nullable JContainer<TypeParameter> typeParameters) {
-                return t.typeParameters == typeParameters ? t : new Property(t.id, t.prefix, t.markers, typeParameters, t.variableDeclarations, t.getter, t.setter, t.isSetterFirst);
+                return t.typeParameters == typeParameters ? t : new Property(t.id, t.prefix, t.markers, typeParameters, t.variableDeclarations, t.getter, t.setter, t.isSetterFirst, t.receiverName);
+            }
+
+            @Nullable
+            public JRightPadded<J> getReceiverName() {
+                return t.receiverName;
+            }
+
+            @Nullable
+            public Property withReceiverName(@Nullable JRightPadded<J> receiverName) {
+                return t.receiverName == receiverName ? t : new Property(t.id, t.prefix, t.markers, t.typeParameters, t.variableDeclarations, t.getter, t.setter, t.isSetterFirst, receiverName);
             }
         }
     }

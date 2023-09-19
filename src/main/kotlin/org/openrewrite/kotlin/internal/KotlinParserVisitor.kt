@@ -2025,24 +2025,13 @@ class KotlinParserVisitor(
             )
         }
 
-        var receiver: JRightPadded<Statement>? = null
+        var receiver : JRightPadded<J>? = null
         if (property.receiverParameter != null) {
             // Generates a VariableDeclaration to represent the receiver similar to how it is done in the Kotlin compiler.
-            val receiverName = visitElement(property.receiverParameter!!, data) as TypeTree
+            val name = visitElement(property.receiverParameter!!, data)
+            receiver = padRight(name!!, whitespace())
             markers = markers.addIfAbsent(Extension(randomId()))
-            receiver = padRight(
-                J.VariableDeclarations(
-                    randomId(),
-                    Space.EMPTY,
-                    Markers.EMPTY,
-                    emptyList(),
-                    emptyList(),
-                    receiverName,
-                    null,
-                    emptyList(),
-                    emptyList()
-                ), sourceBefore(".")
-            )
+            skip(".")
         }
         val variables: MutableList<JRightPadded<J.VariableDeclarations.NamedVariable>>
         var getter: J.MethodDeclaration? = null
@@ -2123,16 +2112,6 @@ class KotlinParserVisitor(
                     setter = visitElement(property.setter!!, data) as J.MethodDeclaration
                 }
             }
-            if (receiver != null) {
-                if (getter == null) {
-                    getter = createImplicitMethodDeclaration("get")
-                }
-                getter = getter.padding.withParameters(getter.padding.parameters.padding.withElements(listOf(receiver)))
-                if (setter == null) {
-                    setter = createImplicitMethodDeclaration("set")
-                }
-                setter = setter.padding.withParameters(setter.padding.parameters.padding.withElements(listOf(receiver)))
-            }
         }
         val namedVariable = maybeSemicolon(
             J.VariableDeclarations.NamedVariable(
@@ -2158,7 +2137,7 @@ class KotlinParserVisitor(
             emptyList(),
             variables
         )
-        return if (getter == null && setter == null) variableDeclarations else K.Property(
+        return if (getter == null && setter == null && receiver == null) variableDeclarations else K.Property(
             randomId(),
             variableDeclarations.prefix,
             Markers.EMPTY,
@@ -2166,7 +2145,8 @@ class KotlinParserVisitor(
             variableDeclarations.withPrefix(Space.EMPTY),
             getter,
             setter,
-            isSetterFirst
+            isSetterFirst,
+            receiver
         )
     }
 
