@@ -383,7 +383,8 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         J.Block body = (J.Block) declaration.getBody().accept(this, data);
 
         if (declaration.getObjectKeyword() != null) {
-            markers = markers.add(new KObject(randomId(), prefix(declaration.getObjectKeyword())));
+            markers = markers.add(new KObject(randomId(), Space.EMPTY));
+            markers = markers.add(new TypeReferencePrefix(randomId(), prefix(declaration.getColon())));
         }
 
         clazz = (TypeTree) declaration.getSuperTypeList().accept(this, data);
