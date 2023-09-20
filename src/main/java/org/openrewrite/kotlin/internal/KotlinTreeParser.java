@@ -32,7 +32,6 @@ import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
-import org.jetbrains.kotlin.lexer.KtToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
 import org.jetbrains.kotlin.psi.*;
@@ -471,6 +470,11 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
+        boolean hasDelegation = getAllChildren(property).stream().anyMatch(child -> child instanceof KtPropertyDelegate);
+        if (hasDelegation) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         return new J.VariableDeclarations(
                 Tree.randomId(),
                 Space.EMPTY, // overlaps with right-padding of previous statement
@@ -482,6 +486,11 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 Collections.emptyList(),
                 variables
         );
+    }
+
+    @Override
+    public J visitPropertyDelegate(@NotNull KtPropertyDelegate delegate, ExecutionContext data) {
+        throw new UnsupportedOperationException("Unsupported KtPropertyDelegate");
     }
 
     @Override
