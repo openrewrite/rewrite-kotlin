@@ -143,13 +143,8 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         for (int i = 0; i < declarations.size(); i++) {
             boolean last = i == declarations.size() - 1;
             KtDeclaration declaration = declarations.get(i);
-            if (declaration instanceof KtProperty || declaration instanceof KtClass) {
-                Statement statement = (Statement) declaration.accept(this, data);
-                statement = statement.withPrefix(prefix(declaration));
-                statements.add(padRight(statement, last ? suffix(declaration) : Space.EMPTY));
-            } else {
-                throw new UnsupportedOperationException("Unsupported PSI type :" + declaration.getNode().getElementType());
-            }
+            Statement statement = convertToStatement(declaration.accept(this, data).withPrefix(prefix(declaration)));
+            statements.add(padRight(statement, last ? suffix(declaration) : Space.EMPTY));
         }
 
         return new K.CompilationUnit(
@@ -314,28 +309,15 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClassBody(@NotNull KtClassBody classBody, ExecutionContext data) {
-        if (!classBody.getDeclarations().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
-        } else if (classBody.getLBrace() != null && classBody.getLBrace().getNextSibling() != classBody.getRBrace()) {
-            boolean isEmptyBody = getAllChildren(classBody).stream().noneMatch(child ->
-                    !isSpace(child.getNode()) &&
-                    child.getNode().getElementType() != KtTokens.LBRACE &&
-                    child.getNode().getElementType() != KtTokens.RBRACE
-            );
-
-            if (!isEmptyBody) {
-                throw new UnsupportedOperationException("TODO");
-            }
-        }
-
         return new J.Block(
                 randomId(),
                 prefix(classBody),
                 Markers.EMPTY,
                 padRight(false, Space.EMPTY),
                 classBody.getDeclarations().stream()
-                        .map(d -> d.accept(this, data))
-                        .map(Statement.class::cast)
+                        .map(d -> d.accept(this, data).withPrefix(prefix(d)))
+                        .map(J.class::cast)
+                        .map(this::convertToStatement)
                         .map(JRightPadded::build)
                         .collect(Collectors.toList()),
                 prefix(classBody.getRBrace())
@@ -356,7 +338,34 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitNamedFunction(@NotNull KtNamedFunction function, ExecutionContext data) {
-        throw new UnsupportedOperationException("KtNamedFunction");
+        throw new UnsupportedOperationException("Unsupported KtNamedFunction");
+//
+//        Markers markers = Markers.EMPTY;
+//        List<J.Annotation> leadingAnnotations = new ArrayList<>();
+//        List<J.Modifier> modifiers = new ArrayList<>();
+//        J.TypeParameters typeParameters = null;
+//        TypeTree returnTypeExpression = null;
+//
+//        J.Identifier name = null;
+//        JContainer<Statement> params = null;
+//        J.Block body = null;
+//        JavaType.Method methodType = null;
+//
+//        return new J.MethodDeclaration(
+//                randomId(),
+//                Space.EMPTY,
+//                markers,
+//                leadingAnnotations,
+//                modifiers,
+//                typeParameters,
+//                returnTypeExpression,
+//                new J.MethodDeclaration.IdentifierWithAnnotations(name, emptyList()),
+//                params,
+//                null,
+//                body,
+//                null,
+//                methodType
+//        );
     }
 
     @Override
@@ -474,6 +483,18 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         KtStringTemplateEntry[] entries = expression.getEntries();
         if (entries.length > 1) {
             throw new UnsupportedOperationException("Unsupported constant expression elementType, TODO");
+        }
+
+        if (entries.length == 0) {
+            return new J.Literal(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    "",
+                    expression.getText(),
+                    null,
+                    primitiveType(expression)
+            );
         }
         return entries[0].accept(this, data).withPrefix(prefix(expression));
     }
