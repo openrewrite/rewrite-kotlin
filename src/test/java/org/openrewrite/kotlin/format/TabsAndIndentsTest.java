@@ -2072,7 +2072,6 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Issue("https://github.com/openrewrite/rewrite/issues/1526")
     @Test
     void doNotFormatSingleLineCommentAtCol0() {

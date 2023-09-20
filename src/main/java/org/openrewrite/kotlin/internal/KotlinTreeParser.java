@@ -25,8 +25,10 @@ import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.PsiErrorElementImp
 import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.ClassMembersKt;
+import org.jetbrains.kotlin.fir.FirElement;
 import org.jetbrains.kotlin.fir.FirSession;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
+import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
 import org.jetbrains.kotlin.fir.declarations.FirVariable;
 import org.jetbrains.kotlin.fir.expressions.FirConstExpression;
 import org.jetbrains.kotlin.fir.resolve.LookupTagUtilsKt;
@@ -63,7 +65,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -138,13 +139,21 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         KtPackageDirective packageDirective = file.getPackageDirective();
         J.Package aPackage = (J.Package) packageDirective.accept(this, data);
         @Nullable JRightPadded<J.Package> packageDeclaration = aPackage != null ?
-                padRight(aPackage, suffix(packageDirective), maybeSemicolon(packageDirective)) : null;
+                maybeSemicolon(aPackage, packageDirective) : null;
 
         List<JRightPadded<J.Import>> imports = new ArrayList<>();
         List<JRightPadded<Statement>> statements = new ArrayList<>();
 
         if (!file.getImportDirectives().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
+            List<KtImportDirective> importDirectives = file.getImportDirectives();
+            for (int i = 0; i < importDirectives.size(); i++) {
+                KtImportDirective importDirective = importDirectives.get(i);
+                J.Import anImport = (J.Import) importDirective.accept(this, data);
+                if (i == 0) {
+                    anImport = anImport.withPrefix(prefix(file.getImportList()));
+                }
+                imports.add(maybeSemicolon(anImport, importDirective));
+            }
         } else if (!file.getAnnotationEntries().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
         }
@@ -183,9 +192,9 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
         return new J.Binary(
                 randomId(),
-                space(expression.getFirstChild()),
+                prefix(expression),
                 Markers.EMPTY,
-                convertToExpression(expression.getLeft().accept(this, data)),
+                convertToExpression(expression.getLeft().accept(this, data)).withPrefix(Space.EMPTY),
                 padLeft(prefix(expression.getOperationReference()), mapBinaryType(expression.getOperationReference())),
                 convertToExpression((expression.getRight()).accept(this, data))
                         .withPrefix(prefix(expression.getRight())),
@@ -195,16 +204,19 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitBlockExpression(KtBlockExpression expression, ExecutionContext data) {
-        List<JRightPadded<Statement>> statements = expression.getStatements().stream()
-                .map(s -> s.accept(this, data))
-                .map(this::convertToStatement)
-                .map(JRightPadded::build)
-                .collect(Collectors.toList());
+        List<JRightPadded<Statement>> statements = new ArrayList<>();
+        for (KtExpression s : expression.getStatements()) {
+            J accepted = s.accept(this, data);
+            Statement statement = convertToStatement(accepted);
+            JRightPadded<Statement> build = maybeSemicolon(statement, s);
+            statements.add(build);
+        }
 
+        boolean hasBraces = expression.getLBrace() != null;
         return new J.Block(
                 randomId(),
-                Space.EMPTY,
-                Markers.EMPTY, // todo, maybe(OmitBraces(randomId())),
+                prefix(expression.getLBrace()),
+                hasBraces ? Markers.EMPTY : Markers.EMPTY.addIfAbsent(new OmitBraces(randomId())),
                 JRightPadded.build(false),
                 statements,
                 prefix(expression.getRBrace())
@@ -324,18 +336,32 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClassBody(KtClassBody classBody, ExecutionContext data) {
+        List<JRightPadded<Statement>> list = new ArrayList<>();
+        for (KtDeclaration d : classBody.getDeclarations()) {
+            J j = d.accept(this, data).withPrefix(prefix(d));
+            Statement statement = convertToStatement(j);
+            JRightPadded<Statement> build = maybeSemicolon(statement, d);
+            list.add(build);
+        }
         return new J.Block(
                 randomId(),
                 prefix(classBody),
                 Markers.EMPTY,
                 padRight(false, Space.EMPTY),
-                classBody.getDeclarations().stream()
-                        .map(d -> d.accept(this, data).withPrefix(prefix(d)))
-                        .map(J.class::cast)
-                        .map(this::convertToStatement)
-                        .map(JRightPadded::build)
-                        .collect(Collectors.toList()),
+                list,
                 prefix(classBody.getRBrace())
+        );
+    }
+
+    @Override
+    public J visitDotQualifiedExpression(KtDotQualifiedExpression expression, ExecutionContext data) {
+        return new J.FieldAccess(
+                randomId(),
+                prefix(expression),
+                Markers.EMPTY,
+                expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY),
+                padLeft(prefix(expression.getSelectorExpression()), (J.Identifier) expression.getSelectorExpression().accept(this, data)),
+                type(expression)
         );
     }
 
@@ -352,14 +378,44 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     }
 
     @Override
-    public J visitDotQualifiedExpression(KtDotQualifiedExpression expression, ExecutionContext data) {
-        return new J.FieldAccess(
+    public J visitImportDirective(KtImportDirective importDirective, ExecutionContext data) {
+        FirElement firElement = psiElementAssociations.primary(importDirective);
+        boolean hasParentClassId = firElement instanceof FirResolvedImport && ((FirResolvedImport) firElement).getResolvedParentClassId() != null;
+        JLeftPadded<Boolean> statik = padLeft(Space.EMPTY, hasParentClassId);
+        KtImportAlias alias = importDirective.getAlias();
+        J reference = importDirective.getImportedReference().accept(this, data);
+        if (importDirective.isAllUnder()) {
+            reference = new J.FieldAccess(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    (Expression) reference,
+                    padLeft(Space.EMPTY, createIdentifier(
+                            "*",
+                            prefix((PsiElement) importDirective.getNode().findChildByType(KtTokens.MUL)),
+                            null
+                    )),
+                    null
+            );
+        }
+        if (reference instanceof J.Identifier) {
+            reference = new J.FieldAccess(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY),
+                    padLeft(Space.EMPTY, (J.Identifier) reference),
+                    null
+            );
+        }
+
+        return new J.Import(
                 randomId(),
-                prefix(expression),
+                prefix(importDirective),
                 Markers.EMPTY,
-                (Expression) expression.getReceiverExpression().accept(this, data),
-                padLeft(prefix(expression.getSelectorExpression()), (J.Identifier) expression.getSelectorExpression().accept(this, data)),
-                type(expression)
+                statik,
+                ((J.FieldAccess) reference).withType(JavaType.ShallowClass.build(importDirective.getImportedFqName().toString())),
+                alias != null ? padLeft(prefix(alias), createIdentifier(alias.getNameIdentifier(), null)) : null
         );
     }
 
@@ -399,7 +455,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         modifiers.add(
                 new J.Modifier(
                         randomId(),
-                        prefix(function.getFunKeyword()),
+                        Space.EMPTY,
                         Markers.EMPTY,
                         "fun",
                         J.Modifier.Type.LanguageExtension,
@@ -438,7 +494,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
         return new J.MethodDeclaration(
                 randomId(),
-                Space.EMPTY,
+                prefix(function),
                 markers,
                 leadingAnnotations,
                 modifiers,
@@ -487,14 +543,14 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             markers = markers.add(new TypeReferencePrefix(randomId(), prefix(declaration.getColon())));
         }
 
-        clazz = (TypeTree) declaration.getSuperTypeList().accept(this, data);
+        clazz = declaration.getSuperTypeList().accept(this, data).withPrefix(Space.EMPTY);
 
         return new J.NewClass(
                 randomId(),
-                Space.EMPTY,
+                prefix(declaration),
                 markers,
                 null,
-                prefix(declaration.getSuperTypeList()),
+                suffix(declaration.getColon()),
                 clazz,
                 args,
                 body,
@@ -800,8 +856,11 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         );
     }
 
-    private Markers maybeSemicolon(KtElement element) {
-        return element.getLastChild() instanceof LeafPsiElement && ((LeafPsiElement) element.getLastChild()).getElementType() == KtTokens.SEMICOLON ? Markers.EMPTY.add(new Semicolon(randomId())) : Markers.EMPTY;
+    private <J2 extends J> JRightPadded<J2> maybeSemicolon(J2 j, KtElement element) {
+        PsiElement maybeSemicolon = element.getLastChild();
+        boolean hasSemicolon = maybeSemicolon instanceof LeafPsiElement && ((LeafPsiElement) maybeSemicolon).getElementType() == KtTokens.SEMICOLON;
+        return hasSemicolon ? new JRightPadded<>(j, prefix(maybeSemicolon),Markers.EMPTY.add(new Semicolon(randomId())))
+                : JRightPadded.build(j);
     }
 
     private <T> JLeftPadded<T> padLeft(Space left, T tree) {
@@ -843,6 +902,22 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         }
         while (whitespace.getPrevSibling() != null && isSpace(whitespace.getPrevSibling().getNode())) {
             whitespace = whitespace.getPrevSibling();
+        }
+        return space(whitespace);
+    }
+
+    private Space openPrefix(@Nullable PsiElement element) {
+        if (element == null) {
+            return Space.EMPTY;
+        }
+
+        PsiElement whitespace = prev(element);
+        if (whitespace == null || !isSpace(whitespace.getNode())) {
+            return Space.EMPTY;
+        }
+        PsiElement prev;
+        while ((prev = prev(whitespace)) != null && isSpace(prev.getNode())) {
+            whitespace = prev;
         }
         return space(whitespace);
     }
