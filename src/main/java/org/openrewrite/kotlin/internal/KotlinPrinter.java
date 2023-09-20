@@ -235,8 +235,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     public J visitFunctionTypeParameter(K.FunctionType.Parameter parameter, PrintOutputCapture<P> p) {
         if (parameter.getName() != null) {
             visit(parameter.getName(), p);
-            //noinspection DataFlowIssue
-            visitSpace(parameter.getColon(), KSpace.Location.FUNCTION_TYPE_PARAMETER_COLON, p);
+            parameter.getMarkers().findFirst(TypeReferencePrefix.class).ifPresent(tref -> visitSpace(tref.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p));
             p.append(":");
         }
         visit(parameter.getParameterType(), p);
@@ -941,13 +940,18 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         @Override
         public J visitNewClass(J.NewClass newClass, PrintOutputCapture<P> p) {
+            beforeSyntax(newClass, Space.Location.NEW_CLASS_PREFIX, p);
+
             KObject kObject = newClass.getMarkers().findFirst(KObject.class).orElse(null);
             if (kObject != null) {
-                kotlinPrinter.visitSpace(kObject.getPrefix(), KSpace.Location.OBJECT_PREFIX, p);
                 p.append("object");
+                kotlinPrinter.visitSpace(kObject.getPrefix(), KSpace.Location.OBJECT_PREFIX, p);
             }
 
-            beforeSyntax(newClass, Space.Location.NEW_CLASS_PREFIX, p);
+            TypeReferencePrefix typeReferencePrefix = newClass.getMarkers().findFirst(TypeReferencePrefix.class).orElse(null);
+            if (typeReferencePrefix != null) {
+                kotlinPrinter.visitSpace(typeReferencePrefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p);
+            }
 
             if (kObject != null && newClass.getClazz() != null) {
                 p.append(":");
