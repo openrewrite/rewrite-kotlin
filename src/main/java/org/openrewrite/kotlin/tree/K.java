@@ -1522,6 +1522,9 @@ public interface K extends J {
         J.VariableDeclarations variableDeclarations;
 
         @Nullable
+        TypeConstraints typeConstraints;
+
+        @Nullable
         J.MethodDeclaration getter;
 
         @Nullable
@@ -1529,12 +1532,13 @@ public interface K extends J {
 
         boolean isSetterFirst;
 
-        public Property(UUID id, Space prefix, Markers markers, @Nullable JContainer<TypeParameter> typeParameters, VariableDeclarations variableDeclarations, @Nullable J.MethodDeclaration getter, @Nullable J.MethodDeclaration setter, boolean isSetterFirst) {
+        public Property(UUID id, Space prefix, Markers markers, @Nullable JContainer<TypeParameter> typeParameters, VariableDeclarations variableDeclarations, @Nullable K.TypeConstraints typeConstraints, @Nullable J.MethodDeclaration getter, @Nullable J.MethodDeclaration setter, boolean isSetterFirst) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
             this.typeParameters = typeParameters;
             this.variableDeclarations = variableDeclarations;
+            this.typeConstraints = typeConstraints;
             this.getter = getter;
             this.setter = setter;
             this.isSetterFirst = isSetterFirst;
@@ -1581,7 +1585,7 @@ public interface K extends J {
             }
 
             public Property withTypeParameters(@Nullable JContainer<TypeParameter> typeParameters) {
-                return t.typeParameters == typeParameters ? t : new Property(t.id, t.prefix, t.markers, typeParameters, t.variableDeclarations, t.getter, t.setter, t.isSetterFirst);
+                return t.typeParameters == typeParameters ? t : new Property(t.id, t.prefix, t.markers, typeParameters, t.variableDeclarations, t.typeConstraints, t.getter, t.setter, t.isSetterFirst);
             }
         }
     }

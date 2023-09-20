@@ -2066,6 +2066,7 @@ class KotlinParserVisitor(
         }
 
         val name = createIdentifier(variableName, property)
+        var typeConstraints: K.TypeConstraints? = null
         var initializer: JLeftPadded<Expression>? = null
         if (node != null) {
             var initMarkers = Markers.EMPTY
@@ -2096,6 +2097,10 @@ class KotlinParserVisitor(
                     markers = typeMarkersPair.second
                 }
             }
+
+            // type constraints
+            typeConstraints = mapTypeConstraints(property, property.psi?.getChildOfType<KtTypeConstraintList>(), data)
+
             var equals: PsiElement? = null
             var propertyNode: KtProperty? = null
             if (node is KtProperty) {
@@ -2171,6 +2176,7 @@ class KotlinParserVisitor(
                 Markers.EMPTY,
                 typeParameters,
                 variableDeclarations.withPrefix(Space.EMPTY),
+                typeConstraints,
                 getter,
                 setter,
                 isSetterFirst

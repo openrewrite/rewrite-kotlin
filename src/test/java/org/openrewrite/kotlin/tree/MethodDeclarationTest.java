@@ -269,8 +269,7 @@ class MethodDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/205")
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/160")
     @Test
     void genericTypeConstraint() {
         rewriteRun(
