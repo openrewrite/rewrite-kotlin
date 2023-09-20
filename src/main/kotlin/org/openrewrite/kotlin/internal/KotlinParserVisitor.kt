@@ -2032,11 +2032,11 @@ class KotlinParserVisitor(
             )
         }
 
-        var receiver : JRightPadded<J>? = null
+        var receiver : JRightPadded<Expression>? = null
         if (property.receiverParameter != null) {
             // Generates a VariableDeclaration to represent the receiver similar to how it is done in the Kotlin compiler.
-            val name = visitElement(property.receiverParameter!!, data)
-            receiver = padRight(name!!, whitespace())
+            val name = visitElement(property.receiverParameter!!, data) as Expression
+            receiver = padRight(name, whitespace())
             markers = markers.addIfAbsent(Extension(randomId()))
             skip(".")
         }
@@ -2149,7 +2149,7 @@ class KotlinParserVisitor(
                 emptyList(),
                 variables
         )
-        return if (getter == null && setter == null) variableDeclarations else K.Property(
+        return if (getter == null && setter == null && receiver == null) variableDeclarations else K.Property(
             randomId(),
             variableDeclarations.prefix,
             Markers.EMPTY,

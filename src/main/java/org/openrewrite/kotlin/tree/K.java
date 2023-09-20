@@ -1536,7 +1536,7 @@ public interface K extends J {
         JRightPadded<Expression> receiver;
 
         @Nullable
-        public J getReceiver() {
+        public Expression getReceiver() {
             return receiver == null ? null : receiver.getElement();
         }
 
@@ -1597,7 +1597,8 @@ public interface K extends J {
             }
 
             public Property withTypeParameters(@Nullable JContainer<TypeParameter> typeParameters) {
-                return t.typeParameters == typeParameters ? t : new Property(t.id, t.prefix, t.markers, typeParameters, t.variableDeclarations, t.getter, t.setter, t.isSetterFirst, t.receiver);
+                return t.typeParameters == typeParameters ? t : new Property(t.id, t.prefix, t.markers, typeParameters,
+                        t.variableDeclarations, t.typeConstraints, t.getter, t.setter, t.isSetterFirst, t.receiver);
             }
 
             @Nullable
@@ -1607,7 +1608,8 @@ public interface K extends J {
 
             @Nullable
             public Property withReceiver(@Nullable JRightPadded<Expression> receiver) {
-                return t.receiver == receiver ? t : new Property(t.id, t.prefix, t.markers, t.typeParameters, t.variableDeclarations, t.getter, t.setter, t.isSetterFirst, receiver);
+                return t.receiver == receiver ? t : new Property(t.id, t.prefix, t.markers, t.typeParameters,
+                        t.variableDeclarations,t.typeConstraints, t.getter, t.setter, t.isSetterFirst, receiver);
             }
         }
     }
