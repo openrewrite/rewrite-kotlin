@@ -166,17 +166,17 @@ public class KotlinParser implements Parser {
                         compilerCus.getSources().stream()
                                 .map(kotlinSource -> {
                                     try {
+                                        // debug purpose only, to be removed
+                                        System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
+
+                                        // PSI based parser
                                         SourceFile kcuPsi = null;
+                                        KotlinTypeMapping typeMapping = new KotlinTypeMapping(new JavaTypeCache(), firSession);
+                                        PsiElementAssociations psiFirMapping = new PsiElementAssociations(typeMapping);
+                                        psiFirMapping.initialize(kotlinSource.getFirFile());
+
+                                        KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, firSession, typeMapping, psiFirMapping, styles, relativeTo, ctx);
                                         try {
-                                            // PSI based parser
-                                            KotlinTypeMapping typeMapping = new KotlinTypeMapping(new JavaTypeCache(), firSession);
-                                            PsiElementAssociations psiFirMapping = new PsiElementAssociations(typeMapping);
-                                            psiFirMapping.initialize(kotlinSource.getFirFile());
-
-                                            // debug purpose only, to be removed
-                                            System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
-
-                                            KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, firSession, typeMapping, psiFirMapping, styles, relativeTo, ctx);
                                             kcuPsi = psiParser.parse();
                                         } catch (UnsupportedOperationException ignore) {
                                             // throw ignore;

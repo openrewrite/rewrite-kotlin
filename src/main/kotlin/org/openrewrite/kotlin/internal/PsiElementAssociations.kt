@@ -15,11 +15,13 @@
  */
 package org.openrewrite.kotlin.internal
 
+import org.jetbrains.kotlin.KtFakeSourceElement
 import org.jetbrains.kotlin.KtRealPsiSourceElement
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFile
+import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
@@ -54,6 +56,72 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
                 depth--
             }
         }.visitFile(file, elementMap)
+
+        validate()
+    }
+
+    fun validate() {
+        println("======")
+        var found1ToNMapping = false
+        elementMap.forEach { (psi, firList) ->
+            var fakeCount = 0
+            var realCount = 0
+            var otherCount = 0
+            for (firElement in firList) {
+                if (firElement.fir.source is KtRealPsiSourceElement) {
+                    realCount++
+                } else if (firElement.fir.source is KtFakeSourceElement) {
+                    fakeCount++
+                } else {
+                    otherCount++
+                }
+            }
+            if (realCount > 1) {
+                found1ToNMapping = true
+
+                println("---------")
+                println("PSI: $psi")
+                println("FIR: $firList")
+
+                println("Found 1 to $realCount Real mapping!")
+                println("    types from $realCount Real elements:")
+                var firstUnknown = false
+                var hasNonUnknown = false
+                for ((index, firElement) in firList.withIndex()) {
+                    if (firElement.fir.source is KtRealPsiSourceElement) {
+                        val type = typeMapping.type(firElement.fir).toString()
+                        if (index == 0 && type.equals("Unknown")) {
+                            firstUnknown = true
+                        }
+
+                        if (!type.equals("Unknown")) {
+                            hasNonUnknown = true
+                        }
+
+                        val padded = "        -$type".padEnd(30, ' ')
+                        println("$padded - $firElement")
+                    }
+                }
+
+                if (firstUnknown && hasNonUnknown) {
+                    throw IllegalArgumentException("First type is Unknown!")
+                }
+
+                println("    types from $fakeCount Fake elements:")
+                for (firElement in firList) {
+                    if (firElement.fir.source is KtFakeSourceElement) {
+                        val type = typeMapping.type(firElement.fir).toString()
+                        val padded = "        -$type".padEnd(30, ' ')
+                        println("$padded - $firElement")
+
+                    }
+                }
+            }
+        }
+
+        if (found1ToNMapping) {
+        //    throw IllegalArgumentException("Found 1 to N real mapping!")
+        }
     }
 
     fun type(psiElement: PsiElement, ownerFallBack: FirBasedSymbol<*>?): JavaType? {
@@ -87,8 +155,10 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
         val allFirInfos = elementMap[p]!!
         val directFirInfos = allFirInfos.filter { filter.invoke(it.fir) }
         return if (directFirInfos.isNotEmpty())
+            // to validate
             directFirInfos[0].fir
         else if (allFirInfos.isNotEmpty())
+            // to validate
             allFirInfos[0].fir
         else
             null
