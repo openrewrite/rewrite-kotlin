@@ -93,6 +93,7 @@ import static org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt.*;
 import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class KotlinParser implements Parser {
@@ -165,7 +166,7 @@ public class KotlinParser implements Parser {
                         compilerCus.getSources().stream()
                                 .map(kotlinSource -> {
                                     try {
-                                        SourceFile kcu = null;
+                                        SourceFile kcuPsi = null;
                                         try {
                                             // PSI based parser
                                             KotlinTypeMapping typeMapping = new KotlinTypeMapping(typeCache, firSession);
@@ -176,7 +177,7 @@ public class KotlinParser implements Parser {
                                             System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
 
                                             KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, firSession, typeMapping, psiFirMapping, styles, relativeTo, ctx);
-                                            kcu = psiParser.parse();
+                                            kcuPsi = psiParser.parse();
                                         } catch (UnsupportedOperationException ignore) {
                                             // throw ignore;
                                         }
@@ -191,11 +192,21 @@ public class KotlinParser implements Parser {
                                         );
 
                                         assert kotlinSource.getFirFile() != null;
-                                        SourceFile kcu1 = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), ctx);
-                                        if (kcu == null) {
-                                            kcu = kcu1;
+                                        SourceFile kcuFir = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), ctx);
+                                        if (kcuPsi == null) {
+                                            kcuPsi = kcuFir;
                                         } else {
-                                            // TODO compare kcu and kcu1
+                                            // compare kcuPsi and kcuFir LST structure and all types
+                                            String treeFir = PsiTreePrinter.print(kcuFir);
+                                            String treePsi = PsiTreePrinter.print(kcuPsi);
+
+                                            // Debug purpose only, to be removed
+                                            System.out.println("=========\n LST and types from FIR-based-parser");
+                                            System.out.println(treeFir);
+                                            System.out.println("=========\n LST and types from PSI-based-parser");
+                                            System.out.println(treeFir);
+
+                                            assertEquals(treePsi, treeFir);
                                             KotlinIsoVisitor<List<JavaType>> typeCollector = new KotlinIsoVisitor<List<JavaType>>() {
                                                 @Override
                                                 public @Nullable J visit(@Nullable Tree tree, List<JavaType> types) {
@@ -208,16 +219,16 @@ public class KotlinParser implements Parser {
                                                     return super.visit(tree, types);
                                                 }
                                             };
-                                            List<JavaType> types = typeCollector.reduce(kcu, new ArrayList<>());
-                                            List<JavaType> types1 = typeCollector.reduce(kcu1, new ArrayList<>());
+                                            List<JavaType> types = typeCollector.reduce(kcuPsi, new ArrayList<>());
+                                            List<JavaType> types1 = typeCollector.reduce(kcuFir, new ArrayList<>());
                                             if (!types.equals(types1)) {
                                                 // TODO this probably needs some refinement
                                                 throw new AssertionError("Incorrect type attribution");
                                             }
                                         }
 
-                                        parsingListener.parsed(kotlinSource.getInput(), kcu);
-                                        return requirePrintEqualsInput(kcu, kotlinSource.getInput(), relativeTo, ctx);
+                                        parsingListener.parsed(kotlinSource.getInput(), kcuPsi);
+                                        return requirePrintEqualsInput(kcuPsi, kotlinSource.getInput(), relativeTo, ctx);
                                     } catch (Throwable t) {
                                         ctx.getOnError().accept(t);
                                         return ParseError.build(this, kotlinSource.getInput(), relativeTo, ctx, t);
