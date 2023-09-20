@@ -354,7 +354,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        boolean hasTypeReference = getAllChildren(function).stream().anyMatch(psi -> psi instanceof KtTypeReference);
+        boolean hasTypeReference = PsiTreeUtil.getChildOfType(function, KtTypeReference.class) != null;
         if (hasTypeReference) {
             throw new UnsupportedOperationException("TODO");
         }
@@ -869,6 +869,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     private PsiElement next(PsiElement node) {
         return PsiTreeUtil.nextLeaf(node);
     }
+
 
     @Nullable
     private FirBasedSymbol getCurrentFile() {
