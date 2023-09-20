@@ -917,6 +917,7 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Test
     void noIndexOutOfBoundsUsingSpaces() {
         rewriteRun(

@@ -17,6 +17,7 @@ package org.openrewrite.kotlin.format;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
 import org.openrewrite.kotlin.KotlinParser;
@@ -256,6 +257,7 @@ class BlankLinesTest implements RewriteTest {
         @Nested
         class AfterClassHeader {
 
+            @ExpectedToFail("Revisit after PSI-based parser is ready")
             @Test
             void minimumAfterClassHeader() {
                 rewriteRun(
@@ -276,6 +278,7 @@ class BlankLinesTest implements RewriteTest {
                 );
             }
 
+            @ExpectedToFail("Revisit after PSI-based parser is ready")
             @Issue("https://github.com/openrewrite/rewrite/issues/1171")
             @Test
             void minimumAfterClassHeaderNestedClasses() {

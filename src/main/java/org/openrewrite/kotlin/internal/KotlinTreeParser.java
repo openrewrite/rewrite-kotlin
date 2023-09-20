@@ -257,13 +257,18 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             );
         }
 
-        J.ClassDeclaration.Kind kind = new J.ClassDeclaration.Kind(
-                randomId(),
-                prefix(klass.getClassKeyword()),
-                Markers.EMPTY,
-                emptyList(),
-                J.ClassDeclaration.Kind.Type.Class
-        );
+        J.ClassDeclaration.Kind kind;
+        if (klass.getClassKeyword() != null) {
+            kind = new J.ClassDeclaration.Kind(
+                    randomId(),
+                    prefix(klass.getClassKeyword()),
+                    Markers.EMPTY,
+                    emptyList(),
+                    J.ClassDeclaration.Kind.Type.Class
+            );
+        } else {
+            throw new UnsupportedOperationException("TODO");
+        }
 
         J.Identifier name = createIdentifier(klass.getIdentifyingElement(), type(klass));
 
@@ -378,8 +383,14 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         TypeTree clazz = null;
         Markers markers = Markers.EMPTY;
         JContainer<Expression> args = null;
+
+        if (declaration.getSuperTypeList() == null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         KtValueArgumentList ktArgs = declaration.getSuperTypeList().getEntries().get(0).getStubOrPsiChild(KtStubElementTypes.VALUE_ARGUMENT_LIST);
-        if (ktArgs.getArguments().isEmpty()) {
+
+        if (ktArgs != null && ktArgs.getArguments().isEmpty()) {
             args = JContainer.build(
                     prefix(ktArgs),
                     singletonList(padRight(new J.Empty(randomId(), prefix(ktArgs.getRightParenthesis()), Markers.EMPTY), Space.EMPTY)
