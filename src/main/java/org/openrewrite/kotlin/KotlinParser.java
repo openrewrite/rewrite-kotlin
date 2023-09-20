@@ -176,7 +176,7 @@ public class KotlinParser implements Parser {
                                             System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
 
                                             KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, typeMapping, psiFirMapping, styles, relativeTo, ctx);
-                                            kcu = psiParser.parse(ctx);
+                                            kcu = psiParser.parse();
                                         } catch (UnsupportedOperationException ignore) {
                                         }
 
