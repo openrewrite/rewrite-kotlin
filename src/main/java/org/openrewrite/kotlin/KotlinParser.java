@@ -204,9 +204,13 @@ public class KotlinParser implements Parser {
                                             System.out.println("=========\n LST and types from FIR-based-parser");
                                             System.out.println(treeFir);
                                             System.out.println("=========\n LST and types from PSI-based-parser");
-                                            System.out.println(treeFir);
+                                            System.out.println(treePsi);
 
                                             assertEquals(treePsi, treeFir);
+                                            if (!treePsi.equals(treeFir)) {
+                                                throw new AssertionError("Different LST or types");
+                                            }
+
                                             KotlinIsoVisitor<List<JavaType>> typeCollector = new KotlinIsoVisitor<List<JavaType>>() {
                                                 @Override
                                                 public @Nullable J visit(@Nullable Tree tree, List<JavaType> types) {
