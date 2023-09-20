@@ -768,7 +768,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 String nodeText = node.getText();
                 boolean isBlockComment = ((PsiComment) node).getTokenType() == KtTokens.BLOCK_COMMENT;
                 String comment = isBlockComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
-                space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(true, comment, "", Markers.EMPTY)));
+                space = space.withComments(ListUtils.concat(space.getComments(), new TextComment(isBlockComment, comment, "", Markers.EMPTY)));
             } else {
                 break;
             }
