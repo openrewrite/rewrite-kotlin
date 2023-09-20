@@ -35,7 +35,6 @@ import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
 import org.jetbrains.kotlin.psi.*;
-import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
 import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
@@ -56,7 +55,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -470,8 +468,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        boolean hasDelegation = getAllChildren(property).stream().anyMatch(child -> child instanceof KtPropertyDelegate);
-        if (hasDelegation) {
+        if (PsiTreeUtil.getChildOfType(property, KtPropertyDelegate.class) != null) {
             throw new UnsupportedOperationException("TODO");
         }
 
@@ -795,16 +792,6 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     @Nullable
     private PsiElement next(PsiElement node) {
         return PsiTreeUtil.nextLeaf(node);
-    }
-
-    private List<PsiElement> getAllChildren(PsiElement parent) {
-        List<PsiElement> children = new ArrayList<>();
-        Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(parent).iterator();
-        while (iterator.hasNext()) {
-            PsiElement it = iterator.next();
-            children.add(it);
-        }
-        return children;
     }
 
     @Nullable
