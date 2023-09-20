@@ -333,4 +333,15 @@ class MethodDeclarationTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void multipleTypeConstraints() {
+        rewriteRun(
+          kotlin(
+            """
+              fun <T> foo(t: T): T where T: CharSequence, T: Comparable<T> = t
+              """
+          )
+        );
+    }
 }

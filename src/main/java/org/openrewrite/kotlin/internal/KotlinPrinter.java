@@ -322,6 +322,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public J visitMethodDeclaration(K.MethodDeclaration methodDeclaration, PrintOutputCapture<P> p) {
+        return delegate.visitMethodDeclaration0(methodDeclaration.getMethodDeclaration(), methodDeclaration.getTypeConstraints(), p);
+    }
+
+    @Override
     public J visitProperty(K.Property property, PrintOutputCapture<P> p) {
         beforeSyntax(property, KSpace.Location.PROPERTY_PREFIX, p);
 
@@ -804,6 +809,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         @Override
         public J visitMethodDeclaration(J.MethodDeclaration method, PrintOutputCapture<P> p) {
+            return visitMethodDeclaration0(method, null, p);
+        }
+
+        @NotNull
+        private J.MethodDeclaration visitMethodDeclaration0(J.MethodDeclaration method, @Nullable K.TypeConstraints typeConstraints, PrintOutputCapture<P> p) {
             // Do not print generated methods.
             for (Marker marker : method.getMarkers().getMarkers()) {
                 if (marker instanceof Implicit || marker instanceof PrimaryConstructor) {
@@ -859,6 +869,10 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                         kotlinPrinter.visitSpace(typeReferencePrefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p));
                 p.append(":");
                 visit(method.getReturnTypeExpression(), p);
+            }
+
+            if (typeConstraints != null) {
+                visitContainer("where", typeConstraints.getPadding().getConstraints(), JContainer.Location.TYPE_PARAMETERS, ",", "", p);
             }
 
             visit(method.getBody(), p);
