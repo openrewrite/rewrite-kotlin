@@ -257,7 +257,6 @@ class BlankLinesTest implements RewriteTest {
         @Nested
         class AfterClassHeader {
 
-            @ExpectedToFail("Revisit after PSI-based parser is ready")
             @Test
             void minimumAfterClassHeader() {
                 rewriteRun(
@@ -278,7 +277,6 @@ class BlankLinesTest implements RewriteTest {
                 );
             }
 
-            @ExpectedToFail("Revisit after PSI-based parser is ready")
             @Issue("https://github.com/openrewrite/rewrite/issues/1171")
             @Test
             void minimumAfterClassHeaderNestedClasses() {

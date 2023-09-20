@@ -178,6 +178,7 @@ public class KotlinParser implements Parser {
                                             KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, typeMapping, psiFirMapping, styles, relativeTo, ctx);
                                             kcu = psiParser.parse();
                                         } catch (UnsupportedOperationException ignore) {
+                                            // throw ignore;
                                         }
 
                                         KotlinParserVisitor mappingVisitor = new KotlinParserVisitor(

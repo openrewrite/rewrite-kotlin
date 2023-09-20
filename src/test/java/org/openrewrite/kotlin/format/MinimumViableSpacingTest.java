@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.format;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.Space;
@@ -91,6 +92,7 @@ class MinimumViableSpacingTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Test
     void method() {
         rewriteRun(

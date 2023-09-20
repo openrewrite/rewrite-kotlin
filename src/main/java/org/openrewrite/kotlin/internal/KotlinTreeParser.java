@@ -26,9 +26,11 @@ import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.PsiErrorElementImp
 import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
+import org.jetbrains.kotlin.fir.declarations.FirFunction;
 import org.jetbrains.kotlin.fir.declarations.FirVariable;
 import org.jetbrains.kotlin.fir.expressions.FirConstExpression;
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
+import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
@@ -340,34 +342,92 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitNamedFunction(@NotNull KtNamedFunction function, ExecutionContext data) {
-        throw new UnsupportedOperationException("Unsupported KtNamedFunction");
-//
-//        Markers markers = Markers.EMPTY;
-//        List<J.Annotation> leadingAnnotations = new ArrayList<>();
-//        List<J.Modifier> modifiers = new ArrayList<>();
-//        J.TypeParameters typeParameters = null;
-//        TypeTree returnTypeExpression = null;
-//
-//        J.Identifier name = null;
-//        JContainer<Statement> params = null;
-//        J.Block body = null;
-//        JavaType.Method methodType = null;
-//
-//        return new J.MethodDeclaration(
-//                randomId(),
-//                Space.EMPTY,
-//                markers,
-//                leadingAnnotations,
-//                modifiers,
-//                typeParameters,
-//                returnTypeExpression,
-//                new J.MethodDeclaration.IdentifierWithAnnotations(name, emptyList()),
-//                params,
-//                null,
-//                body,
-//                null,
-//                methodType
-//        );
+        Markers markers = Markers.EMPTY;
+        List<J.Annotation> leadingAnnotations = new ArrayList<>();
+        List<J.Modifier> modifiers = new ArrayList<>();
+        J.TypeParameters typeParameters = null;
+        TypeTree returnTypeExpression = null;
+
+        if (function.getModifierList() != null) {
+            throw new UnsupportedOperationException("TODO");
+        } else if (function.getTypeReference() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        boolean hasTypeReference = getAllChildren(function).stream().anyMatch(psi -> psi instanceof KtTypeReference);
+        if (hasTypeReference) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        boolean isOpen = false; // TODO
+        if (!isOpen) {
+            modifiers.add(
+                    new J.Modifier(
+                            randomId(),
+                            Space.EMPTY,
+                            Markers.EMPTY,
+                            null,
+                            J.Modifier.Type.Final,
+                            emptyList()
+                    )
+            );
+        }
+
+        modifiers.add(
+                new J.Modifier(
+                        randomId(),
+                        prefix(function.getFunKeyword()),
+                        Markers.EMPTY,
+                        "fun",
+                        J.Modifier.Type.LanguageExtension,
+                        emptyList()
+                )
+        );
+
+        if (function.getNameIdentifier() == null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        J.Identifier name = createIdentifier(function.getNameIdentifier(), type(function));
+
+        // parameters
+        JContainer<Statement> params;
+        List<KtParameter> ktParameters = function.getValueParameters();
+
+        if (ktParameters.isEmpty()) {
+            params = JContainer.build(prefix(function.getValueParameterList()),
+                    singletonList(padRight(new J.Empty(randomId(),
+                            prefix(function.getValueParameterList().getRightParenthesis()),
+                            Markers.EMPTY),
+                            Space.EMPTY)
+                    ), Markers.EMPTY
+            );
+        } else {
+              throw new UnsupportedOperationException("TODO");
+        }
+
+        if (function.getBodyBlockExpression() == null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+        J.Block body = function.getBodyBlockExpression().accept(this, data)
+                .withPrefix(prefix(function.getBodyBlockExpression()));
+        JavaType.Method methodType = methodDeclarationType(function);
+
+        return new J.MethodDeclaration(
+                randomId(),
+                Space.EMPTY,
+                markers,
+                leadingAnnotations,
+                modifiers,
+                typeParameters,
+                returnTypeExpression,
+                new J.MethodDeclaration.IdentifierWithAnnotations(name, emptyList()),
+                params,
+                null,
+                body,
+                null,
+                methodType
+        );
     }
 
     @Override
@@ -425,6 +485,10 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         TypeTree typeExpression = null;
         List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = new ArrayList<>();
+
+        if (property.getModifierList() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
 
         J.Modifier modifier = new J.Modifier(
                 Tree.randomId(),
@@ -573,7 +637,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         else if (elementType == KtTokens.DIV)
             return J.Binary.Type.Division;
         else
-            throw new UnsupportedOperationException("Unsupported OPERATION_REFERENCE type :" + elementType.getDebugName());
+            throw new UnsupportedOperationException("Unsupported OPERATION_REFERENCE type :" + elementType);
     }
 
     private J.Modifier.Type mapModifierType(PsiElement modifier) {
@@ -641,6 +705,18 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             if (basedSymbol instanceof FirVariableSymbol) {
                 FirVariableSymbol<? extends FirVariable> variableSymbol = (FirVariableSymbol<? extends FirVariable>) basedSymbol;
                 return psiElementAssociations.getTypeMapping().variableType(variableSymbol, null, getCurrentFile());
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private JavaType.Method methodDeclarationType(PsiElement psi) {
+        if (psi instanceof KtNamedFunction) {
+            FirBasedSymbol basedSymbol = psiElementAssociations.symbol((KtNamedFunction) psi);
+            if (basedSymbol instanceof FirNamedFunctionSymbol) {
+                FirNamedFunctionSymbol functionSymbol = (FirNamedFunctionSymbol) basedSymbol;
+                return psiElementAssociations.getTypeMapping().methodDeclarationType(functionSymbol.getFir(), null, getCurrentFile());
             }
         }
         return null;
