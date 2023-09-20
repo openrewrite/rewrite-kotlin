@@ -175,7 +175,7 @@ public class KotlinParser implements Parser {
                                             // debug purpose only, to be removed
                                             System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
 
-                                            KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, typeMapping, psiFirMapping, styles, relativeTo, ctx);
+                                            KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, firSession, typeMapping, psiFirMapping, styles, relativeTo, ctx);
                                             kcu = psiParser.parse();
                                         } catch (UnsupportedOperationException ignore) {
                                             // throw ignore;
@@ -200,7 +200,10 @@ public class KotlinParser implements Parser {
                                                 @Override
                                                 public @Nullable J visit(@Nullable Tree tree, List<JavaType> types) {
                                                     if (tree instanceof TypedTree) {
-                                                        types.add(((TypedTree) tree).getType());
+                                                        JavaType type = ((TypedTree) tree).getType();
+                                                        if (type != null && !(type instanceof JavaType.Unknown)) {
+                                                            types.add(type);
+                                                        }
                                                     }
                                                     return super.visit(tree, types);
                                                 }

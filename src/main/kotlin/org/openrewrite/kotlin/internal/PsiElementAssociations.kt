@@ -68,7 +68,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
 
     fun symbol(psi: KtExpression?): FirBasedSymbol<*>? {
         val fir = fir(psi) { it is FirResolvedNamedReference }
-        return if (fir != null) (fir as FirResolvedNamedReference).resolvedSymbol else null
+        return if (fir is FirResolvedNamedReference) fir.resolvedSymbol else null
     }
 
     fun primary(psiElement: PsiElement) =
