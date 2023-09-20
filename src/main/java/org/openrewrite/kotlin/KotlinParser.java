@@ -169,7 +169,7 @@ public class KotlinParser implements Parser {
                                         SourceFile kcuPsi = null;
                                         try {
                                             // PSI based parser
-                                            KotlinTypeMapping typeMapping = new KotlinTypeMapping(typeCache, firSession);
+                                            KotlinTypeMapping typeMapping = new KotlinTypeMapping(new JavaTypeCache(), firSession);
                                             PsiElementAssociations psiFirMapping = new PsiElementAssociations(typeMapping);
                                             psiFirMapping.initialize(kotlinSource.getFirFile());
 
