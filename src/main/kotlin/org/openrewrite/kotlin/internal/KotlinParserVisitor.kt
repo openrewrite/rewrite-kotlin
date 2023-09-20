@@ -559,22 +559,21 @@ class KotlinParserVisitor(
 
     override fun visitAnonymousObject(anonymousObject: FirAnonymousObject, data: ExecutionContext): J {
         var saveCursor = cursor
-        val objectPrefix = whitespace()
+
         var markers = Markers.EMPTY
         var typeExpressionPrefix = Space.EMPTY
-        var prefix = Space.EMPTY
+        val newClassPrefix = whitespace()
         var clazz: TypeTree? = null
         if (skip("object")) {
-            markers = markers.addIfAbsent(KObject(randomId(), objectPrefix))
-            prefix = whitespace()
+            val objectSuffix = whitespace()
+            markers = markers.addIfAbsent(KObject(randomId(), Space.EMPTY))
+            markers = markers.addIfAbsent(TypeReferencePrefix(randomId(), objectSuffix))
             if (skip(":")) {
-                typeExpressionPrefix = prefix
-                prefix = whitespace()
+                typeExpressionPrefix = whitespace()
                 clazz = visitElement(anonymousObject.superTypeRefs[0], data) as TypeTree?
             }
-        } else {
-            cursor(saveCursor)
         }
+
         val args: JContainer<Expression>
         saveCursor = cursor
         val before = whitespace()
@@ -634,15 +633,15 @@ class KotlinParserVisitor(
             cursor(saveCursor)
         }
         return J.NewClass(
-                randomId(),
-                prefix,
-                markers,
-                null,
-                typeExpressionPrefix,
-                clazz,
-                args,
-                body,
-                null
+            randomId(),
+            newClassPrefix,
+            markers,
+            null,
+            typeExpressionPrefix,
+            clazz,
+            args,
+            body,
+            null
         )
     }
 
@@ -3834,9 +3833,8 @@ class KotlinParserVisitor(
         } else name = null
         return K.FunctionType.Parameter(
                 randomId(),
-                Markers.EMPTY,
+                if (colon != null) Markers.EMPTY.addIfAbsent(TypeReferencePrefix(randomId(), colon)) else Markers.EMPTY,
                 name,
-                colon,
                 visitElement(functionTypeParameter.returnTypeRef, data) as TypeTree
         )
     }
