@@ -120,7 +120,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
         }
 
         if (found1ToNMapping) {
-        //    throw IllegalArgumentException("Found 1 to N real mapping!")
+            // throw IllegalArgumentException("Found 1 to N real mapping!")
         }
     }
 

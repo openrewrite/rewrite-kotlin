@@ -195,6 +195,8 @@ public class KotlinParser implements Parser {
                                         SourceFile kcuFir = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), ctx);
                                         if (kcuPsi == null) {
                                             kcuPsi = kcuFir;
+                                            System.out.println("=========\n LST and types from FIR-based-parser");
+                                            System.out.println(PsiTreePrinter.print(kcuFir));
                                         } else {
                                             // compare kcuPsi and kcuFir LST structure and all types
                                             String treeFir = PsiTreePrinter.print(kcuFir);
