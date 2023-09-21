@@ -237,7 +237,7 @@ public class PsiTreePrinter {
 
             String type = printType(tree);
             if (!type.isEmpty()) {
-                line.append(" | TYPE = \"").append(type).append("\"");
+                line.append(" | TYPE = ").append(type);
             }
 
             if (printContent) {
@@ -267,28 +267,28 @@ public class PsiTreePrinter {
         if (tree instanceof J.MethodInvocation) {
             J.MethodInvocation m = (J.MethodInvocation) tree;
             if (m.getMethodType() != null) {
-                sb.append(" MethodType=").append(m.getMethodType());
+                sb.append(" MethodType = ").append(m.getMethodType());
             }
         }
 
         if (tree instanceof J.MethodDeclaration) {
             J.MethodDeclaration m = (J.MethodDeclaration) tree;
             if (m.getMethodType() != null) {
-                sb.append(" MethodType=").append(m.getMethodType());
+                sb.append(" MethodType = ").append(m.getMethodType());
             }
         }
 
         if (tree instanceof J.VariableDeclarations.NamedVariable) {
             J.VariableDeclarations.NamedVariable v = (J.VariableDeclarations.NamedVariable) tree;
             if (v.getVariableType() != null) {
-                sb.append(" VariableType=").append(v.getVariableType());
+                sb.append(" VariableType = ").append(v.getVariableType());
             }
         }
 
         if (tree instanceof J.Identifier) {
             J.Identifier id = (J.Identifier) tree;
             if (id.getFieldType() != null) {
-                sb.append(" FieldType=").append(id.getFieldType());
+                sb.append(" FieldType = ").append(id.getFieldType());
             }
         }
 

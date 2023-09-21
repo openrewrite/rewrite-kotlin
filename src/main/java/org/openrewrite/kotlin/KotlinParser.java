@@ -168,7 +168,7 @@ public class KotlinParser implements Parser {
 
                                         // PSI based parser
                                         SourceFile kcuPsi = null;
-                                        KotlinTypeMapping typeMapping = new KotlinTypeMapping(new JavaTypeCache(), firSession);
+                                        KotlinTypeMapping typeMapping = new KotlinTypeMapping(typeCache, firSession);
                                         PsiElementAssociations psiFirMapping = new PsiElementAssociations(typeMapping);
                                         psiFirMapping.initialize(kotlinSource.getFirFile());
                                         System.out.println(psiFirMapping.toString());
@@ -184,7 +184,7 @@ public class KotlinParser implements Parser {
                                                 kotlinSource,
                                                 relativeTo,
                                                 styles,
-                                                new JavaTypeCache(),
+                                                typeCache,
                                                 firSession,
                                                 ctx
                                         );

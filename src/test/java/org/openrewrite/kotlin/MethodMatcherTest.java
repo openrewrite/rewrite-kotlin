@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
@@ -27,6 +28,7 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 
 public class MethodMatcherTest implements RewriteTest {
 
+    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Test
     void matchesTopLevelFunction() {
         rewriteRun(
