@@ -42,8 +42,8 @@ class KotlinSource(
 
     private fun map(ktFile: KtFile): Map<Int, ASTNode> {
         // Debug purpose only, to be removed
-        System.out.println(PsiTreePrinter.print(input))
-        System.out.println(PsiTreePrinter.print(ktFile))
+        // System.out.println(PsiTreePrinter.print(input))
+        // System.out.println(PsiTreePrinter.print(ktFile))
 
         val result: MutableMap<Int, ASTNode> = HashMap()
         val stack = ArrayDeque<PsiElement>()
