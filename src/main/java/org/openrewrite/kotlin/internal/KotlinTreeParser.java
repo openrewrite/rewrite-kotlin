@@ -383,21 +383,26 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         boolean hasParentClassId = firElement instanceof FirResolvedImport && ((FirResolvedImport) firElement).getResolvedParentClassId() != null;
         JLeftPadded<Boolean> statik = padLeft(Space.EMPTY, hasParentClassId);
         KtImportAlias alias = importDirective.getAlias();
-        J reference = importDirective.getImportedReference().accept(this, data);
-        if (importDirective.isAllUnder()) {
-            reference = new J.FieldAccess(
-                    randomId(),
-                    Space.EMPTY,
-                    Markers.EMPTY,
-                    (Expression) reference,
-                    padLeft(Space.EMPTY, createIdentifier(
-                            "*",
-                            prefix((PsiElement) importDirective.getNode().findChildByType(KtTokens.MUL)),
-                            null
-                    )),
-                    null
-            );
-        }
+        String text = nodeRangeText(
+                importDirective.getNode().findChildByType(KtTokens.WHITE_SPACE),
+                importDirective.isAllUnder() ? importDirective.getNode().findChildByType(KtTokens.MUL)
+                        : importDirective.getNode().findChildByType(KtNodeTypes.DOT_QUALIFIED_EXPRESSION));
+        J reference = TypeTree.build(text);
+//        J reference = importDirective.getImportedReference().accept(this, data);
+//        if (importDirective.isAllUnder()) {
+//            reference = new J.FieldAccess(
+//                    randomId(),
+//                    Space.EMPTY,
+//                    Markers.EMPTY,
+//                    (Expression) reference,
+//                    padLeft(Space.EMPTY, createIdentifier(
+//                            "*",
+//                            prefix((PsiElement) importDirective.getNode().findChildByType(KtTokens.MUL)),
+//                            null
+//                    )),
+//                    null
+//            );
+//        }
         if (reference instanceof J.Identifier) {
             reference = new J.FieldAccess(
                     randomId(),
@@ -414,7 +419,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 prefix(importDirective),
                 Markers.EMPTY,
                 statik,
-                ((J.FieldAccess) reference).withType(JavaType.ShallowClass.build(importDirective.getImportedFqName().toString())),
+                (J.FieldAccess) reference,
                 alias != null ? padLeft(prefix(alias), createIdentifier(alias.getNameIdentifier(), null)) : null
         );
     }
@@ -959,6 +964,18 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     private boolean isCRLF(ASTNode node) {
         return node instanceof PsiErrorElementImpl && node.getText().equals("\r");
+    }
+
+    private String nodeRangeText(@Nullable ASTNode first, @Nullable ASTNode last) {
+        StringBuilder builder = new StringBuilder();
+        while (first != null) {
+            builder.append(first.getText());
+            if (first == last) {
+                break;
+            }
+            first = first.getTreeNext();
+        }
+        return builder.toString();
     }
 
     private Space space(PsiElement node) {

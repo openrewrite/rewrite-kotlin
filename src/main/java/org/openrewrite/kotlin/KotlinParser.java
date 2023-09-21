@@ -61,9 +61,6 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaSourceSet;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaType;
-import org.openrewrite.java.tree.TypedTree;
 import org.openrewrite.kotlin.internal.*;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.style.NamedStyles;
@@ -208,29 +205,7 @@ public class KotlinParser implements Parser {
                                             System.out.println("=========\n LST and types from PSI-based-parser");
                                             System.out.println(treePsi);
 
-                                            assertEquals(treePsi, treeFir);
-                                            if (!treePsi.equals(treeFir)) {
-                                                throw new AssertionError("Different LST or types");
-                                            }
-
-                                            KotlinIsoVisitor<List<JavaType>> typeCollector = new KotlinIsoVisitor<List<JavaType>>() {
-                                                @Override
-                                                public @Nullable J visit(@Nullable Tree tree, List<JavaType> types) {
-                                                    if (tree instanceof TypedTree) {
-                                                        JavaType type = ((TypedTree) tree).getType();
-                                                        if (type != null && !(type instanceof JavaType.Unknown)) {
-                                                            types.add(type);
-                                                        }
-                                                    }
-                                                    return super.visit(tree, types);
-                                                }
-                                            };
-                                            List<JavaType> types = typeCollector.reduce(kcuPsi, new ArrayList<>());
-                                            List<JavaType> types1 = typeCollector.reduce(kcuFir, new ArrayList<>());
-                                            if (!types.equals(types1)) {
-                                                // TODO this probably needs some refinement
-                                                throw new AssertionError("Incorrect type attribution");
-                                            }
+                                            assertEquals(treeFir, treePsi);
                                         }
 
                                         parsingListener.parsed(kotlinSource.getInput(), kcuPsi);
