@@ -26,6 +26,7 @@ import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.marker.Extension;
 import org.openrewrite.kotlin.marker.Implicit;
 import org.openrewrite.kotlin.marker.PrimaryConstructor;
+import org.openrewrite.kotlin.marker.Semicolon;
 import org.openrewrite.kotlin.tree.K;
 
 import java.util.List;
@@ -47,8 +48,7 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, P p) {
         K.CompilationUnit kcu = super.visitCompilationUnit(cu, p);
-        kcu = kcu.withStatements(ListUtils.map(kcu.getStatements(),
-                (i, st) -> (i != 0) ? st.withPrefix(st.getPrefix().withWhitespace("\n")) : st));
+        kcu = kcu.getPadding().withStatements(visitStatementList(kcu.getPadding().getStatements()));
         return kcu;
     }
 
@@ -218,12 +218,28 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
             }
         }
 
-        if (m.getBody() != null) {
-            m = m.withBody(m.getBody().withStatements(ListUtils.map(m.getBody().getStatements(),
-                    (i, st) -> (i != 0) ? st.withPrefix(st.getPrefix().withWhitespace("\n")) : st)));
-        }
-
         return m;
+    }
+
+    @Override
+    public J.Block visitBlock(J.Block block, P p) {
+        J.Block b = super.visitBlock(block, p);
+        b = b.getPadding().withStatements(visitStatementList(b.getPadding().getStatements()));
+        return b;
+    }
+
+    private List<JRightPadded<Statement>> visitStatementList(List<JRightPadded<Statement>> statements) {
+        return ListUtils.map(statements,
+                (i, st) -> {
+                    Statement element = st.getElement();
+                    if (i == 0
+                            || element.getPrefix().getWhitespace().contains("\n")
+                            || element.getPrefix().getLastWhitespace().contains("\n")
+                            || statements.get(i - 1).getMarkers().findFirst(Semicolon.class).isPresent()) {
+                        return st;
+                    }
+                    return st.withElement(element.withPrefix(addNewline(element.getPrefix())));
+                });
     }
 
     @Override
@@ -239,7 +255,7 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public K.Binary visitBinary(K.Binary binary, P p) {
         K.Binary kb = super.visitBinary(binary, p);
-        if (kb.getOperator() ==  K.Binary.Type.Contains || kb.getOperator() ==  K.Binary.Type.NotContains) {
+        if (kb.getOperator() == K.Binary.Type.Contains || kb.getOperator() == K.Binary.Type.NotContains) {
             kb = kb.getPadding().withOperator(kb.getPadding().getOperator().withBefore(updateSpace(kb.getPadding().getOperator().getBefore(), true)));
             kb = kb.withRight(spaceBefore(kb.getRight(), true));
         }

@@ -849,4 +849,17 @@ class BlankLinesTest implements RewriteTest {
         );
     }
 
+    @Test
+    void topLevelPropertyBeforeStatement() {
+        rewriteRun(
+          blankLines(),
+          kotlin(
+            """
+              val one = 1
+              
+              class Test
+              """
+          )
+        );
+    }
 }
