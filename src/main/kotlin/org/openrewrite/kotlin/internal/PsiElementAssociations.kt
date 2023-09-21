@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor
 import org.jetbrains.kotlin.psi
 import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.openrewrite.java.tree.JavaType
 import org.openrewrite.kotlin.KotlinTypeMapping
@@ -148,7 +149,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
             p = p.parent
         }
 
-        if (p == null) {
+        if (p == null || (p != psi && p is KtDotQualifiedExpression)) {
             return null
         }
 
@@ -162,6 +163,22 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
             allFirInfos[0].fir
         else
             null
+    }
+
+    fun PsiElement.customToString(): String {
+        return "PSI ${this.textRange} $this"
+    }
+
+    override fun toString(): String {
+        val sb = StringBuilder()
+        elementMap.forEach{ (psi, firs) ->
+            sb.append(psi.customToString()).append("\n")
+            firs.forEach{ fir ->
+                sb.append("  - $fir\n")
+            }
+            sb.append("\n")
+        }
+        return sb.toString()
     }
 
     private class FirInfo(
