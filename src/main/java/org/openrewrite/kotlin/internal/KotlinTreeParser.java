@@ -733,6 +733,9 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitUserType(KtUserType type, ExecutionContext data) {
+        if (!type.getTypeArguments().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
+        }
         return type.getReferenceExpression().accept(this, data);
     }
 
