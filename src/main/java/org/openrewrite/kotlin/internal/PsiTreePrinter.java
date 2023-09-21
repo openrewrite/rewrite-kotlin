@@ -256,13 +256,43 @@ public class PsiTreePrinter {
     }
 
     private static String printType(Tree tree) {
+        StringBuilder sb = new StringBuilder();
         if (tree instanceof TypedTree) {
             JavaType type = ((TypedTree) tree).getType();
             if (type != null && !(type instanceof JavaType.Unknown)) {
-                return type.toString();
+                sb.append(type);
             }
         }
-        return "";
+
+        if (tree instanceof J.MethodInvocation) {
+            J.MethodInvocation m = (J.MethodInvocation) tree;
+            if (m.getMethodType() != null) {
+                sb.append(" MethodType=").append(m.getMethodType());
+            }
+        }
+
+        if (tree instanceof J.MethodDeclaration) {
+            J.MethodDeclaration m = (J.MethodDeclaration) tree;
+            if (m.getMethodType() != null) {
+                sb.append(" MethodType=").append(m.getMethodType());
+            }
+        }
+
+        if (tree instanceof J.VariableDeclarations.NamedVariable) {
+            J.VariableDeclarations.NamedVariable v = (J.VariableDeclarations.NamedVariable) tree;
+            if (v.getVariableType() != null) {
+                sb.append(" VariableType=").append(v.getVariableType());
+            }
+        }
+
+        if (tree instanceof J.Identifier) {
+            J.Identifier id = (J.Identifier) tree;
+            if (id.getFieldType() != null) {
+                sb.append(" FieldType=").append(id.getFieldType());
+            }
+        }
+
+        return sb.toString();
     }
 
     private static String printTreeElement(Tree tree) {

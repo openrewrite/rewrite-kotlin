@@ -77,8 +77,9 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
                     otherCount++
                 }
             }
-            if (realCount > 1) {
-                found1ToNMapping = true
+
+            if (true) {
+                found1ToNMapping = realCount > 1
 
                 println("---------")
                 println("PSI: $psi")
