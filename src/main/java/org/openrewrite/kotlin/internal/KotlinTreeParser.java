@@ -485,7 +485,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 null,
                 null,
                 emptyList(),
-                singletonList(padRight(emptyWithInitializer, Space.EMPTY )
+                singletonList(padRight(emptyWithInitializer, Space.EMPTY)
                 )
         );
 
@@ -596,13 +596,11 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     public J visitNamedFunction(KtNamedFunction function, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
-        List<J.Modifier> modifiers = new ArrayList<>();
+        List<J.Modifier> modifiers = mapModifiers(function.getModifierList());
         J.TypeParameters typeParameters = null;
         TypeTree returnTypeExpression = null;
 
-        if (function.getModifierList() != null) {
-            throw new UnsupportedOperationException("TODO");
-        } else if (function.getTypeReference() != null) {
+        if (function.getTypeReference() != null) {
             throw new UnsupportedOperationException("TODO");
         }
 
@@ -611,12 +609,12 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        boolean isOpen = false; // TODO
+        boolean isOpen = function.hasModifier(KtTokens.OPEN_KEYWORD);
         if (!isOpen) {
             modifiers.add(
                     new J.Modifier(
                             randomId(),
-                            Space.EMPTY,
+                            prefix(function.getFunKeyword()),
                             Markers.EMPTY,
                             null,
                             J.Modifier.Type.Final,
@@ -761,21 +759,18 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     public J visitProperty(KtProperty property, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
+        List<J.Modifier> modifiers = mapModifiers(property.getModifierList());
         TypeTree typeExpression = null;
         List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = new ArrayList<>();
 
-        if (property.getModifierList() != null) {
-            throw new UnsupportedOperationException("TODO");
-        }
-
-        J.Modifier modifier = new J.Modifier(
+        modifiers.add(new J.Modifier(
                 Tree.randomId(),
                 prefix(property.getValOrVarKeyword()),
                 Markers.EMPTY,
                 property.isVar() ? "var" : null,
                 property.isVar() ? J.Modifier.Type.LanguageExtension : J.Modifier.Type.Final,
                 Collections.emptyList() // FIXME
-        );
+        ));
 
         JLeftPadded<Expression> initializer = property.getInitializer() != null ?
                 padLeft(prefix(property.getEqualsToken()),
@@ -819,12 +814,29 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 Space.EMPTY, // overlaps with right-padding of previous statement
                 markers,
                 leadingAnnotations,
-                singletonList(modifier),
+                modifiers,
                 typeExpression,
                 null,
                 Collections.emptyList(),
                 variables
         );
+    }
+
+    private List<J.Modifier> mapModifiers(@Nullable KtModifierList modifierList) {
+        ArrayList<J.Modifier> modifiers = new ArrayList<>();
+        if (modifierList == null) {
+            return modifiers;
+        }
+
+        for (PsiElement child = PsiTreeUtil.firstChild(modifierList); child != null; child = child.getNextSibling()) {
+            IElementType elementType = child.getNode().getElementType();
+            if (elementType == KtTokens.INTERNAL_KEYWORD) {
+                modifiers.add(new J.Modifier(randomId(), prefix(child), Markers.EMPTY, child.getText(), J.Modifier.Type.LanguageExtension, emptyList()));
+            } else {
+                throw new UnsupportedOperationException("TODO");
+            }
+        }
+        return modifiers;
     }
 
     @Override
@@ -1060,7 +1072,7 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     private <J2 extends J> JRightPadded<J2> maybeSemicolon(J2 j, KtElement element) {
         PsiElement maybeSemicolon = element.getLastChild();
         boolean hasSemicolon = maybeSemicolon instanceof LeafPsiElement && ((LeafPsiElement) maybeSemicolon).getElementType() == KtTokens.SEMICOLON;
-        return hasSemicolon ? new JRightPadded<>(j, prefix(maybeSemicolon),Markers.EMPTY.add(new Semicolon(randomId())))
+        return hasSemicolon ? new JRightPadded<>(j, prefix(maybeSemicolon), Markers.EMPTY.add(new Semicolon(randomId())))
                 : JRightPadded.build(j);
     }
 
