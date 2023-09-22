@@ -236,6 +236,10 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitCallExpression(@NotNull KtCallExpression expression, ExecutionContext data) {
+        if (!(expression.getParent() instanceof KtDestructuringDeclaration)) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         if (expression.getCalleeExpression() == null) {
             throw new UnsupportedOperationException("TODO");
         }
@@ -424,6 +428,11 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         List<KtDestructuringDeclarationEntry> entries = multiDeclaration.getEntries();
         for (int i = 0; i < entries.size(); i++) {
             KtDestructuringDeclarationEntry entry = entries.get(i);
+
+            if (entry.getModifierList() != null) {
+                throw new UnsupportedOperationException("TODO");
+            }
+
             JavaType.Variable vt = variableType(entry);
 
             if (entry.getName() == null) {
