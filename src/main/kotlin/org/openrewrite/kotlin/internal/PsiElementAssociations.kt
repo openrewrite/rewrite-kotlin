@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.fir.declarations.FirFile
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirFileSymbol
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor
 import org.jetbrains.kotlin.psi
@@ -33,13 +34,11 @@ import org.jetbrains.kotlin.psi.KtExpression
 import org.openrewrite.java.tree.JavaType
 import org.openrewrite.kotlin.KotlinTypeMapping
 
-class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
+class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFile) {
 
     private val elementMap: MutableMap<PsiElement, MutableList<FirInfo>> = HashMap()
-    private var file: FirFile? = null
 
-    fun initialize(file: FirFile) {
-        this.file = file
+    fun initialize() {
         var depth = 0
         object : FirDefaultVisitor<Unit, MutableMap<PsiElement, MutableList<FirInfo>>>() {
             override fun visitElement(element: FirElement, data: MutableMap<PsiElement, MutableList<FirInfo>>) {
@@ -61,7 +60,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
         validate()
     }
 
-    fun validate() {
+    private fun validate() {
         println("======")
         var found1ToNMapping = false
         elementMap.forEach { (psi, firList) ->
@@ -167,7 +166,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
             null
     }
 
-    fun PsiElement.customToString(): String {
+    private fun PsiElement.customToString(): String {
         return "PSI ${this.textRange} $this"
     }
 

@@ -164,20 +164,21 @@ public class KotlinParser implements Parser {
                                 .map(kotlinSource -> {
                                     try {
                                         // debug purpose only, to be removed
+                                        assert kotlinSource.getFirFile() != null;
                                         System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
 
                                         // PSI based parser
                                         SourceFile kcuPsi = null;
-                                        KotlinTypeMapping typeMapping = new KotlinTypeMapping(typeCache, firSession);
-                                        PsiElementAssociations psiFirMapping = new PsiElementAssociations(typeMapping);
-                                        psiFirMapping.initialize(kotlinSource.getFirFile());
-                                        System.out.println(psiFirMapping.toString());
+                                        KotlinTypeMapping typeMapping = new KotlinTypeMapping(new JavaTypeCache(), firSession);
+                                        PsiElementAssociations psiFirMapping = new PsiElementAssociations(typeMapping, kotlinSource.getFirFile());
+                                        psiFirMapping.initialize();
+                                        System.out.println(psiFirMapping);
 
-                                        KotlinTreeParser psiParser = new KotlinTreeParser(kotlinSource, firSession, typeMapping, psiFirMapping, styles, relativeTo, ctx);
+                                        KotlinTreeParserVisitor psiParser = new KotlinTreeParserVisitor(kotlinSource, firSession, typeMapping, psiFirMapping, styles, relativeTo, ctx);
                                         try {
                                             kcuPsi = psiParser.parse();
                                         } catch (UnsupportedOperationException ignore) {
-                                            // throw ignore;
+                                             throw ignore;
                                         }
 
                                         KotlinParserVisitor mappingVisitor = new KotlinParserVisitor(
