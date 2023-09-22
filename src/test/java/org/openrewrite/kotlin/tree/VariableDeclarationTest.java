@@ -256,8 +256,8 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              fun example ( ) {
-                val ( a , b , c ) = Triple ( 1 , "OK" , 3 )
+              fun example  (   )    {
+                val   (    a     , b  ,   c    )     = Triple  (   1    ,     "Two" ,  3   )
               }
               """
           )

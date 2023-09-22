@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin.internal;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.KtNodeTypes;
 import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
 import org.jetbrains.kotlin.com.intellij.psi.PsiComment;
@@ -31,6 +32,7 @@ import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
 import org.jetbrains.kotlin.fir.declarations.FirVariable;
 import org.jetbrains.kotlin.fir.expressions.FirConstExpression;
+import org.jetbrains.kotlin.fir.expressions.FirFunctionCall;
 import org.jetbrains.kotlin.fir.resolve.LookupTagUtilsKt;
 import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag;
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
@@ -189,6 +191,15 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
     }
 
     @Override
+    public J visitArgument(@NotNull KtValueArgument argument, ExecutionContext data) {
+        if (argument.getArgumentExpression() == null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        return argument.getArgumentExpression().accept(this, data);
+    }
+
+    @Override
     public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
         return new J.Binary(
                 randomId(),
@@ -220,6 +231,38 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 JRightPadded.build(false),
                 statements,
                 prefix(expression.getRBrace())
+        );
+    }
+
+    @Override
+    public J visitCallExpression(@NotNull KtCallExpression expression, ExecutionContext data) {
+        if (expression.getCalleeExpression() == null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        J.Identifier name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
+
+        // createIdentifier(expression.getCalleeExpression(), type(expression));
+        List<KtValueArgument> arguments = expression.getValueArguments();
+
+        List<JRightPadded<Expression>> expressions = new ArrayList<>(arguments.size());
+        Markers markers = Markers.EMPTY;
+
+        for (KtValueArgument arg : arguments) {
+            expressions.add(padRight(convertToExpression(arg.accept(this, data)).withPrefix(prefix(arg)), suffix(arg)));
+        }
+
+        JContainer<Expression> args = JContainer.build(prefix(expression.getValueArgumentList()), expressions, markers);
+        return new J.NewClass(
+                randomId(),
+                Space.SINGLE_SPACE,
+                Markers.EMPTY,
+                null,
+                Space.EMPTY,
+                name,
+                args,
+                null,
+                methodDeclarationType(expression)
         );
     }
 
@@ -350,6 +393,125 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 padRight(false, Space.EMPTY),
                 list,
                 prefix(classBody.getRBrace())
+        );
+    }
+
+    @Override
+    public J visitDestructuringDeclaration(@NotNull KtDestructuringDeclaration multiDeclaration, ExecutionContext data) {
+        List<J.Modifier> modifiers = new ArrayList();
+        List<J.Annotation> leadingAnnotations = new ArrayList<>();
+        List<JRightPadded<J.VariableDeclarations.NamedVariable>> vars = new ArrayList<>();
+        JLeftPadded<Expression> paddedInitializer = null;
+
+        J.Modifier modifier = new J.Modifier(
+                Tree.randomId(),
+                prefix(multiDeclaration.getValOrVarKeyword()),
+                Markers.EMPTY,
+                multiDeclaration.isVar() ? "var" : null,
+                multiDeclaration.isVar() ? J.Modifier.Type.LanguageExtension : J.Modifier.Type.Final,
+                Collections.emptyList()
+        );
+        modifiers.add(modifier);
+
+        if (multiDeclaration.getInitializer() == null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        paddedInitializer = padLeft(suffix(multiDeclaration.getRPar()),
+                convertToExpression(multiDeclaration.getInitializer().accept(this, data))
+                        .withPrefix(prefix(multiDeclaration.getInitializer())));
+
+        List<KtDestructuringDeclarationEntry> entries = multiDeclaration.getEntries();
+        for (int i = 0; i < entries.size(); i++) {
+            KtDestructuringDeclarationEntry entry = entries.get(i);
+            JavaType.Variable vt = variableType(entry);
+
+            if (entry.getName() == null) {
+                throw new UnsupportedOperationException();
+            }
+
+            J.Identifier nameVar = createIdentifier(entry.getName(), prefix(entry), vt != null ? vt.getType() : null, vt);
+            J.VariableDeclarations.NamedVariable namedVariable = new J.VariableDeclarations.NamedVariable(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    nameVar,
+                    emptyList(),
+                    null,
+                    vt
+            );
+
+            JavaType.Method methodType = null;
+            if (paddedInitializer.getElement() instanceof J.NewClass) {
+                J.NewClass nc = (J.NewClass) paddedInitializer.getElement();
+                methodType = methodInvocationType(entry);
+            }
+            J.MethodInvocation initializer = buildSyntheticDestructInitializer(i + 1)
+                    .withMethodType(methodType);
+            namedVariable = namedVariable.getPadding().withInitializer(padLeft(Space.SINGLE_SPACE, initializer));
+            vars.add(padRight(namedVariable, suffix(entry)));
+        }
+
+        J.VariableDeclarations.NamedVariable emptyWithInitializer = new J.VariableDeclarations.NamedVariable(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                new J.Identifier(
+                        randomId(),
+                        Space.SINGLE_SPACE,
+                        Markers.EMPTY,
+                        emptyList(),
+                        "<destruct>",
+                        null,
+                        null
+                ),
+                emptyList(),
+                paddedInitializer,
+                null
+        );
+
+        J.VariableDeclarations variableDeclarations = new J.VariableDeclarations(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                leadingAnnotations,
+                modifiers,
+                null,
+                null,
+                emptyList(),
+                singletonList(padRight(emptyWithInitializer, Space.EMPTY )
+                )
+        );
+
+        return new K.DestructuringDeclaration(
+                randomId(),
+                prefix(multiDeclaration),
+                Markers.EMPTY,
+                variableDeclarations,
+                JContainer.build(prefix(multiDeclaration.getLPar()), vars, Markers.EMPTY)
+        );
+    }
+
+    private J.MethodInvocation buildSyntheticDestructInitializer(int id) {
+        J.Identifier name = new J.Identifier(
+                randomId(),
+                Space.SINGLE_SPACE,
+                Markers.EMPTY,
+                emptyList(),
+                "component" + id,
+                null,
+                null
+        );
+
+        return new J.MethodInvocation(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                null,
+                null,
+                name,
+                JContainer.empty(),
+                null
         );
     }
 
@@ -739,6 +901,11 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
         return type.getReferenceExpression().accept(this, data);
     }
 
+    @Override
+    public J visitValueArgumentList(@NotNull KtValueArgumentList list, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
     /*====================================================================
      * Mapping methods
      * ====================================================================*/
@@ -834,6 +1001,15 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 FirNamedFunctionSymbol functionSymbol = (FirNamedFunctionSymbol) basedSymbol;
                 return psiElementAssociations.getTypeMapping().methodDeclarationType(functionSymbol.getFir(), null, getCurrentFile());
             }
+        }
+        return null;
+    }
+
+    @Nullable
+    private JavaType.Method methodInvocationType(PsiElement psi) {
+        FirElement firElement = psiElementAssociations.component(psi);
+        if (firElement instanceof FirFunctionCall) {
+            return typeMapping.methodInvocationType((FirFunctionCall) firElement, getCurrentFile());
         }
         return null;
     }

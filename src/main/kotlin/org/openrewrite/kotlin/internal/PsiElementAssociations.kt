@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFile
-import org.jetbrains.kotlin.fir.psi
+import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
@@ -144,6 +144,9 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
     fun primary(psiElement: PsiElement) =
         fir(psiElement) { it.source is KtRealPsiSourceElement }
 
+    fun component(psiElement: PsiElement) =
+        fir(psiElement) { it is FirFunctionCall}
+
     fun fir(psi: PsiElement?, filter: (FirElement) -> Boolean) : FirElement? {
         var p = psi
         while (p != null && !elementMap.containsKey(p)) {
@@ -157,10 +160,8 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping) {
         val allFirInfos = elementMap[p]!!
         val directFirInfos = allFirInfos.filter { filter.invoke(it.fir) }
         return if (directFirInfos.isNotEmpty())
-            // to validate
             directFirInfos[0].fir
         else if (allFirInfos.isNotEmpty())
-            // to validate
             allFirInfos[0].fir
         else
             null
