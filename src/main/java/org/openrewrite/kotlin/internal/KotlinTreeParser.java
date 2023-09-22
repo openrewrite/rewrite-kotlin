@@ -54,10 +54,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinTypeMapping;
-import org.openrewrite.kotlin.marker.KObject;
-import org.openrewrite.kotlin.marker.OmitBraces;
-import org.openrewrite.kotlin.marker.Semicolon;
-import org.openrewrite.kotlin.marker.TypeReferencePrefix;
+import org.openrewrite.kotlin.marker.*;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.style.NamedStyles;
@@ -747,6 +744,17 @@ public class KotlinTreeParser extends KtVisitor<J, ExecutionContext> {
                 (Expression) directive.getPackageNameExpression().accept(this, data),
                 emptyList()
         );
+    }
+
+    @Override
+    public J visitPostfixExpression(KtPostfixExpression expression, ExecutionContext data) {
+        J j = expression.getBaseExpression().accept(this, data);
+        if (expression.getOperationReference().getReferencedNameElementType() == KtTokens.EXCLEXCL) {
+            j = j.withMarkers(j.getMarkers().addIfAbsent(new CheckNotNull(randomId(), prefix(expression.getOperationReference()))));
+        } else {
+            throw new UnsupportedOperationException("TODO");
+        }
+        return j;
     }
 
     @Override
