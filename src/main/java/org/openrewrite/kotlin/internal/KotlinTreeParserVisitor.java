@@ -41,6 +41,7 @@ import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
+import org.jetbrains.kotlin.lexer.KtToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
 import org.jetbrains.kotlin.psi.*;
@@ -625,17 +626,19 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
-        return new J.Binary(
+        assert expression.getLeft() != null;
+        assert expression.getRight() != null;
+
+        return new K.Binary(
                 randomId(),
                 prefix(expression),
                 Markers.EMPTY,
-                // TODO: fix NPE.
                 convertToExpression(expression.getLeft().accept(this, data)).withPrefix(Space.EMPTY),
                 padLeft(prefix(expression.getOperationReference()), mapBinaryType(expression.getOperationReference())),
-                // TODO: fix NPE.
                 convertToExpression((expression.getRight()).accept(this, data))
                         .withPrefix(prefix(expression.getRight())),
-                type(expression)
+                Space.EMPTY,
+                methodInvocationType(expression)
         );
     }
 
@@ -1012,6 +1015,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             KtCallExpression callExpression = (KtCallExpression) expression.getSelectorExpression();
             if (!callExpression.getTypeArguments().isEmpty()) {
                 throw new UnsupportedOperationException("TODO");
+            }
+            J j = expression.getSelectorExpression().accept(this, data);
+            if (j instanceof J.MethodInvocation) {
+                J.MethodInvocation methodInvocation = (J.MethodInvocation) j;
+                methodInvocation = methodInvocation.getPadding().withSelect(
+                        padRight(expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY), Space.EMPTY)
+                );
+                return methodInvocation;
             }
             return new J.MethodInvocation(
                     randomId(),
@@ -1466,16 +1477,20 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     /*====================================================================
      * Mapping methods
      * ====================================================================*/
-    private J.Binary.Type mapBinaryType(KtOperationReferenceExpression operationReference) {
+    private K.Binary.Type mapBinaryType(KtOperationReferenceExpression operationReference) {
         IElementType elementType = operationReference.getOperationSignTokenType();
         if (elementType == KtTokens.PLUS)
-            return J.Binary.Type.Addition;
+            return K.Binary.Type.Plus;
         else if (elementType == KtTokens.MINUS)
-            return J.Binary.Type.Subtraction;
+            return K.Binary.Type.Minus;
         else if (elementType == KtTokens.MUL)
-            return J.Binary.Type.Multiplication;
+            return K.Binary.Type.Mul;
         else if (elementType == KtTokens.DIV)
-            return J.Binary.Type.Division;
+            return K.Binary.Type.Div;
+        else if (elementType == KtTokens.NOT_IN)
+            return K.Binary.Type.NotContains;
+        else if (elementType == KtTokens.RANGE)
+            return K.Binary.Type.RangeTo;
         else
             throw new UnsupportedOperationException("Unsupported OPERATION_REFERENCE type :" + elementType);
     }
