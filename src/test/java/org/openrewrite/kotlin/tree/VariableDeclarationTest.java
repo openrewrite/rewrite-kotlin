@@ -51,9 +51,16 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Test
+    void yikes() {
+        rewriteRun(
+          kotlin("val b = ! ( ( 1 . plus ( 2 ) + 2 ) !in 1 .. 3 ) . not ( )")
+        );
+    }
+
+    @Test
     void singleVariableDeclarationWithTypeConstraint() {
         rewriteRun(
-          kotlin("val a : Int = 1")
+          kotlin("val a = ArrayList/*1*/</*2*/String/*3*/>/*4*/(/*5*/)")
         );
     }
 

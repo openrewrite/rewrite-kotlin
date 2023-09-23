@@ -23,13 +23,14 @@ import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFile
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
+import org.jetbrains.kotlin.fir.references.resolved
+import org.jetbrains.kotlin.fir.resolve.dfa.DfaInternals
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirFileSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor
 import org.jetbrains.kotlin.psi
 import org.jetbrains.kotlin.psi.KtDeclaration
-import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.openrewrite.java.tree.JavaType
 import org.openrewrite.kotlin.KotlinTypeMapping
@@ -152,7 +153,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
             p = p.parent
         }
 
-        if (p == null || (p != psi && p is KtDotQualifiedExpression)) {
+        if (p == null) {
             return null
         }
 
@@ -164,6 +165,28 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
             allFirInfos[0].fir
         else
             null
+    }
+
+    enum class ExpressionType {
+        CONSTRUCTOR,
+        METHOD_INVOCATION
+    }
+
+    @OptIn(DfaInternals::class)
+    fun getExpressionType(psi: KtExpression): ExpressionType {
+        val fir = fir(psi) { it is FirFunctionCall }
+        return if (fir is FirFunctionCall) {
+            if (fir.calleeReference.resolved != null) {
+                return if (fir.calleeReference.resolved!!.resolvedSymbol is FirConstructorSymbol) {
+                    ExpressionType.CONSTRUCTOR
+                } else {
+                    ExpressionType.METHOD_INVOCATION
+                }
+            }
+            throw UnsupportedOperationException("Null resolved symbol on FirFunctionCall: $psi")
+        } else {
+            throw UnsupportedOperationException("Unsupported expression type: $psi")
+        }
     }
 
     private fun PsiElement.customToString(): String {

@@ -15,11 +15,10 @@
  */
 package org.openrewrite.kotlin.internal;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.KtNodeTypes;
 import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
-import org.jetbrains.kotlin.com.intellij.psi.PsiComment;
-import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
-import org.jetbrains.kotlin.com.intellij.psi.PsiWhiteSpace;
+import org.jetbrains.kotlin.com.intellij.psi.*;
 import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.LeafPsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.PsiErrorElementImpl;
 import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
@@ -61,10 +60,7 @@ import org.openrewrite.style.NamedStyles;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -115,19 +111,424 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     }
 
     @Override
-    public J visitKtElement(KtElement element, ExecutionContext data) {
-        IElementType type = element.getNode().getElementType();
+    public J visitParenthesizedExpression(KtParenthesizedExpression expression, ExecutionContext data) {
+        assert expression.getExpression() != null;
+        return new J.Parentheses<>(
+                randomId(),
+                prefix(expression),
+                Markers.EMPTY,
+                padRight(expression.getExpression().accept(this, data), Space.EMPTY)
+        );
+    }
 
-        if (type == KtNodeTypes.KT_FILE)
-            return element.accept(this, data);
-        else if (type == KtNodeTypes.PROPERTY)
-            return element.accept(this, data);
-        else if (type == KtNodeTypes.INTEGER_CONSTANT)
-            return element.accept(this, data);
-        else if (type == KtNodeTypes.BINARY_EXPRESSION)
-            return element.accept(this, data);
-        else
-            throw new UnsupportedOperationException("Unsupported PSI type " + type);
+    @Override
+    public J visitForExpression(KtForExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitAnnotatedExpression(KtAnnotatedExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitAnnotationUseSiteTarget(KtAnnotationUseSiteTarget annotationTarget, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitAnonymousInitializer(KtAnonymousInitializer initializer, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitArrayAccessExpression(KtArrayAccessExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitBackingField(KtBackingField accessor, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitBinaryWithTypeRHSExpression(KtBinaryExpressionWithTypeRHS expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitBlockStringTemplateEntry(KtBlockStringTemplateEntry entry, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitBreakExpression(KtBreakExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitCallableReferenceExpression(KtCallableReferenceExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitCatchSection(KtCatchClause catchClause, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitClassInitializer(KtClassInitializer initializer, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitClassLiteralExpression(KtClassLiteralExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitClassOrObject(KtClassOrObject classOrObject, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitCollectionLiteralExpression(KtCollectionLiteralExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitConstructorCalleeExpression(KtConstructorCalleeExpression constructorCalleeExpression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitConstructorDelegationCall(KtConstructorDelegationCall call, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitContextReceiverList(KtContextReceiverList contextReceiverList, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitContinueExpression(KtContinueExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitDeclaration(KtDeclaration dcl, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitDelegatedSuperTypeEntry(KtDelegatedSuperTypeEntry specifier, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitDestructuringDeclarationEntry(KtDestructuringDeclarationEntry multiDeclarationEntry, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitDoubleColonExpression(KtDoubleColonExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitDoWhileExpression(KtDoWhileExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitDynamicType(KtDynamicType type, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitEnumEntry(KtEnumEntry enumEntry, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitEscapeStringTemplateEntry(KtEscapeStringTemplateEntry entry, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitExpression(KtExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitExpressionWithLabel(KtExpressionWithLabel expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitFileAnnotationList(KtFileAnnotationList fileAnnotationList, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitFinallySection(KtFinallySection finallySection, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitFunctionType(KtFunctionType type, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitImportAlias(KtImportAlias importAlias, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitImportList(KtImportList importList, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitInitializerList(KtInitializerList list, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitIntersectionType(KtIntersectionType definitelyNotNullType, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitIsExpression(KtIsExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitLabeledExpression(KtLabeledExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitLambdaExpression(KtLambdaExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitLiteralStringTemplateEntry(KtLiteralStringTemplateEntry entry, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitLoopExpression(KtLoopExpression loopExpression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitModifierList(KtModifierList list, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitNamedDeclaration(KtNamedDeclaration declaration, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitNullableType(KtNullableType nullableType, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitParameter(KtParameter parameter, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitParameterList(KtParameterList list, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitPrimaryConstructor(KtPrimaryConstructor constructor, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitPropertyAccessor(KtPropertyAccessor accessor, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitQualifiedExpression(KtQualifiedExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitReferenceExpression(KtReferenceExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitReturnExpression(KtReturnExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitSafeQualifiedExpression(KtSafeQualifiedExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitScript(KtScript script, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitScriptInitializer(KtScriptInitializer initializer, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitSecondaryConstructor(KtSecondaryConstructor constructor, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitSelfType(KtSelfType type, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitSimpleNameStringTemplateEntry(KtSimpleNameStringTemplateEntry entry, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitStringTemplateEntryWithExpression(KtStringTemplateEntryWithExpression entry, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitSuperExpression(KtSuperExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitSuperTypeEntry(KtSuperTypeEntry specifier, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitSuperTypeListEntry(KtSuperTypeListEntry specifier, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitThisExpression(KtThisExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitThrowExpression(KtThrowExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitTryExpression(KtTryExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitTypeAlias(KtTypeAlias typeAlias, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitTypeArgumentList(KtTypeArgumentList typeArgumentList, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitTypeConstraint(KtTypeConstraint constraint, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitTypeConstraintList(KtTypeConstraintList list, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitTypeParameter(KtTypeParameter parameter, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitTypeParameterList(KtTypeParameterList list, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitTypeProjection(KtTypeProjection typeProjection, ExecutionContext data) {
+        return typeProjection.getTypeReference().accept(this, data);
+    }
+
+    @Override
+    public J visitUnaryExpression(KtUnaryExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitWhenConditionInRange(KtWhenConditionInRange condition, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitWhenConditionIsPattern(KtWhenConditionIsPattern condition, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitWhenConditionWithExpression(KtWhenConditionWithExpression condition, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitWhenEntry(KtWhenEntry ktWhenEntry, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitWhenExpression(KtWhenExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitWhileExpression(KtWhileExpression expression, ExecutionContext data) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public void visitBinaryFile(PsiBinaryFile file) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public void visitComment(PsiComment comment) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public void visitDirectory(PsiDirectory dir) {
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
+    public J visitKtElement(KtElement element, ExecutionContext data) {
+        return element.accept(this, data);
     }
 
     /*====================================================================
@@ -135,9 +536,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
      * ====================================================================*/
     @Override
     public J visitKtFile(KtFile file, ExecutionContext data) {
-        List<J.Annotation> annotations = new ArrayList<>();
+        Space prefix = Space.EMPTY;
+        List<J.Annotation> annotations = file.getAnnotationEntries().isEmpty() ? emptyList() : new ArrayList<>(file.getAnnotationEntries().size());
         if (!file.getAnnotationEntries().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
+            prefix = prefix(file.getFileAnnotationList());
+            annotations = mapFileAnnotations(file.getFileAnnotationList(), data);
         }
 
         JRightPadded<J.Package> pkg = null;
@@ -190,6 +593,28 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     }
 
     @Override
+    public J visitAnnotationEntry(@NotNull KtAnnotationEntry annotationEntry, ExecutionContext data) {
+        Markers markers = Markers.EMPTY;
+        if (annotationEntry.getUseSiteTarget() != null) {
+            markers = markers.addIfAbsent(new AnnotationCallSite(
+                    randomId(),
+                    annotationEntry.getUseSiteTarget().getText(),
+                    suffix(annotationEntry.getUseSiteTarget())
+            ));
+        }
+
+        // List includes Parens.
+        if (annotationEntry.getValueArgumentList() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+        if (annotationEntry.getTypeReference() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        throw new UnsupportedOperationException("TODO");
+    }
+
+    @Override
     public J visitArgument(KtValueArgument argument, ExecutionContext data) {
         if (argument.getArgumentExpression() == null) {
             throw new UnsupportedOperationException("TODO");
@@ -237,38 +662,87 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitCallExpression(KtCallExpression expression, ExecutionContext data) {
-        if (!(expression.getParent() instanceof KtDestructuringDeclaration)) {
-            throw new UnsupportedOperationException("TODO");
-        }
-
         if (expression.getCalleeExpression() == null) {
             throw new UnsupportedOperationException("TODO");
         }
 
-        J.Identifier name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
+        PsiElementAssociations.ExpressionType type = psiElementAssociations.getExpressionType(expression);
+        if (type == PsiElementAssociations.ExpressionType.CONSTRUCTOR) {
+            TypeTree name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
+            if (!expression.getTypeArguments().isEmpty()) {
+                // FIXME: create a list.
+                Expression expr = (Expression) expression.getTypeArguments().get(0).accept(this, data);
+                name = new J.ParameterizedType(
+                        randomId(),
+                        name.getPrefix(),
+                        Markers.EMPTY,
+                        name.withPrefix(Space.EMPTY),
+                        JContainer.build(prefix(expression.getTypeArgumentList()), singletonList(padRight(expr, Space.EMPTY)), Markers.EMPTY),
+                        type(expression)
+                );
+            }
 
-        // createIdentifier(expression.getCalleeExpression(), type(expression));
-        List<KtValueArgument> arguments = expression.getValueArguments();
+            // createIdentifier(expression.getCalleeExpression(), type(expression));
+            List<KtValueArgument> arguments = expression.getValueArguments();
 
-        List<JRightPadded<Expression>> expressions = new ArrayList<>(arguments.size());
-        Markers markers = Markers.EMPTY;
+            List<JRightPadded<Expression>> expressions = new ArrayList<>(arguments.size());
+            Markers markers = Markers.EMPTY;
 
-        for (KtValueArgument arg : arguments) {
-            expressions.add(padRight(convertToExpression(arg.accept(this, data)).withPrefix(prefix(arg)), suffix(arg)));
+            for (KtValueArgument arg : arguments) {
+                expressions.add(padRight(convertToExpression(arg.accept(this, data)).withPrefix(prefix(arg)), suffix(arg)));
+            }
+
+            JContainer<Expression> args = JContainer.build(prefix(expression.getValueArgumentList()), expressions, markers);
+            return new J.NewClass(
+                    randomId(),
+                    Space.SINGLE_SPACE,
+                    Markers.EMPTY,
+                    null,
+                    Space.EMPTY,
+                    name,
+                    args,
+                    null,
+                    methodInvocationType(expression)
+            );
+        } else if (type == PsiElementAssociations.ExpressionType.METHOD_INVOCATION) {
+            J.Identifier name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
+            if (!expression.getTypeArguments().isEmpty()) {
+                Expression expr = (Expression) expression.accept(this, data);
+                throw new UnsupportedOperationException("TODO");
+//                name = new J.ParameterizedType(
+//                        randomId(),
+//                        name.getPrefix(),
+//                        Markers.EMPTY,
+//                        name.withPrefix(Space.EMPTY),
+//                        JContainer.build(prefix(expression.getTypeArgumentList()), singletonList(padRight(expr, Space.EMPTY)), Markers.EMPTY),
+//                        type(expression)
+//                );
+            }
+
+            // createIdentifier(expression.getCalleeExpression(), type(expression));
+            List<KtValueArgument> arguments = expression.getValueArguments();
+
+            List<JRightPadded<Expression>> expressions = new ArrayList<>(arguments.size());
+            Markers markers = Markers.EMPTY;
+
+            for (KtValueArgument arg : arguments) {
+                expressions.add(padRight(convertToExpression(arg.accept(this, data)).withPrefix(prefix(arg)), suffix(arg)));
+            }
+
+            JContainer<Expression> args = JContainer.build(prefix(expression.getValueArgumentList()), expressions, markers);
+            return new J.MethodInvocation(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    null,
+                    null,
+                    (J.Identifier) name,
+                    args,
+                    methodInvocationType(expression)
+            );
+        } else {
+            throw new UnsupportedOperationException("TODO");
         }
-
-        JContainer<Expression> args = JContainer.build(prefix(expression.getValueArgumentList()), expressions, markers);
-        return new J.NewClass(
-                randomId(),
-                Space.SINGLE_SPACE,
-                Markers.EMPTY,
-                null,
-                Space.EMPTY,
-                name,
-                args,
-                null,
-                methodDeclarationType(expression)
-        );
     }
 
     @Override
@@ -529,15 +1003,33 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitDotQualifiedExpression(KtDotQualifiedExpression expression, ExecutionContext data) {
-        return new J.FieldAccess(
-                randomId(),
-                prefix(expression),
-                Markers.EMPTY,
-                expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY),
-                // TODO: fix NPE.
-                padLeft(prefix(expression.getSelectorExpression()), (J.Identifier) expression.getSelectorExpression().accept(this, data)),
-                type(expression)
-        );
+        assert expression.getSelectorExpression() != null;
+        if (expression.getSelectorExpression() instanceof KtCallExpression) {
+            KtCallExpression callExpression = (KtCallExpression) expression.getSelectorExpression();
+            if (!callExpression.getTypeArguments().isEmpty()) {
+                throw new UnsupportedOperationException("TODO");
+            }
+            return new J.MethodInvocation(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    padRight(expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY), Space.EMPTY),
+                    null,
+                    expression.getSelectorExpression().accept(this, data).withPrefix(Space.EMPTY),
+                    JContainer.empty(),
+                    methodInvocationType(expression) // TODO: fix for constructors of inner classes
+            );
+        } else {
+            // Maybe need to type check before creating a field access.
+            return new J.FieldAccess(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY),
+                    padLeft(prefix(expression.getSelectorExpression()), (J.Identifier) expression.getSelectorExpression().accept(this, data)),
+                    type(expression)
+            );
+        }
     }
 
     @Override
@@ -755,6 +1247,19 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     }
 
     @Override
+    public J visitPrefixExpression(KtPrefixExpression expression, ExecutionContext data) {
+        assert expression.getBaseExpression() != null;
+        return new J.Unary(
+                randomId(),
+                prefix(expression),
+                Markers.EMPTY,
+                padLeft(prefix(expression.getOperationReference()), J.Unary.Type.Not),
+                (Expression) expression.getBaseExpression().accept(this, data),
+                methodInvocationType(expression)
+        );
+    }
+
+    @Override
     public J visitPostfixExpression(KtPostfixExpression expression, ExecutionContext data) {
         // TODO: fix NPE.
         J j = expression.getBaseExpression().accept(this, data);
@@ -844,7 +1349,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<J.Annotation> annotations = new ArrayList<>();
         for (PsiElement child = PsiTreeUtil.firstChild(modifierList); child != null; child = child.getNextSibling()) {
             if (child instanceof LeafPsiElement && child.getNode().getElementType() instanceof KtModifierKeywordToken) {
-                System.out.println();
                 // TODO: fix leading annotations and modifier annotations.
                 modifiers.add(mapModifier(child, annotations));
             } else if (child instanceof KtAnnotationEntry) {
@@ -1211,6 +1715,21 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             first = first.getTreeNext();
         }
         return builder.toString();
+    }
+
+    private List<J.Annotation> mapFileAnnotations(@Nullable KtFileAnnotationList ktFileAnnotationList, ExecutionContext data) {
+        if (ktFileAnnotationList == null && ktFileAnnotationList.getAnnotationEntries().isEmpty()) {
+            return emptyList();
+        }
+
+        List<J.Annotation> annotations = new ArrayList<>(ktFileAnnotationList.getAnnotationEntries().size());
+        List<KtAnnotationEntry> annotationEntries = ktFileAnnotationList.getAnnotationEntries();
+        for (int i = 0; i < annotationEntries.size(); i++) {
+            KtAnnotationEntry annotation = annotationEntries.get(i);
+            J.Annotation ann = (J.Annotation) annotation.accept(this, data);
+            System.out.println();
+        }
+        return annotations;
     }
 
     private J.Modifier mapModifier(PsiElement modifier, List<J.Annotation> annotations) {
