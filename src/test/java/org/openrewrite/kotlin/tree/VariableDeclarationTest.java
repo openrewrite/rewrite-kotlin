@@ -60,7 +60,7 @@ class VariableDeclarationTest implements RewriteTest {
     @Test
     void singleVariableDeclarationWithTypeConstraint() {
         rewriteRun(
-          kotlin("val a = ArrayList/*1*/</*2*/String/*3*/>/*4*/(/*5*/)")
+          kotlin("val a = ArrayList<String>()")
         );
     }
 

@@ -685,14 +685,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             // createIdentifier(expression.getCalleeExpression(), type(expression));
             List<KtValueArgument> arguments = expression.getValueArguments();
 
-            List<JRightPadded<Expression>> expressions = new ArrayList<>(arguments.size());
-            Markers markers = Markers.EMPTY;
+            JContainer<Expression> args;
+            if (arguments.isEmpty()) {
+                args = JContainer.build(singletonList(padRight(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY), Space.EMPTY)));
+            } else {
+                List<JRightPadded<Expression>> expressions = new ArrayList<>(arguments.size());
+                Markers markers = Markers.EMPTY;
 
-            for (KtValueArgument arg : arguments) {
-                expressions.add(padRight(convertToExpression(arg.accept(this, data)).withPrefix(prefix(arg)), suffix(arg)));
+                for (KtValueArgument arg : arguments) {
+                    expressions.add(padRight(convertToExpression(arg.accept(this, data)).withPrefix(prefix(arg)), suffix(arg)));
+                }
+                args = JContainer.build(prefix(expression.getValueArgumentList()), expressions, markers);
             }
-
-            JContainer<Expression> args = JContainer.build(prefix(expression.getValueArgumentList()), expressions, markers);
             return new J.NewClass(
                     randomId(),
                     Space.SINGLE_SPACE,
