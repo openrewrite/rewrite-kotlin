@@ -22,6 +22,8 @@ import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFile
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
+import org.jetbrains.kotlin.fir.expressions.impl.FirElseIfTrueCondition
+import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.resolved
 import org.jetbrains.kotlin.fir.resolve.dfa.DfaInternals
@@ -212,6 +214,18 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
         override fun toString(): String {
             val s = PsiTreePrinter.printFirElement(fir)
             return "FIR($depth, $s)"
+        }
+    }
+
+    companion object {
+        fun printElement(firElement: FirElement) : String {
+            if (firElement is FirSingleExpressionBlock) {
+                return PsiTreePrinter.firElementToString(firElement.statement)
+            } else  if (firElement is FirElseIfTrueCondition) {
+                return "true";
+            }
+
+            return "";
         }
     }
 }

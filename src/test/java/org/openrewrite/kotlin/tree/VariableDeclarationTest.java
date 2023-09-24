@@ -51,6 +51,16 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Test
+    void deSugar() {
+        rewriteRun(
+          kotlin("""
+            val a = if (2 !in 1 .. 10) "X" else "Y"
+            """
+          )
+        );
+    }
+
+    @Test
     void yikes() {
         rewriteRun(
           kotlin("val b = !((1.plus(2)+2)!in 1..3).not()")

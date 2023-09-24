@@ -25,6 +25,9 @@ import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange;
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.fir.FirElement;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
+import org.jetbrains.kotlin.fir.declarations.FirProperty;
+import org.jetbrains.kotlin.fir.expressions.*;
+import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference;
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
 import org.jetbrains.kotlin.fir.types.FirTypeRef;
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor;
@@ -377,7 +380,58 @@ public class PsiTreePrinter {
                     .append(source.getElementType())
                     .append(")");
         }
+
+        String firValue = firElementToString(firElement);
+        if (!firValue.isEmpty()) {
+            sb.append(" | ").append(firValue);
+        }
+
         return sb.toString();
+    }
+
+    public static String firElementToString(FirElement firElement) {
+        if (firElement instanceof FirFile) {
+            return ((FirFile) firElement).getName();
+        } else if (firElement instanceof FirProperty) {
+            return ((FirProperty) firElement).getName().toString();
+        } else if (firElement instanceof FirResolvedTypeRef) {
+            return "Type = " + ((FirResolvedTypeRef) firElement).getType();
+        } else if (firElement instanceof FirResolvedNamedReference) {
+            return ((FirResolvedNamedReference) firElement).getName().toString();
+        } else if (firElement instanceof FirFunctionCall) {
+            FirFunctionCall functionCall = (FirFunctionCall) firElement;
+            if (functionCall.getExplicitReceiver() != null) {
+                return firElementToString(functionCall.getExplicitReceiver()) + "." +
+                        ((FirFunctionCall) firElement).getCalleeReference().getName() + "(" + firElementToString(((FirFunctionCall) firElement).getArgumentList()) + ")";
+            } else {
+                return ((FirFunctionCall) firElement).getCalleeReference().getName() + "(" + firElementToString(((FirFunctionCall) firElement).getArgumentList()) + ")";
+            }
+        } else if (firElement instanceof FirArgumentList) {
+            List<FirExpression> args = ((FirArgumentList) firElement).getArguments();
+            if (!args.isEmpty()) {
+                boolean first = true;
+                StringBuilder sb = new StringBuilder();
+                for (FirExpression arg : args) {
+                    if (!first) {
+                        sb.append(", ");
+                    }
+                    sb.append(firElementToString(arg));
+                    first = false;
+                }
+                return sb.toString();
+            }
+        } else if (firElement instanceof FirConstExpression) {
+            return ((FirConstExpression<?>) firElement).getValue().toString();
+            // return ((FirConstExpression<?>) firElement).getKind().toString();
+        } else if (firElement instanceof FirWhenBranch) {
+            FirWhenBranch whenBranch = (FirWhenBranch) firElement;
+            return "when(" + firElementToString(whenBranch.getCondition()) + ")" + " -> " + firElementToString(whenBranch.getResult());
+        } else if (firElement.getClass().getSimpleName().equals("FirElseIfTrueCondition")) {
+            return PsiElementAssociations.Companion.printElement(firElement);
+        } else if (firElement.getClass().getSimpleName().equals("FirSingleExpressionBlock")) {
+            return PsiElementAssociations.Companion.printElement(firElement);
+        }
+        return "";
     }
 
     public static String printIndexedSourceCode(String sourceCode) {
