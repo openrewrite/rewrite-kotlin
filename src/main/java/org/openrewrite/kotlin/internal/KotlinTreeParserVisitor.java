@@ -114,11 +114,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitParenthesizedExpression(KtParenthesizedExpression expression, ExecutionContext data) {
         assert expression.getExpression() != null;
+
+        PsiElement rPar = expression.getLastChild();
+        if (rPar == null || !(")".equals(rPar.getText()))) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         return new J.Parentheses<>(
                 randomId(),
                 prefix(expression),
                 Markers.EMPTY,
-                padRight(expression.getExpression().accept(this, data), Space.EMPTY)
+                padRight(expression.getExpression().accept(this, data), prefix(rPar))
         );
     }
 
@@ -749,6 +755,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 expressions.add(padRight(convertToExpression(arg.accept(this, data)).withPrefix(prefix(arg)), suffix(arg)));
             }
 
+            if (expressions.isEmpty()) {
+                expressions.add(padRight(new J.Empty(randomId(), prefix(expression.getValueArgumentList().getRightParenthesis()), Markers.EMPTY),  Space.EMPTY));
+            }
+
             JContainer<Expression> args = JContainer.build(prefix(expression.getValueArgumentList()), expressions, markers);
             return new J.MethodInvocation(
                     randomId(),
@@ -756,7 +766,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     Markers.EMPTY,
                     null,
                     null,
-                    (J.Identifier) name,
+                    (J.Identifier) name.withPrefix(prefix(expression)),
                     args,
                     methodInvocationType(expression)
             );
@@ -1025,6 +1035,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitDotQualifiedExpression(KtDotQualifiedExpression expression, ExecutionContext data) {
         assert expression.getSelectorExpression() != null;
         if (expression.getSelectorExpression() instanceof KtCallExpression) {
+
             KtCallExpression callExpression = (KtCallExpression) expression.getSelectorExpression();
             if (!callExpression.getTypeArguments().isEmpty()) {
                 throw new UnsupportedOperationException("TODO");
@@ -1033,7 +1044,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (j instanceof J.MethodInvocation) {
                 J.MethodInvocation methodInvocation = (J.MethodInvocation) j;
                 methodInvocation = methodInvocation.getPadding().withSelect(
-                        padRight(expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY), Space.EMPTY)
+                        padRight(expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY), suffix(expression.getReceiverExpression()))
                 );
                 return methodInvocation;
             }
@@ -1277,12 +1288,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitPrefixExpression(KtPrefixExpression expression, ExecutionContext data) {
         assert expression.getBaseExpression() != null;
+
+        KtSimpleNameExpression ktSimpleNameExpression = expression.getOperationReference();
+        if (ktSimpleNameExpression == null || !("!".equals(ktSimpleNameExpression.getReferencedName()))) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         return new J.Unary(
                 randomId(),
                 prefix(expression),
                 Markers.EMPTY,
                 padLeft(prefix(expression.getOperationReference()), J.Unary.Type.Not),
-                (Expression) expression.getBaseExpression().accept(this, data),
+                (Expression) expression.getBaseExpression().accept(this, data).withPrefix(suffix(ktSimpleNameExpression)),
                 methodInvocationType(expression)
         );
     }

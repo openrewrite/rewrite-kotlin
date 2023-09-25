@@ -63,7 +63,7 @@ class VariableDeclarationTest implements RewriteTest {
     @Test
     void yikes() {
         rewriteRun(
-          kotlin("val b = !((1.plus(2)+2)!in 1..3).not()")
+          kotlin("val b =  !   (    (     1 .  plus   (    2     ) +  2   )    !in      1 ..  3   )    .     not( )")
         );
     }
 
