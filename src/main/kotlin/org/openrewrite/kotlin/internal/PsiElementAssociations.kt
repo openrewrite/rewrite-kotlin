@@ -64,7 +64,6 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
     }
 
     private fun validate() {
-        println("======")
         var found1ToNMapping = false
         elementMap.forEach { (psi, firList) ->
             var fakeCount = 0
@@ -80,6 +79,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                 }
             }
 
+            // print out logs
             if (true) {
                 found1ToNMapping = realCount > 1
 

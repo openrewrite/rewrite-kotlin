@@ -319,7 +319,20 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitLiteralStringTemplateEntry(KtLiteralStringTemplateEntry entry, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        PsiElement leaf = entry.getFirstChild();
+        if (!(leaf instanceof LeafPsiElement)) {
+            throw new UnsupportedOperationException("Unsupported KtStringTemplateEntry child");
+        }
+
+        return new J.Literal(
+                Tree.randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                leaf.getText(),
+                "\"" + leaf.getText() + "\"", // todo, support text block
+                null,
+                primitiveType(entry)
+        );
     }
 
     @Override
