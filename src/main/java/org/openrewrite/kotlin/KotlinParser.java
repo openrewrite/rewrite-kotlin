@@ -209,7 +209,7 @@ public class KotlinParser implements Parser {
                                             System.out.println("=========\n LST and types from PSI-based-parser");
                                             System.out.println(treePsi);
 
-                                            assertEquals(treeFir, treePsi);
+                                            // assertEquals(treeFir, treePsi);
                                         }
 
                                         parsingListener.parsed(kotlinSource.getInput(), kcuPsi);

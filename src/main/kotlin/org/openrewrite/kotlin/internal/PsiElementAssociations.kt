@@ -146,8 +146,26 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
     fun primary(psiElement: PsiElement) =
         fir(psiElement) { it.source is KtRealPsiSourceElement }
 
-    fun component(psiElement: PsiElement) =
+    fun function(psiElement: PsiElement) =
         fir(psiElement) { it is FirFunctionCall}
+
+    fun functions(psiElement: PsiElement) =
+        filteredFirs(psiElement) { it is FirFunctionCall}
+
+    fun filteredFirs(psi: PsiElement?, filter: (FirElement) -> Boolean) : List<FirInfo> {
+        var p = psi
+        while (p != null && !elementMap.containsKey(p)) {
+            p = p.parent
+        }
+
+        if (p == null) {
+            return emptyList()
+        }
+
+        val allFirInfos = elementMap[p]!!
+        val filtered = allFirInfos.filter { filter.invoke(it.fir) }
+        return  filtered
+    }
 
     fun fir(psi: PsiElement?, filter: (FirElement) -> Boolean) : FirElement? {
         var p = psi
@@ -207,7 +225,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
         return sb.toString()
     }
 
-    private class FirInfo(
+    public class FirInfo(
         val fir: FirElement,
         val depth: Int,
     ) {
