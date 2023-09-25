@@ -760,15 +760,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
 
             JContainer<Expression> args = JContainer.build(prefix(expression.getValueArgumentList()), expressions, markers);
+
+            JavaType.Method methodType = methodInvocationType(expression);
             return new J.MethodInvocation(
                     randomId(),
                     Space.EMPTY,
                     Markers.EMPTY,
                     null,
                     null,
-                    (J.Identifier) name.withPrefix(prefix(expression)),
+                    (J.Identifier) name.withType(methodType).withPrefix(prefix(expression)),
                     args,
-                    methodInvocationType(expression)
+                    methodType
             );
         } else {
             throw new UnsupportedOperationException("TODO");
