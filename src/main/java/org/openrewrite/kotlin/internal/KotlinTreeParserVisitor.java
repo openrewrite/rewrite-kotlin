@@ -393,7 +393,22 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitReturnExpression(KtReturnExpression expression, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        J.Identifier label = null;
+        if (expression.getLabeledExpression() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        Expression returnExpr = convertToExpression(expression.getReturnedExpression().accept(this, data).withPrefix(prefix(expression.getReturnedExpression())));
+        return new K.KReturn(
+                randomId(),
+                new J.Return(
+                        randomId(),
+                        prefix(expression),
+                        Markers.EMPTY,
+                        returnExpr
+                ),
+                label
+        );
     }
 
     @Override
@@ -1141,9 +1156,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         J.TypeParameters typeParameters = null;
         TypeTree returnTypeExpression = null;
 
-        if (function.getTypeReference() != null) {
-            throw new UnsupportedOperationException("TODO");
-        }
+
         if (function.getReceiverTypeReference() != null) {
             throw new UnsupportedOperationException("TODO");
         }
@@ -1175,6 +1188,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 )
         );
 
+
+
         if (function.getNameIdentifier() == null) {
             throw new UnsupportedOperationException("TODO");
         }
@@ -1196,6 +1211,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             );
         } else {
             throw new UnsupportedOperationException("TODO");
+        }
+
+        if (function.getTypeReference() != null) {
+            markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(function.getColon())));
+            returnTypeExpression = function.getTypeReference().accept(this, data).withPrefix(prefix(function.getTypeReference()));
         }
 
         if (function.getBodyBlockExpression() == null) {
