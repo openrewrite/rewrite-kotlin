@@ -1502,7 +1502,7 @@ class KotlinParserVisitor(
                 val expression = flattenedExpressions[i]
 
                 // Didn't find a way to proper reset the cursor, so have to do a hard reset here
-                if (hasParentheses) {
+                if (hasParentheses && i == 0) {
                     cursor = lPAROffset + 1
                 }
 
