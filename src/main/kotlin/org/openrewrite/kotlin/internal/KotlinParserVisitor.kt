@@ -1438,7 +1438,7 @@ class KotlinParserVisitor(
         if (firCall.argumentList.source is KtRealPsiSourceElement) {
             val firArgumentsSource = firCall.argumentList.source.psi
             val firstChild = firArgumentsSource?.firstChild
-            if (firstChild != null && firstChild.node.elementType.equals(KtTokens.LPAR)) {
+            if (firstChild != null && firstChild.node.elementType == KtTokens.LPAR) {
                 hasParentheses = true
                 lPAROffset = firstChild.node.startOffset
             }
