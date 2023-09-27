@@ -1177,9 +1177,9 @@ class KotlinParserVisitor(
 
             var hasExplicitReceiver = false
             if (functionCall is FirImplicitInvokeCall) {
-                val dispatchReceiver = functionCall.dispatchReceiver
-                if (dispatchReceiver is FirPropertyAccessExpression) {
-                    if (dispatchReceiver.explicitReceiver != null) {
+                val explicitReceiver = functionCall.explicitReceiver
+                if (explicitReceiver is FirPropertyAccessExpression) {
+                    if (explicitReceiver.explicitReceiver != null) {
                         hasExplicitReceiver = true
                     }
                 }
