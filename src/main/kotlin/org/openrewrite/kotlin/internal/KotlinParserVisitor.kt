@@ -1208,7 +1208,7 @@ class KotlinParserVisitor(
 
             if (functionCall is FirImplicitInvokeCall) {
                 val dispatchReceiver = functionCall.dispatchReceiver
-                if (dispatchReceiver is FirPropertyAccessExpression) {
+                if (dispatchReceiver is FirPropertyAccessExpression && dispatchReceiver.explicitReceiver != null) {
                     select = padRight(convertToExpression<Expression>(dispatchReceiver.explicitReceiver as FirElement, data)!!, whitespace())
                 }
             }
