@@ -29,9 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-/**
- * Desugar Kotlin code to support data flow analysis.
- */
 public class DesugarVisitor extends KotlinVisitor<ExecutionContext> {
 
     @Nullable
@@ -101,41 +98,72 @@ public class DesugarVisitor extends KotlinVisitor<ExecutionContext> {
         return select;
     }
 
-    private static J.MethodInvocation buildMethodInvocationTemplate(String sourceCode, String methodName) {
-        K.CompilationUnit kcu = KotlinParser.builder().build()
-                .parse(sourceCode)
-                .map(K.CompilationUnit.class::cast)
-                .findFirst()
-                .get();
-
-        return new KotlinVisitor<AtomicReference<J.MethodInvocation>>() {
-            @Override
-            public J visitMethodInvocation(J.MethodInvocation method, AtomicReference<J.MethodInvocation> target) {
-                if (method.getSimpleName().equals(methodName)) {
-                    target.set(method);
-                }
-                return method;
-            }
-        }.reduce(kcu, new AtomicReference<>()).get();
-    }
-
     private static J.MethodInvocation getContainsMethodCallTemplate() {
         if (containsMethodCallTemplate == null) {
-            containsMethodCallTemplate = buildMethodInvocationTemplate("val a ='A'.rangeTo('Z').contains('X')", "contains");
+            K.CompilationUnit kcu = KotlinParser.builder().build()
+                    // .parse("val a = 1.rangeTo(10).contains(2)")
+                    .parse("val a ='A'.rangeTo('Z').contains('X')")
+                    .map(K.CompilationUnit.class::cast)
+                    .findFirst()
+                    .get();
+
+            containsMethodCallTemplate = new KotlinVisitor<AtomicReference<J.MethodInvocation>>() {
+                @Override
+                public J visitMethodInvocation(J.MethodInvocation method, AtomicReference<J.MethodInvocation> target) {
+                    if (method.getSimpleName().equals("contains")) {
+                        target.set(method);
+                    }
+                    return method;
+                }
+
+            }.reduce(kcu, new AtomicReference<>()).get();
         }
         return containsMethodCallTemplate;
     }
 
     private static J.MethodInvocation getNotMethodCallTemplate() {
         if (notMethodCallTemplate == null) {
-            notMethodCallTemplate = buildMethodInvocationTemplate("val a=true.not()", "not");
+            K.CompilationUnit kcu = KotlinParser.builder().build()
+                    // .parse("val a = 1.rangeTo(10).contains(2)")
+                    .parse("val a=true.not()")
+                    .map(K.CompilationUnit.class::cast)
+                    .findFirst()
+                    .get();
+
+            notMethodCallTemplate = new KotlinVisitor<AtomicReference<J.MethodInvocation>>() {
+                @Override
+                public J visitMethodInvocation(J.MethodInvocation method, AtomicReference<J.MethodInvocation> target) {
+                    if (method.getSimpleName().equals("not")) {
+                        target.set(method);
+                    }
+                    return method;
+                }
+
+            }.reduce(kcu, new AtomicReference<>()).get();
         }
         return notMethodCallTemplate;
     }
 
+
     private static J.MethodInvocation getRangeToMethodCallTemplate() {
         if (rangeToMethodCallTemplate == null) {
-            rangeToMethodCallTemplate = buildMethodInvocationTemplate("val a ='A'.rangeTo('Z')", "rangeTo");
+            K.CompilationUnit kcu = KotlinParser.builder().build()
+                    // .parse("val a = 1.rangeTo(10).contains(2)")
+                    .parse("val a ='A'.rangeTo('Z')")
+                    .map(K.CompilationUnit.class::cast)
+                    .findFirst()
+                    .get();
+
+            rangeToMethodCallTemplate = new KotlinVisitor<AtomicReference<J.MethodInvocation>>() {
+                @Override
+                public J visitMethodInvocation(J.MethodInvocation method, AtomicReference<J.MethodInvocation> target) {
+                    if (method.getSimpleName().equals("rangeTo")) {
+                        target.set(method);
+                    }
+                    return method;
+                }
+
+            }.reduce(kcu, new AtomicReference<>()).get();
         }
         return rangeToMethodCallTemplate;
     }
