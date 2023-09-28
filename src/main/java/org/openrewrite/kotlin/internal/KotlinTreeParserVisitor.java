@@ -62,7 +62,6 @@ import org.openrewrite.style.NamedStyles;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -663,16 +662,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
         assert expression.getLeft() != null;
         assert expression.getRight() != null;
-        Markers markers = Markers.EMPTY;
-        List<JavaType.Method> types = methodInvocationTypes(expression);
-        if (!types.isEmpty()) {
-            markers = markers.add(new MethodTypes(randomId(), types));
-        }
 
         return new K.Binary(
                 randomId(),
                 prefix(expression),
-                markers,
+                Markers.EMPTY,
                 convertToExpression(expression.getLeft().accept(this, data)).withPrefix(Space.EMPTY),
                 padLeft(prefix(expression.getOperationReference()), mapBinaryType(expression.getOperationReference())),
                 convertToExpression((expression.getRight()).accept(this, data))
@@ -1640,18 +1634,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Nullable
     private JavaType.Method methodInvocationType(PsiElement psi) {
-        FirElement firElement = psiElementAssociations.function(psi);
+        FirElement firElement = psiElementAssociations.component(psi);
         if (firElement instanceof FirFunctionCall) {
             return typeMapping.methodInvocationType((FirFunctionCall) firElement, psiElementAssociations.getFile().getSymbol());
         }
         return null;
-    }
-
-    private List<JavaType.Method> methodInvocationTypes(PsiElement psi) {
-        return psiElementAssociations.functions(psi).stream().map(PsiElementAssociations.FirInfo::getFir)
-                .map(FirFunctionCall.class::cast)
-                .map(fir -> typeMapping.methodInvocationType(fir, psiElementAssociations.getFile().getSymbol()))
-                .collect(Collectors.toList());
     }
 
     /*====================================================================
