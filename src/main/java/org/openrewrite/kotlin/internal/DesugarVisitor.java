@@ -19,62 +19,68 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.KotlinVisitor;
 import org.openrewrite.kotlin.marker.MethodTypes;
-import org.openrewrite.kotlin.marker.OperatorOverload;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static org.openrewrite.Tree.randomId;
-import static org.openrewrite.java.tree.Space.EMPTY;
-import static org.openrewrite.kotlin.tree.K.Binary.Type.*;
+/**
+ * Desugar Kotlin code to support data flow analysis.
+ */
+public class DesugarVisitor extends KotlinVisitor<ExecutionContext> {
 
-public class DesugarVisitor<P> extends KotlinVisitor<P> {
+    @Nullable
+    private static J.MethodInvocation containsMethodCallTemplate = null;
 
-    @Override
-    public J visitUnary(J.Unary unary, P p) {
-        // TODO: apply appropriate whitespace from unary to J.MI based on Unary$Type
-        return new J.MethodInvocation(
-                randomId(),
-                unary.getPrefix(),
-                Markers.EMPTY.addIfAbsent(new OperatorOverload(randomId())),
-                JRightPadded.build((Expression) Objects.requireNonNull(visit(unary.getExpression(), p))),
-                null,
-                methodIdentifier(methodName(unary), null), // TODO: ADD type
-                JContainer.build(EMPTY, singletonList(JRightPadded.build(new J.Empty(randomId(), EMPTY, Markers.EMPTY))), Markers.EMPTY),
-                null // TODO: ADD type
-        );
-    }
+    @Nullable
+    private static J.MethodInvocation notMethodCallTemplate = null;
+
+    @Nullable
+    private static J.MethodInvocation rangeToMethodCallTemplate = null;
 
     @Override
-    public J visitBinary(K.Binary binary, P p) {
-        // TODO: set arguments and select based on K.Binary$Type and apply appropriate whitespace for idempotent print.
-        // Every OP other than contains and !in should be the same Binary.L => MI.Select and Binary.R to MI.Args
-        // Contains switches the LEFT and RIGHT, and !in adds a not() as the first MI. And contains becomes the SELECT.
-        if (binary.getOperator() == NotContains) {
-            System.out.println();
+    public J visitBinary(K.Binary binary, ExecutionContext ctx) {
+        K.Binary kb = (K.Binary ) super.visitBinary(binary, ctx);
+
+        List<JavaType.Method> methodTypes = binary.getMarkers().findFirst(MethodTypes.class)
+                .map(MethodTypes::getMethodTypes)
+                .orElse(Collections.emptyList());
+
+        if (kb.getOperator() == K.Binary.Type.NotContains) {
+            JavaType.Method containsType = findMethodType(methodTypes, "contains");
+            JavaType.Method notType = findMethodType(methodTypes, "not");
+            if (containsType == null || notType == null) {
+                throw new IllegalArgumentException("Didn't find the contains() or not() method type from FIR");
+            }
+
+            J.MethodInvocation containsCall = getContainsMethodCallTemplate();
+            J.MethodInvocation notCall = getNotMethodCallTemplate();
+            containsCall = containsCall.withArguments(Collections.singletonList(kb.getLeft()))
+                    .withSelect(maybeParenthesizeSelect(kb.getRight()))
+                    .withMethodType(containsType);
+
+            notCall = notCall.withSelect(containsCall).withPrefix(Space.EMPTY)
+                    .withMethodType(notType);
+            return notCall;
+        } else if (kb.getOperator() == K.Binary.Type.RangeTo) {
+            JavaType.Method rangeToType = findMethodType(methodTypes, "rangeTo");
+            if (rangeToType == null) {
+                throw new IllegalArgumentException("Didn't find the rangeTo() method type from FIR");
+            }
+
+            J.MethodInvocation rangeTo = getRangeToMethodCallTemplate();
+            return rangeTo.withSelect(maybeParenthesizeSelect(kb.getLeft()))
+                    .withArguments(Collections.singletonList(kb.getRight().withPrefix(Space.EMPTY)))
+                    .withPrefix(binary.getPrefix())
+                    .withMethodType(rangeToType);
         }
 
-        if (binary.getType() != null && binary.getType() instanceof JavaType.Method) {
-            return new J.MethodInvocation(
-                    randomId(),
-                    binary.getPrefix(),
-                    Markers.EMPTY.addIfAbsent(new OperatorOverload(randomId())),
-                    JRightPadded.build((Expression) visitNonNull(binary.getLeft(), p)),
-                    null,
-                    methodIdentifier(methodName(binary), (JavaType.Method) binary.getType()),
-                    mapContainer(binary, p),
-                    (JavaType.Method) binary.getType()
-            );
-        }
-        // Use the K.Binary to preserve printing if the type is null.
-        return super.visitBinary(binary, p);
+        return autoFormat(kb, ctx).withPrefix(Space.EMPTY) ;
     }
 
     @Nullable
@@ -82,65 +88,55 @@ public class DesugarVisitor<P> extends KotlinVisitor<P> {
         return types.stream().filter(f -> f.getName().equals(name)).findFirst().orElse(null);
     }
 
-    private JContainer<Expression> mapContainer(K.Binary binary, P p) {
-        List<JRightPadded<Expression>> args;
-        switch (binary.getOperator()) {
-            case RangeTo:
-            case RangeUntil:
-                args = new ArrayList<>(1);
-                args.add(JRightPadded.build((Expression) visitNonNull(binary.getRight(), p)));
-                break;
-            default:
-                throw new UnsupportedOperationException("Binary operator " + binary + " is not supported");
-        }
-        return JContainer.build(binary.getPadding().getOperator().getBefore(), args, Markers.EMPTY);
+    @Override
+    public J visitCompilationUnit(K.CompilationUnit cu, ExecutionContext executionContext) {
+        cu = (K.CompilationUnit) super.visitCompilationUnit(cu, executionContext);
+        return cu;
     }
 
-    private String methodName(K.Binary binary) {
-        switch (binary.getOperator()) {
-            case Plus:
-                return "plus";
-            case Minus:
-                return "minus";
-            case Mul:
-                return "times";
-            case Div:
-                return "div";
-            case RangeTo:
-                return "rangeTo";
-            case RangeUntil:
-                return "rangeUntil";
-            default:
-                throw new UnsupportedOperationException("Binary operator " + binary + " is not supported");
+    private static Expression maybeParenthesizeSelect(Expression select) {
+        if (select instanceof K.Binary || select instanceof J.Binary) {
+            select = new J.Parentheses<>(Tree.randomId(), Space.EMPTY, Markers.EMPTY, new JRightPadded<>(select, Space.EMPTY, Markers.EMPTY));
         }
+        return select;
     }
 
-    private String methodName(J.Unary unary) {
-        switch (unary.getOperator()) {
-            case PostIncrement:
-                return "inc";
-            case PostDecrement:
-                return "dec";
-            case Positive:
-                return "unaryPlus";
-            case Negative:
-                return "unaryMinus";
-            case Not:
-                return "not";
-            default:
-                throw new UnsupportedOperationException("Unary operator " + unary.getOperator() + " is not supported");
-        }
+    private static J.MethodInvocation buildMethodInvocationTemplate(String sourceCode, String methodName) {
+        K.CompilationUnit kcu = KotlinParser.builder().build()
+                .parse(sourceCode)
+                .map(K.CompilationUnit.class::cast)
+                .findFirst()
+                .get();
+
+        return new KotlinVisitor<AtomicReference<J.MethodInvocation>>() {
+            @Override
+            public J visitMethodInvocation(J.MethodInvocation method, AtomicReference<J.MethodInvocation> target) {
+                if (method.getSimpleName().equals(methodName)) {
+                    target.set(method);
+                }
+                return method;
+            }
+        }.reduce(kcu, new AtomicReference<>()).get();
     }
 
-    private J.Identifier methodIdentifier(String name, JavaType.Method methodType) {
-        return new J.Identifier(
-                randomId(),
-                EMPTY,
-                Markers.EMPTY,
-                emptyList(),
-                name,
-                methodType,
-                null
-        );
+    private static J.MethodInvocation getContainsMethodCallTemplate() {
+        if (containsMethodCallTemplate == null) {
+            containsMethodCallTemplate = buildMethodInvocationTemplate("val a ='A'.rangeTo('Z').contains('X')", "contains");
+        }
+        return containsMethodCallTemplate;
+    }
+
+    private static J.MethodInvocation getNotMethodCallTemplate() {
+        if (notMethodCallTemplate == null) {
+            notMethodCallTemplate = buildMethodInvocationTemplate("val a=true.not()", "not");
+        }
+        return notMethodCallTemplate;
+    }
+
+    private static J.MethodInvocation getRangeToMethodCallTemplate() {
+        if (rangeToMethodCallTemplate == null) {
+            rangeToMethodCallTemplate = buildMethodInvocationTemplate("val a ='A'.rangeTo('Z')", "rangeTo");
+        }
+        return rangeToMethodCallTemplate;
     }
 }
