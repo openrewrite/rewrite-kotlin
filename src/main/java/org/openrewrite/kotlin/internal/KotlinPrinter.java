@@ -919,12 +919,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, PrintOutputCapture<P> p) {
-            boolean operatorOverload = method.getMarkers().findFirst(OperatorOverload.class).isPresent();
-            if (operatorOverload) {
-                printOperatorOverload(method, p);
-                return method;
-            }
-
             boolean indexedAccess = method.getMarkers().findFirst(IndexedAccess.class).isPresent();
 
             beforeSyntax(method, Space.Location.METHOD_INVOCATION_PREFIX, p);
@@ -946,25 +940,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
             afterSyntax(method, p);
             return method;
-        }
-
-        private void printOperatorOverload(J.MethodInvocation methodInvocation, PrintOutputCapture<P> p) {
-            beforeSyntax(methodInvocation, Space.Location.METHOD_INVOCATION_PREFIX, p);
-            visit(methodInvocation.getSelect(), p);
-            // FIXME: add support for multiple arguments
-            visitSpace(methodInvocation.getPadding().getArguments().getBefore(), Space.Location.METHOD_INVOCATION_ARGUMENTS, p);
-            switch (methodInvocation.getSimpleName()) {
-                case "rangeTo":
-                    p.append("..");
-                    break;
-                case "rangeUntil":
-                    p.append("..<");
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Operator overload is not supported: " + methodInvocation.getSimpleName());
-            }
-            visit(methodInvocation.getArguments().get(0), p);
-            afterSyntax(methodInvocation, p);
         }
 
         private void visitArgumentsContainer(JContainer<Expression> argContainer, Space.Location argsLocation, PrintOutputCapture<P> p) {
