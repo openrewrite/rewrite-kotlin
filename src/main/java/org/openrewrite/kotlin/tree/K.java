@@ -1011,7 +1011,7 @@ public interface K extends J {
 
         public FunctionType(UUID id, Space prefix, Markers markers, List<Annotation> leadingAnnotations,
                             List<Modifier> modifiers, @Nullable JRightPadded<NameTree> receiver,
-                            JContainer<TypeTree> parameters, Space arrow, TypedTree returnType) {
+                            JContainer<TypeTree> parameters, @Nullable Space arrow, TypedTree returnType) {
             this.id = id;
             this.prefix = prefix;
             this.markers = markers;
@@ -1071,6 +1071,7 @@ public interface K extends J {
             return getPadding().withParameters(JContainer.withElementsNullable(this.parameters, parameters));
         }
 
+        @Nullable // nullable for LST backwards compatibility reasons only
         @With
         @Getter
         Space arrow;
