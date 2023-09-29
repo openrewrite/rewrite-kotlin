@@ -15,12 +15,18 @@
  */
 package org.openrewrite.kotlin;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
+import org.openrewrite.kotlin.style.ImportLayoutStyle;
 import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.style.NamedStyles;
 import org.openrewrite.test.RewriteTest;
 
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
+import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
@@ -147,7 +153,13 @@ public class AddImportTest implements RewriteTest {
     @Test
     void importAlias() {
         rewriteRun(
-          spec -> spec.recipe(importMemberRecipe("java.util.regex.Pattern", "MULTILINE")),
+          spec -> spec.recipe(importMemberRecipe("java.util.regex.Pattern", "MULTILINE"))
+            .parser(KotlinParser.builder().styles(singletonList(
+            new NamedStyles(
+              randomId(), "test", "test", "test", emptySet(),
+              singletonList(importAliasesSeparatelyStyle())
+            )
+          ))),
           kotlin(
             """
               import java.util.regex.Pattern.CASE_INSENSITIVE as i
@@ -237,18 +249,51 @@ public class AddImportTest implements RewriteTest {
           ),
           kotlin(
             """
-              import java.util.Calendar
-              
-              import java.util.HashMap as MyHashMap
+              import java.util.Calendar as CA
+              import java.util.HashMap
               import java.util.StringJoiner as MyStringJoiner
 
               class A {
               }
               """,
             """
-              import java.util.Calendar
+              import java.util.Calendar as CA
+              import java.util.HashMap
+              import java.util.LinkedList as MyList
+              import java.util.StringJoiner as MyStringJoiner
+
+              class A {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void importOrderingWithAliasImportAliasesSeparately() {
+        rewriteRun(
+          spec -> spec.recipe(
+            importTypeRecipe("java.util", "LinkedList", "MyList")
+          ).parser(KotlinParser.builder().styles(singletonList(
+            new NamedStyles(
+              randomId(), "test", "test", "test", emptySet(),
+              singletonList(importAliasesSeparatelyStyle())
+            )
+          ))),
+          kotlin(
+            """
+              import java.util.HashMap
               
-              import java.util.HashMap as MyHashMap
+              import java.util.Calendar as CA
+              import java.util.StringJoiner as MyStringJoiner
+
+              class A {
+              }
+              """,
+            """
+              import java.util.HashMap
+              
+              import java.util.Calendar as CA
               import java.util.LinkedList as MyList
               import java.util.StringJoiner as MyStringJoiner
 
@@ -325,5 +370,19 @@ public class AddImportTest implements RewriteTest {
                 return cu;
             }
         });
+    }
+
+    static ImportLayoutStyle importAliasesSeparatelyStyle() {
+        // same style as `IntelliJ.importLayout()` but just with `importAliasesSeparately` as false
+        return ImportLayoutStyle.builder()
+          .importAliasesSeparately(true)
+          .packageToFold("kotlinx.android.synthetic.*", true)
+          .packageToFold("io.ktor.*", true)
+          .importAllOthers()
+          .importPackage("java.*")
+          .importPackage("javax.*")
+          .importPackage("kotlin.*")
+          .importAllAliases()
+          .build();
     }
 }
