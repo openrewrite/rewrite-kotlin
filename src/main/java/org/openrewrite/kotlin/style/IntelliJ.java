@@ -58,7 +58,7 @@ public class IntelliJ extends NamedStyles {
 
     public static ImportLayoutStyle importLayout() {
         return ImportLayoutStyle.builder()
-                .packageToFold("java.util.*", true)
+//                .packageToFold("java.util.*", true)
                 .packageToFold("kotlinx.android.synthetic.*", true)
                 .packageToFold("io.ktor.*", true)
                 .importAllOthers()
