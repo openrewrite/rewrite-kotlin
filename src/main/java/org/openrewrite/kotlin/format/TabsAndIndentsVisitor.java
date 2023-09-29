@@ -435,9 +435,6 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
                 case IMPLEMENTS:
                     getCursor().putMessage("indentType", wrappingStyle.getExtendsImplementsPermitsList().getUseContinuationIndent() ? IndentType.CONTINUATION_INDENT : IndentType.INDENT);
                     break;
-//                case METHOD_DECLARATION_PARAMETERS:
-//                    getCursor().putMessage("indentType", wrappingStyle.getFunctionDeclarationParameters().getUseContinuationIndent() ? IndentType.CONTINUATION_INDENT : IndentType.INDENT);
-//                    break;
                 case METHOD_INVOCATION_ARGUMENTS:
                 case NEW_CLASS_ARGUMENTS:
                     getCursor().putMessage("indentType", wrappingStyle.getFunctionCallArguments().getUseContinuationIndent() ? IndentType.CONTINUATION_INDENT : IndentType.INDENT);
