@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
@@ -372,7 +371,7 @@ public class AddImportTest implements RewriteTest {
         });
     }
 
-    static ImportLayoutStyle importAliasesSeparatelyStyle() {
+    public static ImportLayoutStyle importAliasesSeparatelyStyle() {
         // same style as `IntelliJ.importLayout()` but just with `importAliasesSeparately` as false
         return ImportLayoutStyle.builder()
           .importAliasesSeparately(true)
