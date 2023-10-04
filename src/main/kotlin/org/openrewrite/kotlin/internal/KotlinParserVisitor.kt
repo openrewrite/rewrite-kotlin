@@ -1442,6 +1442,14 @@ class KotlinParserVisitor(
                 hasParentheses = true
                 lPAROffset = firstChild.node.startOffset
             }
+        } else if (firCall.psi is KtArrayAccessExpression) {
+            hasParentheses = true
+        } else if (firCall.psi is KtCallExpression && (firCall.psi as KtCallExpression).valueArgumentList != null) {
+            val argList = (firCall.psi as KtCallExpression).valueArgumentList!!
+            if (argList.firstChild.node.elementType == KtTokens.LPAR) {
+                hasParentheses = true
+                lPAROffset = argList.firstChild.startOffset
+            }
         }
 
         val flattenedExpressions = firArguments.stream()
@@ -1498,7 +1506,8 @@ class KotlinParserVisitor(
         } else {
             var isTrailingLambda = false
             for (i in flattenedExpressions.indices) {
-                isTrailingLambda = hasTrailingLambda && i == argumentCount - 1
+                val lastArg = i == argumentCount - 1
+                isTrailingLambda = hasTrailingLambda && lastArg
                 val expression = flattenedExpressions[i]
 
                 // Didn't find a way to proper reset the cursor, so have to do a hard reset here
@@ -1512,13 +1521,14 @@ class KotlinParserVisitor(
                     expressions.add(padRight(expr, Space.EMPTY))
                     break
                 }
-                val padding = whitespace()
+                // don't consume trailing space if the call doesn't have any parentheses
+                val padding = if (lastArg && !hasParentheses) Space.EMPTY else whitespace()
                 var trailingComma: TrailingComma? = null
                 if (!isInfix) {
                     if (isLastArgumentLambda && i == argumentCount - 2) {
                         trailingComma = if (skip(",")) TrailingComma(randomId(), whitespace()) else null
                         skip(closing)
-                    } else if (i == argumentCount - 1) {
+                    } else if (lastArg) {
                         trailingComma = if (skip(",")) TrailingComma(randomId(), whitespace()) else null
                     } else {
                         skip(",")
@@ -2420,13 +2430,15 @@ class KotlinParserVisitor(
         var label: J.Identifier? = null
         val node = getRealPsiElement(returnExpression) as KtReturnExpression?
         val explicitReturn = node != null
-        var prefix = Space.EMPTY
+        val prefix: Space?
         if (explicitReturn) {
             prefix = sourceBefore("return")
             if (node!!.labeledExpression != null) {
                 skip("@")
                 label = createIdentifier(returnExpression.target.labelName)
             }
+        } else {
+            prefix = whitespace()
         }
         var returnExpr: Expression? = null
         if (returnExpression.result !is FirUnitExpression) {
@@ -2513,6 +2525,7 @@ class KotlinParserVisitor(
     }
 
     override fun visitResolvedQualifier(resolvedQualifier: FirResolvedQualifier, data: ExecutionContext): J? {
+        val prefix = whitespace()
         val fieldAccess = resolvedQualifier.packageFqName.asString()
         val resolvedName =
                 if (resolvedQualifier.relativeClassFqName == null) "" else "." + resolvedQualifier.relativeClassFqName!!.asString()
@@ -2551,12 +2564,14 @@ class KotlinParserVisitor(
             val typeArgs = mapTypeArguments(resolvedQualifier.typeArguments, data)
             typeTree = J.ParameterizedType(
                     randomId(),
-                    Space.EMPTY,
+                    prefix,
                     Markers.EMPTY,
                     typeTree,
                     typeArgs,
                     type(resolvedQualifier)
             )
+        } else {
+            typeTree = (typeTree as J).withPrefix(prefix)
         }
         return typeTree
     }
@@ -2729,7 +2744,11 @@ class KotlinParserVisitor(
         }
 
         // type constraints
-        val typeConstraints = mapTypeConstraints(simpleFunction, simpleFunction.psi?.getChildOfType<KtTypeConstraintList>(), data)
+        val typeConstraints = mapTypeConstraints(
+            simpleFunction,
+            simpleFunction.psi?.getChildOfType<KtTypeConstraintList>(),
+            data
+        )
 
         val body = mapFunctionBody(simpleFunction, data)
 
@@ -4091,7 +4110,11 @@ class KotlinParserVisitor(
         }
 
         // type constraints
-        val typeConstraints = mapTypeConstraints(regularClass, regularClass.psi?.getChildOfType<KtTypeConstraintList>(), data)
+        val typeConstraints = mapTypeConstraints(
+            regularClass,
+            regularClass.psi?.getChildOfType<KtTypeConstraintList>(),
+            data
+        )
 
         saveCursor = cursor
         val bodyPrefix = whitespace()
@@ -4224,7 +4247,8 @@ class KotlinParserVisitor(
         }
 
         val params: MutableList<JRightPadded<J.TypeParameter>> = ArrayList()
-        for (c in typeConstraintList.constraints) {
+        for ((index, c) in typeConstraintList.constraints.withIndex()) {
+            val isLast = index == typeConstraintList.constraints.size - 1
             val paramName = c.subjectTypeParameterName!!.getIdentifier()!!.text
             val firTypeParameter = memberDeclaration.typeParameters.find { (it as FirTypeParameter).name.asString() == paramName } as FirTypeParameter
             val bound = firTypeParameter.bounds.find { it.psi == c.lastChild }
@@ -4241,21 +4265,23 @@ class KotlinParserVisitor(
             val colon = whitespace()
             skip(":")
             params += padRight(
-                    J.TypeParameter(
-                            randomId(),
-                            paramPrefix,
-                            Markers.EMPTY.addIfAbsent(TypeReferencePrefix(randomId(), colon)),
-                            annotations,
-                            typeParamName,
-                            JContainer.build(
-                                    Space.EMPTY,
-                                    listOf(padRight(visitElement(bound!!, data) as TypeTree, null)),
-                                    Markers.EMPTY
-                            )
-                    ),
-                    whitespace()
+                J.TypeParameter(
+                        randomId(),
+                        paramPrefix,
+                        Markers.EMPTY.addIfAbsent(TypeReferencePrefix(randomId(), colon)),
+                        annotations,
+                        typeParamName,
+                        JContainer.build(
+                            Space.EMPTY,
+                            listOf(padRight(visitElement(bound!!, data) as TypeTree, null)),
+                            Markers.EMPTY
+                        )
+                ),
+                if (isLast) Space.EMPTY else whitespace()
             )
-            skip(",")
+            if (!isLast) {
+                skip(",")
+            }
         }
         return K.TypeConstraints(
                 randomId(),

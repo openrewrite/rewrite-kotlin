@@ -22,6 +22,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.marker.OmitBraces;
+import org.openrewrite.kotlin.marker.PrimaryConstructor;
 import org.openrewrite.kotlin.style.WrappingAndBracesStyle;
 
 import java.util.List;
@@ -59,7 +60,7 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
                 J.MethodDeclaration m = (J.MethodDeclaration) j;
                 // no new line for constructor
                 if ("<constructor>".equals(Optional.ofNullable(m.getMethodType()).map(JavaType.Method::getName).orElse(""))) {
-                     return j;
+                    return j;
                 }
             }
 
@@ -97,6 +98,10 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, P p) {
         J.MethodDeclaration m = super.visitMethodDeclaration(method, p);
+        if (m.getMarkers().findFirst(PrimaryConstructor.class).isPresent()) {
+            return m;
+        }
+
         m = m.withLeadingAnnotations(withNewlines(m.getLeadingAnnotations()));
 
         List<J.Modifier> modifiers = method.getModifiers();
@@ -196,10 +201,10 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
                 c = c.withModifiers(withNewline(c.getModifiers()));
             } else {
                 J.ClassDeclaration.Kind kind = c.getAnnotations().getKind();
-                if (!kind.getPrefix().getWhitespace().contains("\n")) {
-                    c = c.getAnnotations().withKind(kind.withPrefix(
-                            kind.getPrefix().withWhitespace("\n" + kind.getPrefix().getWhitespace())
-                    ));
+                Space kindPrefix = kind.getPrefix();
+                if (!kindPrefix.getWhitespace().contains("\n") && kindPrefix.getComments().isEmpty()) {
+                    kindPrefix = kindPrefix.withWhitespace("\n" + kindPrefix.getWhitespace());
+                    c = c.getAnnotations().withKind(kind.withPrefix(kindPrefix));
                 }
             }
         }
@@ -221,7 +226,9 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public J.Block visitBlock(J.Block block, P p) {
         J.Block b = super.visitBlock(block, p);
-        if (!b.getMarkers().findFirst(OmitBraces.class).isPresent() && !b.getEnd().getWhitespace().contains("\n")) {
+        if (!b.getMarkers().findFirst(OmitBraces.class).isPresent() &&
+                !b.getStatements().isEmpty() &&
+                !b.getEnd().getWhitespace().contains("\n")) {
             b = b.withEnd(withNewline(b.getEnd()));
         }
         return b;
@@ -230,7 +237,7 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
     private Space withNewline(Space space) {
         if (space.getComments().isEmpty()) {
             space = space.withWhitespace("\n" + space.getWhitespace());
-        } else if (space.getComments().get(space.getComments().size()-1).isMultiline()) {
+        } else if (space.getComments().get(space.getComments().size() - 1).isMultiline()) {
             space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix("\n")));
         }
 

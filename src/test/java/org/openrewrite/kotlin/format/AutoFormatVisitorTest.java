@@ -18,13 +18,18 @@ package org.openrewrite.kotlin.format;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.kotlin.AddImportTest;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.style.NamedStyles;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AutoFormatVisitorTest implements RewriteTest {
@@ -134,7 +139,6 @@ class AutoFormatVisitorTest implements RewriteTest {
             """
               open class Some {
                   private val f: (Int) -> Int = { a: Int -> a * 2 }
-
                   fun foo(): Int {
                       val test: Int = 12
                       for (i in 10..42) {
@@ -166,14 +170,14 @@ class AutoFormatVisitorTest implements RewriteTest {
                           bar: String
                   ) {
                       foo
-                              .length
+                          .length
                   }
 
                   fun expressionBodyMethod() =
                       "abc"
               }
 
-              class AnotherClass <T : Any> : Some()
+              class AnotherClass<T : Any> : Some()
               """
           )
         );
@@ -206,6 +210,7 @@ class AutoFormatVisitorTest implements RewriteTest {
               import org.junit.jupiter.api.Test
 
               class GraphQLMultiQueryRequestTest {
+              
                   @Suppress
                   @Test
                   fun testSerializeInputClassWithProjectionAndMultipleQueries() {
@@ -238,7 +243,7 @@ class AutoFormatVisitorTest implements RewriteTest {
           kotlin(
             """
               val String.extension: Any
-                      get() = ""
+                  get() = ""
               """
           )
         );
@@ -316,6 +321,7 @@ class AutoFormatVisitorTest implements RewriteTest {
             """
               class A {
                   companion object {
+              
                       @JvmField
                       val GRANT_TYPE = "password"
                   }
@@ -352,6 +358,54 @@ class AutoFormatVisitorTest implements RewriteTest {
               }
           }
           """);
+    }
+
+    @Test
+    void reorderImportsDefault() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.LinkedList
+              import java.util.HashMap
+              import java.util.Calendar
+
+              class T(l: LinkedList<String>, h: HashMap<String, String>, c: Calendar)
+              """,
+            """
+              import java.util.Calendar
+              import java.util.HashMap
+              import java.util.LinkedList
+
+              class T(l: LinkedList<String>, h: HashMap<String, String>, c: Calendar)
+              """
+          )
+        );
+    }
+
+    @Test
+    void reorderImportsAliasesSeparately() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder().styles(singletonList(
+            new NamedStyles(
+              randomId(), "test", "test", "test", emptySet(),
+              singletonList((AddImportTest.importAliasesSeparatelyStyle()))
+            )
+          ))),
+          kotlin(
+            """
+              import java.util.regex.Pattern as Pat
+              import java.util.*
+
+              class T(s: StringJoiner, p: Pat)
+              """,
+            """
+              import java.util.*
+              import java.util.regex.Pattern as Pat
+
+              class T(s: StringJoiner, p: Pat)
+              """
+          )
+        );
     }
 }
 
