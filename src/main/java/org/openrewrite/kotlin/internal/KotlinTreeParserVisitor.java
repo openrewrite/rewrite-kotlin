@@ -41,7 +41,6 @@ import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
-import org.jetbrains.kotlin.lexer.KtToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
 import org.jetbrains.kotlin.psi.*;
@@ -1333,14 +1332,19 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        return new J.Unary(
-                randomId(),
-                prefix(expression),
-                Markers.EMPTY,
-                padLeft(prefix(expression.getOperationReference()), J.Unary.Type.Not),
-                (Expression) expression.getBaseExpression().accept(this, data).withPrefix(suffix(ktSimpleNameExpression)),
-                methodInvocationType(expression)
-        );
+        if (expression.getOperationReference() != null &&
+                expression.getOperationReference().getReferencedNameElementType().equals(KtTokens.EXCL)) {
+            return new J.Unary(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    padLeft(prefix(expression.getOperationReference()), J.Unary.Type.Not),
+                    (Expression) expression.getBaseExpression().accept(this, data).withPrefix(suffix(ktSimpleNameExpression)),
+                    methodInvocationType(expression)
+            );
+        }
+
+        throw new UnsupportedOperationException("TODO");
     }
 
     @Override
