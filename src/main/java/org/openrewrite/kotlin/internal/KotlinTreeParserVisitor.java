@@ -662,18 +662,35 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
         assert expression.getLeft() != null;
         assert expression.getRight() != null;
+        J.Binary.Type javaBinaryType = mapJBinaryType(expression.getOperationReference());
+        Expression left = convertToExpression(expression.getLeft().accept(this, data)).withPrefix(Space.EMPTY);
+        Expression right = convertToExpression((expression.getRight()).accept(this, data))
+                .withPrefix(prefix(expression.getRight()));
+        JavaType type = type(expression);
 
-        return new K.Binary(
-                randomId(),
-                prefix(expression),
-                Markers.EMPTY,
-                convertToExpression(expression.getLeft().accept(this, data)).withPrefix(Space.EMPTY),
-                padLeft(prefix(expression.getOperationReference()), mapBinaryType(expression.getOperationReference())),
-                convertToExpression((expression.getRight()).accept(this, data))
-                        .withPrefix(prefix(expression.getRight())),
-                Space.EMPTY,
-                methodInvocationType(expression)
-        );
+        if (javaBinaryType != null) {
+            return new J.Binary(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    left,
+                    padLeft(prefix(expression.getOperationReference()), javaBinaryType),
+                    right,
+                    type
+            );
+        } else {
+            K.Binary.Type kBinaryType = mapKBinaryType(expression.getOperationReference());
+            return new K.Binary(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    left,
+                    padLeft(prefix(expression.getOperationReference()), kBinaryType),
+                    right,
+                    Space.EMPTY,
+                    type
+            );
+        }
     }
 
     @Override
@@ -1529,22 +1546,30 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     /*====================================================================
      * Mapping methods
      * ====================================================================*/
-    private K.Binary.Type mapBinaryType(KtOperationReferenceExpression operationReference) {
+    private K.Binary.Type mapKBinaryType(KtOperationReferenceExpression operationReference) {
         IElementType elementType = operationReference.getOperationSignTokenType();
-        if (elementType == KtTokens.PLUS)
-            return K.Binary.Type.Plus;
-        else if (elementType == KtTokens.MINUS)
-            return K.Binary.Type.Minus;
-        else if (elementType == KtTokens.MUL)
-            return K.Binary.Type.Mul;
-        else if (elementType == KtTokens.DIV)
-            return K.Binary.Type.Div;
-        else if (elementType == KtTokens.NOT_IN)
+        if (elementType == KtTokens.NOT_IN)
             return K.Binary.Type.NotContains;
         else if (elementType == KtTokens.RANGE)
             return K.Binary.Type.RangeTo;
         else
             throw new UnsupportedOperationException("Unsupported OPERATION_REFERENCE type :" + elementType);
+    }
+
+    @Nullable
+    private J.Binary.Type mapJBinaryType(KtOperationReferenceExpression operationReference) {
+        IElementType elementType = operationReference.getOperationSignTokenType();
+
+        if (elementType == KtTokens.PLUS)
+            return J.Binary.Type.Addition;
+        else if (elementType == KtTokens.MINUS)
+            return J.Binary.Type.Subtraction;
+        else if (elementType == KtTokens.MUL)
+            return J.Binary.Type.Multiplication;
+        else if (elementType == KtTokens.DIV)
+            return J.Binary.Type.Division;
+        else
+            return null;
     }
 
     private J.Modifier.Type mapModifierType(PsiElement modifier) {
