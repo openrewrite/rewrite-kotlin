@@ -458,18 +458,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         if (accessor.getBodyExpression() != null) {
             J.Identifier label = null;
-            Expression returnExpr = convertToExpression(accessor.getBodyExpression().accept(this, data)).withPrefix(Space.EMPTY);
-            K.KReturn kreturn = new K.KReturn(randomId(), new J.Return(randomId(), prefix(accessor.getBodyExpression()), Markers.EMPTY.addIfAbsent(new ImplicitReturn(randomId())), returnExpr), label);
-
-            body = new J.Block(
-                    randomId(),
-                    prefix(accessor.getEqualsToken()),
-                    Markers.EMPTY.addIfAbsent(new OmitBraces(randomId()))
-                            .addIfAbsent(new SingleExpressionBlock(randomId())),
-                    JRightPadded.build(false),
-                    singletonList(JRightPadded.build(kreturn)),
-                    Space.EMPTY
-            );
+            body = convertToBlock(accessor.getBodyExpression(), data).withPrefix(prefix(accessor.getEqualsToken()));
         } else {
             throw new UnsupportedOperationException("TODO");
         }
@@ -1396,12 +1385,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             returnTypeExpression = function.getTypeReference().accept(this, data).withPrefix(prefix(function.getTypeReference()));
         }
 
+        J.Block body;
         if (function.getBodyBlockExpression() == null) {
-            throw new UnsupportedOperationException("TODO");
+            body = convertToBlock(function.getBodyExpression(), data).withPrefix(prefix(function.getEqualsToken()));
+        } else {
+            body = function.getBodyBlockExpression().accept(this, data)
+                    .withPrefix(prefix(function.getBodyBlockExpression()));
         }
-        J.Block body = function.getBodyBlockExpression().accept(this, data)
-                .withPrefix(prefix(function.getBodyBlockExpression()));
-        JavaType.Method methodType = methodDeclarationType(function);
 
         return new J.MethodDeclaration(
                 randomId(),
@@ -1416,7 +1406,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 null,
                 body,
                 null,
-                methodType
+                methodDeclarationType(function)
         );
     }
 
@@ -1921,6 +1911,20 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 name,
                 type,
                 fieldType
+        );
+    }
+
+    private J.Block convertToBlock(KtExpression ktExpression, ExecutionContext data) {
+        Expression returnExpr = convertToExpression(ktExpression.accept(this, data)).withPrefix(Space.EMPTY);
+        K.KReturn kreturn = new K.KReturn(randomId(), new J.Return(randomId(), prefix(ktExpression), Markers.EMPTY.addIfAbsent(new ImplicitReturn(randomId())), returnExpr), null);
+        return new J.Block(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY.addIfAbsent(new OmitBraces(randomId()))
+                        .addIfAbsent(new SingleExpressionBlock(randomId())),
+                JRightPadded.build(false),
+                singletonList(JRightPadded.build(kreturn)),
+                Space.EMPTY
         );
     }
 
