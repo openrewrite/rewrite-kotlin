@@ -733,6 +733,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         KtOperationReferenceExpression operationReference = expression.getOperationReference();
         J.Binary.Type javaBinaryType = mapJBinaryType(operationReference);
+        J.AssignmentOperation.Type assignmentOperationType = mapAssignmentOperationType(operationReference);
         Expression left = convertToExpression(expression.getLeft().accept(this, data)).withPrefix(Space.EMPTY);
         Expression right = convertToExpression((expression.getRight()).accept(this, data))
                 .withPrefix(prefix(expression.getRight()));
@@ -757,6 +758,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     padLeft(suffix(expression.getLeft()), right),
                     type
             );
+        } else if (assignmentOperationType != null) {
+            return new J.AssignmentOperation(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    left,
+                    padLeft(prefix(operationReference), assignmentOperationType),
+                    right,
+                    type
+            );
         } else {
             K.Binary.Type kBinaryType = mapKBinaryType(operationReference);
             return new K.Binary(
@@ -770,6 +781,22 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     type
             );
         }
+    }
+
+    @Nullable
+    private J.AssignmentOperation.Type mapAssignmentOperationType(KtOperationReferenceExpression operationReference) {
+        IElementType elementType = operationReference.getOperationSignTokenType();
+
+        if (elementType == KtTokens.PLUSEQ)
+            return J.AssignmentOperation.Type.Addition;
+        if (elementType == KtTokens.MINUSEQ)
+            return J.AssignmentOperation.Type.Subtraction;
+        if (elementType == KtTokens.MULTEQ)
+            return J.AssignmentOperation.Type.Multiplication;
+        if (elementType == KtTokens.DIVEQ)
+            return J.AssignmentOperation.Type.Division;
+        else
+            return null;
     }
 
     @Override
