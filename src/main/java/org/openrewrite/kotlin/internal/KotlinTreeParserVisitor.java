@@ -1713,6 +1713,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return J.Binary.Type.Division;
         else if (elementType == KtTokens.EQEQ)
             return J.Binary.Type.Equal; // TODO should this not be mapped to `Object#equals(Object)`?
+        else if (elementType == KtTokens.EXCLEQ)
+            return J.Binary.Type.NotEqual; // TODO should this not be mapped to `!Object#equals(Object)`?
+        else if (elementType == KtTokens.GT)
+            return J.Binary.Type.GreaterThan;
+        else if (elementType == KtTokens.GTEQ)
+            return J.Binary.Type.GreaterThanOrEqual;
+        else if (elementType == KtTokens.LT)
+            return J.Binary.Type.LessThan;
+        else if (elementType == KtTokens.LTEQ)
+            return J.Binary.Type.LessThanOrEqual;
         else
             return null;
     }
