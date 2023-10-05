@@ -366,7 +366,50 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitParameter(KtParameter parameter, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        Markers markers = Markers.EMPTY;
+        List<J.Annotation> leadingAnnotations = new ArrayList<>();
+        List<J.Modifier> modifiers = new ArrayList<>();
+        TypeTree typeExpression = null;
+        List<JRightPadded<J.VariableDeclarations.NamedVariable>> vars = new ArrayList<>(1);
+
+        if (!parameter.getAnnotations().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        if (parameter.getValOrVarKeyword() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        J.Identifier name = createIdentifier(parameter.getName(), Space.EMPTY, type(parameter));
+
+        if (parameter.getTypeReference() != null) {
+            markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(parameter.getColon())));
+            typeExpression = parameter.getTypeReference().accept(this, data).withPrefix(prefix(parameter.getTypeReference()));
+        }
+
+        J.VariableDeclarations.NamedVariable namedVariable = new J.VariableDeclarations.NamedVariable(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                name,
+                emptyList(),
+                null,
+                variableType(parameter)
+                );
+
+        vars.add(padRight(namedVariable, suffix(parameter)));
+
+        return new J.VariableDeclarations(
+                randomId(),
+                prefix(parameter),
+                markers,
+                leadingAnnotations,
+                modifiers,
+                typeExpression,
+                null,
+                emptyList(),
+                vars
+        );
     }
 
     @Override
@@ -1341,7 +1384,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     ), Markers.EMPTY
             );
         } else {
-            throw new UnsupportedOperationException("TODO");
+            List<JRightPadded<Statement>> rps = new ArrayList<>();
+            for (KtParameter param : ktParameters) {
+                rps.add(padRight(convertToStatement(param.accept(this, data)), Space.EMPTY));
+            }
+            params = JContainer.build(prefix(function.getValueParameterList()), rps, Markers.EMPTY);
         }
 
         if (function.getTypeReference() != null) {
