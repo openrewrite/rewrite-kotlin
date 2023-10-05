@@ -26,18 +26,13 @@ import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.ClassMembersKt;
 import org.jetbrains.kotlin.fir.FirElement;
 import org.jetbrains.kotlin.fir.FirSession;
-import org.jetbrains.kotlin.fir.declarations.FirFile;
-import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
-import org.jetbrains.kotlin.fir.declarations.FirVariable;
+import org.jetbrains.kotlin.fir.declarations.*;
 import org.jetbrains.kotlin.fir.expressions.FirConstExpression;
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall;
 import org.jetbrains.kotlin.fir.resolve.LookupTagUtilsKt;
 import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag;
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
-import org.jetbrains.kotlin.fir.symbols.impl.FirAnonymousObjectSymbol;
-import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol;
-import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol;
-import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
+import org.jetbrains.kotlin.fir.symbols.impl.*;
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
@@ -51,6 +46,7 @@ import org.openrewrite.Tree;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.java.marker.ImplicitReturn;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinTypeMapping;
 import org.openrewrite.kotlin.marker.*;
@@ -377,7 +373,69 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitPropertyAccessor(KtPropertyAccessor accessor, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        Markers markers = Markers.EMPTY;
+        List<J.Annotation> leadingAnnotations = new ArrayList<>();
+        List<J.Modifier> modifiers = new ArrayList<>();
+        J.TypeParameters typeParameters = null;
+        TypeTree returnTypeExpression = null;
+        List<J.Annotation> lastAnnotations = new ArrayList<>();
+        J.Identifier name = null;
+        JContainer<Statement> params = null;
+        J.Block body = null;
+
+        name = createIdentifier(accessor.getNamePlaceholder().getText(), Space.EMPTY, type(accessor));
+
+        boolean hasParam = accessor.getParameter() != null;
+        if (hasParam) {
+            throw new UnsupportedOperationException("TODO");
+        } else {
+            params = JContainer.build(
+                    prefix(accessor.getLeftParenthesis()),
+                    singletonList(padRight(new J.Empty(randomId(), prefix(accessor.getRightParenthesis()), Markers.EMPTY), Space.EMPTY)),
+                    Markers.EMPTY
+            );
+        }
+
+        if (accessor.getBodyBlockExpression() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        if (accessor.getBodyExpression() != null) {
+            J.Identifier label = null;
+            Expression returnExpr = convertToExpression(accessor.getBodyExpression().accept(this, data)).withPrefix(Space.EMPTY);
+            K.KReturn kreturn = new K.KReturn(randomId(), new J.Return(randomId(), prefix(accessor.getBodyExpression()), Markers.EMPTY.addIfAbsent(new ImplicitReturn(randomId())), returnExpr), label);
+
+            body = new J.Block(
+                    randomId(),
+                    prefix(accessor.getEqualsToken()),
+                    Markers.EMPTY.addIfAbsent(new OmitBraces(randomId()))
+                            .addIfAbsent(new SingleExpressionBlock(randomId())),
+                    JRightPadded.build(false),
+                    singletonList(JRightPadded.build(kreturn)),
+                    Space.EMPTY
+            );
+        } else {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        return new J.MethodDeclaration(
+                randomId(),
+                prefix(accessor),
+                markers,
+                leadingAnnotations,
+                modifiers,
+                typeParameters,
+                returnTypeExpression,
+                new J.MethodDeclaration.IdentifierWithAnnotations(
+                        name,
+                        lastAnnotations
+                    ),
+                params,
+                null,
+                body,
+                null,
+                methodDeclarationType(accessor)
+            );
     }
 
     @Override
@@ -1366,6 +1424,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<J.Modifier> modifiers = mapModifiers(property.getModifierList());
         TypeTree typeExpression = null;
         List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = new ArrayList<>();
+        J.MethodDeclaration getter = null;
+        J.MethodDeclaration setter = null;
+        JRightPadded<Expression> receiver = null;
+        JContainer<J.TypeParameter> typeParameters = null;
+        K.TypeConstraints typeConstraints = null;
+        boolean isSetterFirst = false;
 
         modifiers.add(new J.Modifier(
                 Tree.randomId(),
@@ -1375,6 +1439,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 property.isVar() ? J.Modifier.Type.LanguageExtension : J.Modifier.Type.Final,
                 Collections.emptyList() // FIXME
         ));
+
+        // Receiver
+        if (property.getReceiverTypeReference() != null) {
+            Expression receiverExp = convertToExpression(property.getReceiverTypeReference().accept(this, data).withPrefix(prefix(property.getReceiverTypeReference())));
+            receiver = padRight(receiverExp, suffix(property.getReceiverTypeReference()));
+            markers = markers.addIfAbsent(new Extension(randomId()));
+        }
 
         JLeftPadded<Expression> initializer = property.getInitializer() != null ?
                 padLeft(prefix(property.getEqualsToken()),
@@ -1403,7 +1474,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             typeExpression = typeExpression.withPrefix(suffix(property.getColon()));
         }
 
-        if (property.getGetter() != null || property.getSetter() != null) {
+        if (property.getGetter() != null) {
+            getter = (J.MethodDeclaration) property.getGetter().accept(this, data);
+        } else if (property.getSetter() != null) {
             throw new UnsupportedOperationException("TODO");
         } else if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {
             throw new UnsupportedOperationException("TODO");
@@ -1415,7 +1488,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        return new J.VariableDeclarations(
+        J.VariableDeclarations variableDeclarations = new J.VariableDeclarations(
                 Tree.randomId(),
                 Space.EMPTY, // overlaps with right-padding of previous statement
                 markers,
@@ -1426,6 +1499,24 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 Collections.emptyList(),
                 variables
         );
+
+        if (getter != null || setter != null) {
+            return new K.Property(
+                    randomId(),
+                    Space.EMPTY,
+                    markers,
+                    typeParameters,
+                    variableDeclarations.withPrefix(Space.EMPTY),
+                    typeConstraints,
+                    getter,
+                    setter,
+                    isSetterFirst,
+                    receiver
+            );
+        } else {
+            return variableDeclarations;
+        }
+
     }
 
     private List<J.Modifier> mapModifiers(@Nullable KtModifierList modifierList) {
@@ -1656,6 +1747,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (basedSymbol instanceof FirNamedFunctionSymbol) {
                 FirNamedFunctionSymbol functionSymbol = (FirNamedFunctionSymbol) basedSymbol;
                 return psiElementAssociations.getTypeMapping().methodDeclarationType(functionSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
+            }
+        } else if (psi instanceof KtPropertyAccessor) {
+            // todo, more generic logic
+            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
+            if (basedSymbol instanceof FirPropertyAccessorSymbol) {
+                FirPropertyAccessorSymbol propertyAccessorSymbol = (FirPropertyAccessorSymbol) basedSymbol;
+                return psiElementAssociations.getTypeMapping().methodDeclarationType(propertyAccessorSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
             }
         }
         return null;

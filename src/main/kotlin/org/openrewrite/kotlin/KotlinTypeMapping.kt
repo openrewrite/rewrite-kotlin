@@ -77,10 +77,13 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession) : Java
         }
 
         val signature = signatureBuilder.signature(type, ownerFallBack)
-        val existing = typeCache.get<JavaType>(signature)
-        if (existing != null) {
-            return existing
-        }
+
+        // Temporarily disable typeCache before fixing `undefined` type
+        // TODO, turn this on.
+//        val existing = typeCache.get<JavaType>(signature)
+//        if (existing != null) {
+//            return existing
+//        }
 
         when (type) {
             is String -> {
@@ -501,10 +504,13 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession) : Java
         val methodSymbol = function?.symbol
         if (methodSymbol != null) {
             val signature = signatureBuilder.methodDeclarationSignature(function.symbol)
-            val existing = typeCache.get<JavaType.Method>(signature)
-            if (existing != null) {
-                return existing
-            }
+
+            // Temporarily disable typeCache before fixing `undefined` type
+            // TODO, turn this on.
+//            val existing = typeCache.get<JavaType.Method>(signature)
+//            if (existing != null) {
+//                return existing
+//            }
             var paramNames: MutableList<String>? = null
             if (!methodSymbol.valueParameterSymbols.isEmpty()) {
                 paramNames = ArrayList(methodSymbol.valueParameterSymbols.size)
