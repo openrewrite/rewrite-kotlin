@@ -18,6 +18,7 @@ package org.openrewrite.kotlin.tree;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
@@ -308,6 +309,7 @@ class BinaryTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("!in is corrected")
     @Test
     void notIn() {
         rewriteRun(

@@ -63,7 +63,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("FIX UP, no J.Unary anymore but just a K.Binary to present !in")
     @Test
     void yikes() {
         rewriteRun(

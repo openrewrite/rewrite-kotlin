@@ -33,6 +33,7 @@ import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor
 import org.jetbrains.kotlin.psi
 import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.openrewrite.java.tree.JavaType
 import org.openrewrite.kotlin.KotlinTypeMapping
@@ -153,6 +154,10 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
         var p = psi
         while (p != null && !elementMap.containsKey(p)) {
             p = p.parent
+            // don't skip KtDotQualifiedExpression for field access
+            if (p is KtDotQualifiedExpression) {
+                return null
+            }
         }
 
         if (p == null) {

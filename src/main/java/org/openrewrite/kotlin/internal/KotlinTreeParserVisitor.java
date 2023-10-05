@@ -1286,6 +1286,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         TypeTree returnTypeExpression = null;
 
 
+        if (function.getTypeParameterList() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
         if (function.getReceiverTypeReference() != null) {
             throw new UnsupportedOperationException("TODO");
         }
@@ -1451,8 +1454,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     prefix(expression),
                     Markers.EMPTY,
                     padLeft(prefix(expression.getOperationReference()), J.Unary.Type.Not),
-                    (Expression) expression.getBaseExpression().accept(this, data).withPrefix(suffix(ktSimpleNameExpression)),
-                    methodInvocationType(expression)
+                    expression.getBaseExpression().accept(this, data).withPrefix(suffix(ktSimpleNameExpression)),
+                    type(expression)
             );
         }
 
@@ -1484,6 +1487,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         JContainer<J.TypeParameter> typeParameters = null;
         K.TypeConstraints typeConstraints = null;
         boolean isSetterFirst = false;
+
+        if (property.getTypeParameterList() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
 
         modifiers.add(new J.Modifier(
                 Tree.randomId(),
