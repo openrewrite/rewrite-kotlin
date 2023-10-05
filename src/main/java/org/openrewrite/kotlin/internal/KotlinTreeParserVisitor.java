@@ -852,7 +852,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
             JContainer<Expression> args;
             if (arguments.isEmpty()) {
-                args = JContainer.build(singletonList(padRight(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY), Space.EMPTY)));
+                args = JContainer.build(singletonList(padRight(new J.Empty(randomId(), prefix(expression.getValueArgumentList().getRightParenthesis()), Markers.EMPTY), Space.EMPTY)));
+                args = args.withBefore(prefix(expression.getValueArgumentList()));
             } else {
                 List<JRightPadded<Expression>> expressions = new ArrayList<>(arguments.size());
                 Markers markers = Markers.EMPTY;
@@ -864,7 +865,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
             return new J.NewClass(
                     randomId(),
-                    Space.SINGLE_SPACE,
+                    prefix(expression),
                     Markers.EMPTY,
                     null,
                     Space.EMPTY,
@@ -1529,7 +1530,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         if (property.getGetter() != null) {
             getter = (J.MethodDeclaration) property.getGetter().accept(this, data);
-        } else if (property.getSetter() != null) {
+        }
+
+        if (property.getSetter() != null) {
             throw new UnsupportedOperationException("TODO");
         } else if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {
             throw new UnsupportedOperationException("TODO");
