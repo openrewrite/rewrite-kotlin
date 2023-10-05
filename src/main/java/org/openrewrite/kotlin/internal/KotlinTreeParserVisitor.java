@@ -408,6 +408,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
+        if (accessor.getReturnTypeReference() != null) {
+            markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), suffix(accessor.getRightParenthesis())));
+            returnTypeExpression = accessor.getReturnTypeReference().accept(this, data).withPrefix(prefix(accessor.getReturnTypeReference()));
+        }
+
         if (accessor.getBodyExpression() != null) {
             J.Identifier label = null;
             Expression returnExpr = convertToExpression(accessor.getBodyExpression().accept(this, data)).withPrefix(Space.EMPTY);
