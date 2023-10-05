@@ -730,7 +730,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitBinaryExpression(KtBinaryExpression expression, ExecutionContext data) {
         assert expression.getLeft() != null;
         assert expression.getRight() != null;
-        J.Binary.Type javaBinaryType = mapJBinaryType(expression.getOperationReference());
+
+        KtOperationReferenceExpression operationReference = expression.getOperationReference();
+        J.Binary.Type javaBinaryType = mapJBinaryType(operationReference);
         Expression left = convertToExpression(expression.getLeft().accept(this, data)).withPrefix(Space.EMPTY);
         Expression right = convertToExpression((expression.getRight()).accept(this, data))
                 .withPrefix(prefix(expression.getRight()));
@@ -742,18 +744,27 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     prefix(expression),
                     Markers.EMPTY,
                     left,
-                    padLeft(prefix(expression.getOperationReference()), javaBinaryType),
+                    padLeft(prefix(operationReference), javaBinaryType),
                     right,
                     type
             );
+        } else if (operationReference.getOperationSignTokenType() == KtTokens.EQ) {
+            return new J.Assignment(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    left,
+                    padLeft(suffix(expression.getLeft()), right),
+                    type
+            );
         } else {
-            K.Binary.Type kBinaryType = mapKBinaryType(expression.getOperationReference());
+            K.Binary.Type kBinaryType = mapKBinaryType(operationReference);
             return new K.Binary(
                     randomId(),
                     prefix(expression),
                     Markers.EMPTY,
                     left,
-                    padLeft(prefix(expression.getOperationReference()), kBinaryType),
+                    padLeft(prefix(operationReference), kBinaryType),
                     right,
                     Space.EMPTY,
                     type
