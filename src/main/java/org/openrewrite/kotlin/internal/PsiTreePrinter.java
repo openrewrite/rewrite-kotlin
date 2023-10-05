@@ -382,13 +382,14 @@ public class PsiTreePrinter {
         }
 
         String firValue = firElementToString(firElement);
-        if (!firValue.isEmpty()) {
+        if (firValue != null && !firValue.isEmpty()) {
             sb.append(" | ").append(firValue);
         }
 
         return sb.toString();
     }
 
+    @Nullable
     public static String firElementToString(FirElement firElement) {
         if (firElement instanceof FirFile) {
             return ((FirFile) firElement).getName();
@@ -421,7 +422,8 @@ public class PsiTreePrinter {
                 return sb.toString();
             }
         } else if (firElement instanceof FirConstExpression) {
-            return ((FirConstExpression<?>) firElement).getValue().toString();
+            Object value = ((FirConstExpression<?>) firElement).getValue();
+            return value != null ? value.toString() : null;
             // return ((FirConstExpression<?>) firElement).getKind().toString();
         } else if (firElement instanceof FirWhenBranch) {
             FirWhenBranch whenBranch = (FirWhenBranch) firElement;
