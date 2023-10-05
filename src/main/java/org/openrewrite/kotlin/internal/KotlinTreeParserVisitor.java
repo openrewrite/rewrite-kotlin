@@ -1490,7 +1490,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         J.VariableDeclarations variableDeclarations = new J.VariableDeclarations(
                 Tree.randomId(),
-                Space.EMPTY, // overlaps with right-padding of previous statement
+                prefix(property), // overlaps with right-padding of previous statement
                 markers,
                 leadingAnnotations,
                 modifiers,
