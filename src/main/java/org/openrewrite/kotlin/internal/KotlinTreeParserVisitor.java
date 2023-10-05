@@ -1742,20 +1742,26 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Nullable
     private JavaType.Method methodDeclarationType(PsiElement psi) {
-        if (psi instanceof KtNamedFunction) {
-            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtNamedFunction) psi);
-            if (basedSymbol instanceof FirNamedFunctionSymbol) {
-                FirNamedFunctionSymbol functionSymbol = (FirNamedFunctionSymbol) basedSymbol;
-                return psiElementAssociations.getTypeMapping().methodDeclarationType(functionSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
-            }
-        } else if (psi instanceof KtPropertyAccessor) {
-            // todo, more generic logic
+        if (psi instanceof KtDeclaration) {
             FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
-            if (basedSymbol instanceof FirPropertyAccessorSymbol) {
-                FirPropertyAccessorSymbol propertyAccessorSymbol = (FirPropertyAccessorSymbol) basedSymbol;
-                return psiElementAssociations.getTypeMapping().methodDeclarationType(propertyAccessorSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
+            if (basedSymbol != null && basedSymbol.getFir() instanceof FirFunction) {
+                return psiElementAssociations.getTypeMapping().methodDeclarationType((FirFunction) basedSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
             }
         }
+//        if (psi instanceof KtNamedFunction) {
+//            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtNamedFunction) psi);
+//            if (basedSymbol instanceof FirNamedFunctionSymbol) {
+//                FirNamedFunctionSymbol functionSymbol = (FirNamedFunctionSymbol) basedSymbol;
+//                return psiElementAssociations.getTypeMapping().methodDeclarationType(functionSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
+//            }
+//        } else if (psi instanceof KtPropertyAccessor) {
+//            // todo, more generic logic
+//            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
+//            if (basedSymbol instanceof FirPropertyAccessorSymbol) {
+//                FirPropertyAccessorSymbol propertyAccessorSymbol = (FirPropertyAccessorSymbol) basedSymbol;
+//                return psiElementAssociations.getTypeMapping().methodDeclarationType(propertyAccessorSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
+//            }
+//        }
         return null;
     }
 
