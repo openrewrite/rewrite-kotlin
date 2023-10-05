@@ -26,13 +26,18 @@ import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.ClassMembersKt;
 import org.jetbrains.kotlin.fir.FirElement;
 import org.jetbrains.kotlin.fir.FirSession;
-import org.jetbrains.kotlin.fir.declarations.*;
+import org.jetbrains.kotlin.fir.declarations.FirFile;
+import org.jetbrains.kotlin.fir.declarations.FirFunction;
+import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
+import org.jetbrains.kotlin.fir.declarations.FirVariable;
 import org.jetbrains.kotlin.fir.expressions.FirConstExpression;
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall;
 import org.jetbrains.kotlin.fir.resolve.LookupTagUtilsKt;
 import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag;
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
-import org.jetbrains.kotlin.fir.symbols.impl.*;
+import org.jetbrains.kotlin.fir.symbols.impl.FirAnonymousObjectSymbol;
+import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol;
+import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
@@ -56,7 +61,10 @@ import org.openrewrite.style.NamedStyles;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -429,13 +437,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 new J.MethodDeclaration.IdentifierWithAnnotations(
                         name,
                         lastAnnotations
-                    ),
+                ),
                 params,
                 null,
                 body,
                 null,
                 methodDeclarationType(accessor)
-            );
+        );
     }
 
     @Override
@@ -455,7 +463,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        Expression returnExpr = convertToExpression(expression.getReturnedExpression().accept(this, data).withPrefix(prefix(expression.getReturnedExpression())));
+        KtExpression returnedExpression = expression.getReturnedExpression();
+        Expression returnExpr = returnedExpression != null ?
+                convertToExpression(returnedExpression.accept(this, data).withPrefix(prefix(returnedExpression))) :
+                null;
         return new K.KReturn(
                 randomId(),
                 new J.Return(
@@ -845,7 +856,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
 
             if (expressions.isEmpty()) {
-                expressions.add(padRight(new J.Empty(randomId(), prefix(expression.getValueArgumentList().getRightParenthesis()), Markers.EMPTY),  Space.EMPTY));
+                expressions.add(padRight(new J.Empty(randomId(), prefix(expression.getValueArgumentList().getRightParenthesis()), Markers.EMPTY), Space.EMPTY));
             }
 
             JContainer<Expression> args = JContainer.build(prefix(expression.getValueArgumentList()), expressions, markers);
@@ -1263,7 +1274,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         );
 
 
-
         if (function.getNameIdentifier() == null) {
             throw new UnsupportedOperationException("TODO");
         }
@@ -1663,6 +1673,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return J.Binary.Type.Multiplication;
         else if (elementType == KtTokens.DIV)
             return J.Binary.Type.Division;
+        else if (elementType == KtTokens.EQEQ)
+            return J.Binary.Type.Equal; // TODO should this not be mapped to `Object#equals(Object)`?
         else
             return null;
     }
