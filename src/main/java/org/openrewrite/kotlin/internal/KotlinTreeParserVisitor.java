@@ -153,7 +153,36 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitArrayAccessExpression(KtArrayAccessExpression expression, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        Markers markers = Markers.EMPTY;
+        boolean hasExplicitReceiver = false;
+        boolean implicitExtensionFunction = false;
+        Expression selectExpr = convertToExpression(expression.getArrayExpression().accept(this, data));
+        JRightPadded<Expression> select = padRight(selectExpr, suffix(expression.getArrayExpression()));
+        JContainer<Expression> typeParams = null;
+        J.Identifier name = createIdentifier("get", Space.EMPTY, methodInvocationType(expression));
+
+        markers = markers.addIfAbsent(new IndexedAccess(randomId()));
+
+        List<KtExpression> indexExpressions = expression.getIndexExpressions();
+        if (indexExpressions.size() != 1) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        List<JRightPadded<Expression>> expressions = new ArrayList<>();
+        KtExpression indexExp = indexExpressions.get(0);
+        expressions.add(padRight(convertToExpression(indexExp.accept(this, data)), suffix(indexExp)));
+        JContainer<Expression> args = JContainer.build(Space.EMPTY, expressions, markers); // expression.getIndicesNode().accept(this, data).withPrefix(Space.EMPTY);
+
+        return new J.MethodInvocation(
+                randomId(),
+                Space.EMPTY,
+                markers,
+                select,
+                typeParams,
+                name,
+                args,
+                methodInvocationType(expression)
+        );
     }
 
     @Override
@@ -668,7 +697,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitKtElement(KtElement element, ExecutionContext data) {
-        return element.accept(this, data);
+        throw new UnsupportedOperationException("Should never call this, if this is called, means something wrong");
+       // return element.accept(this, data);
     }
 
     /*====================================================================
@@ -940,11 +970,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             JavaType.Method methodType = methodInvocationType(expression);
             return new J.MethodInvocation(
                     randomId(),
-                    Space.EMPTY,
+                    prefix(expression),
                     Markers.EMPTY,
                     null,
                     null,
-                    (J.Identifier) name.withType(methodType).withPrefix(prefix(expression)),
+                    name.withType(methodType).withPrefix(Space.EMPTY),
                     args,
                     methodType
             );
