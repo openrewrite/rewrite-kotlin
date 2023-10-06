@@ -850,6 +850,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitArgument(KtValueArgument argument, ExecutionContext data) {
         if (argument.getArgumentExpression() == null) {
             throw new UnsupportedOperationException("TODO");
+        } else if (argument.isNamed()) {
+            throw new UnsupportedOperationException("TODO");
         }
 
         return argument.getArgumentExpression().accept(this, data);
