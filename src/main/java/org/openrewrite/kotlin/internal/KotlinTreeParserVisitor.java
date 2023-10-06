@@ -197,7 +197,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitBlockStringTemplateEntry(KtBlockStringTemplateEntry entry, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        J tree = entry.getExpression().accept(this, data);
+        boolean inBraces = true;
+
+        return new K.KString.Value(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                tree,
+                suffix(entry.getExpression()),
+                inBraces
+        );
     }
 
     @Override
@@ -362,12 +372,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("Unsupported KtStringTemplateEntry child");
         }
 
+        boolean quoted = entry.getPrevSibling().getNode().getElementType() == KtTokens.OPEN_QUOTE &&
+                entry.getNextSibling().getNode().getElementType() == KtTokens.CLOSING_QUOTE;
+
+        String valueSource = quoted ? "\"" + leaf.getText() + "\"" : leaf.getText();
         return new J.Literal(
                 Tree.randomId(),
                 Space.EMPTY,
                 Markers.EMPTY,
                 leaf.getText(),
-                "\"" + leaf.getText() + "\"", // todo, support text block
+                valueSource, // todo, support text block
                 null,
                 primitiveType(entry)
         );
@@ -1696,8 +1710,23 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitStringTemplateExpression(KtStringTemplateExpression expression, ExecutionContext data) {
         KtStringTemplateEntry[] entries = expression.getEntries();
+
         if (entries.length > 1) {
-            throw new UnsupportedOperationException("Unsupported constant expression elementType, TODO");
+            String delimiter = "\"";
+            List<J> values = new ArrayList<>();
+
+            for (KtStringTemplateEntry entry : entries) {
+                values.add(entry.accept(this, data));
+            }
+
+            return new K.KString(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    delimiter,
+                    values,
+                    type(expression)
+            );
         }
 
         if (entries.length == 0) {

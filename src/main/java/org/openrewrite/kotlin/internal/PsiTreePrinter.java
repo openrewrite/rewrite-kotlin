@@ -317,6 +317,8 @@ public class PsiTreePrinter {
                 || tree instanceof J.TypeParameter
                 || tree instanceof K.CompilationUnit
                 || tree instanceof K.StatementExpression
+                || tree instanceof K.KString
+                || tree instanceof K.KString.Value
                 || tree instanceof K.ExpressionStatement
                 || tree instanceof J.Package
         ) {
