@@ -234,12 +234,20 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             );
         }
 
+        JRightPadded<Expression> receiver;
+        if (expression.getReceiverExpression() == null) {
+            receiver = padRight(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY),
+                    prefix(expression.findColonColon()));
+        } else {
+            receiver = padRight(convertToExpression(expression.getReceiverExpression().accept(this, data)),
+                    prefix(expression.findColonColon()));
+        }
+
         return new J.MemberReference(
                 randomId(),
                 prefix(expression),
                 Markers.EMPTY,
-                padRight(convertToExpression(expression.getReceiverExpression().accept(this, data)),
-                        prefix(expression.findColonColon())),
+                receiver,
                 null,
                 padLeft(prefix(expression.getLastChild()), expression.getCallableReference().accept(this, data).withPrefix(Space.EMPTY)),
                 type(expression.getCallableReference()),
@@ -1929,7 +1937,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
      * Type related methods
      * ====================================================================*/
     @Nullable
-    private JavaType type(PsiElement psi) {
+    private JavaType type(@Nullable PsiElement psi) {
+        if (psi == null) {
+            return JavaType.Unknown.getInstance();
+        }
         return psiElementAssociations.type(psi, currentFile.getSymbol());
     }
 
