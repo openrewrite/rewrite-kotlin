@@ -702,7 +702,19 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitTypeParameter(KtTypeParameter parameter, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        Markers markers = Markers.EMPTY;
+        List<J.Annotation> annotations = new ArrayList<>();
+
+        J.Identifier name = createIdentifier(parameter, type(parameter));
+
+        return new J.TypeParameter(
+                randomId(),
+                prefix(parameter),
+                markers,
+                annotations,
+                name,
+                null
+        );
     }
 
     @Override
@@ -1153,8 +1165,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         } else if (!klass.getSuperTypeListEntries().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
-        } else if (!klass.getTypeParameters().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
+        }
+
+        if (!klass.getTypeParameters().isEmpty()) {
+            List<JRightPadded<J.TypeParameter>> typeParameters = new ArrayList<>();
+            for (KtTypeParameter ktTypeParameter : klass.getTypeParameters()) {
+                J.TypeParameter typeParameter = ktTypeParameter.accept(this, data).withPrefix(Space.EMPTY);
+                typeParameters.add(padRight(typeParameter, suffix(ktTypeParameter)));
+            }
+            typeParams = JContainer.build(prefix(klass.getTypeParameterList()), typeParameters, Markers.EMPTY);
         }
 
         return new J.ClassDeclaration(
