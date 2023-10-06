@@ -728,7 +728,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         JRightPadded<J.Package> pkg = null;
-        if (file.getPackageDirective() != null) {
+        if (!file.getPackageFqName().isRoot()) {
             pkg = maybeSemicolon((J.Package) file.getPackageDirective().accept(this, data), file.getPackageDirective());
         }
 
@@ -1905,7 +1905,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
             if (basedSymbol instanceof FirVariableSymbol) {
                 FirVariableSymbol<? extends FirVariable> variableSymbol = (FirVariableSymbol<? extends FirVariable>) basedSymbol;
-                return psiElementAssociations.getTypeMapping().variableType(variableSymbol, null, psiElementAssociations.getFile().getSymbol());
+                return typeMapping.variableType(variableSymbol, null, psiElementAssociations.getFile().getSymbol());
             }
         }
         return null;
