@@ -51,6 +51,7 @@ import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.marker.ImplicitReturn;
+import org.openrewrite.java.marker.TrailingComma;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinTypeMapping;
 import org.openrewrite.kotlin.marker.*;
@@ -1018,11 +1019,19 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             List<JRightPadded<Expression>> expressions = new ArrayList<>(arguments.size());
             Markers markers = Markers.EMPTY;
 
-            for (KtValueArgument arg : arguments) {
-                expressions.add(padRight(convertToExpression(arg.accept(this, data)).withPrefix(prefix(arg)), suffix(arg)));
-            }
-
-            if (expressions.isEmpty()) {
+            if (!arguments.isEmpty()) {
+                for (int i = 0; i < arguments.size(); i++) {
+                    KtValueArgument arg = arguments.get(i);
+                    JRightPadded<Expression> padded = padRight(convertToExpression(arg.accept(this, data)).withPrefix(prefix(arg)), suffix(arg));
+                    if (i == arguments.size() - 1) {
+                        PsiElement maybeComma = PsiTreeUtil.findSiblingForward(arg, KtTokens.COMMA, null);
+                        if (maybeComma != null && maybeComma.getNode().getElementType() == KtTokens.COMMA) {
+                            padded = padded.withMarkers(padded.getMarkers().addIfAbsent(new TrailingComma(randomId(), suffix(maybeComma))));
+                        }
+                    }
+                    expressions.add(padded);
+                }
+            } else {
                 expressions.add(padRight(new J.Empty(randomId(), prefix(expression.getValueArgumentList().getRightParenthesis()), Markers.EMPTY), Space.EMPTY));
             }
 
