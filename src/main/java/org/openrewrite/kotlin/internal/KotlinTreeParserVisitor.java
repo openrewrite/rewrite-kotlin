@@ -232,7 +232,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClassLiteralExpression(KtClassLiteralExpression expression, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        return new J.MemberReference(
+                randomId(),
+                prefix(expression),
+                Markers.EMPTY,
+                padRight(convertToExpression(expression.getReceiverExpression().accept(this, data)),
+                        prefix(expression.findColonColon())),
+                null,
+                padLeft(prefix(expression.getLastChild()), createIdentifier("class", Space.EMPTY, null)),
+                type(expression),
+                null,
+                null
+        );
     }
 
     @Override
@@ -438,7 +449,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 emptyList(),
                 null,
                 variableType(parameter)
-                );
+        );
 
         vars.add(padRight(namedVariable, suffix(parameter)));
 
@@ -712,7 +723,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitKtElement(KtElement element, ExecutionContext data) {
         throw new UnsupportedOperationException("Should never call this, if this is called, means something wrong");
-       // return element.accept(this, data);
+        // return element.accept(this, data);
     }
 
     /*====================================================================
@@ -1287,7 +1298,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     prefix(expression),
                     Markers.EMPTY,
                     expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY),
-                    padLeft(prefix(expression.getSelectorExpression()), (J.Identifier) expression.getSelectorExpression().accept(this, data)),
+                    padLeft(suffix(expression.getReceiverExpression()), (J.Identifier) expression.getSelectorExpression().accept(this, data)),
                     type(expression)
             );
         }
