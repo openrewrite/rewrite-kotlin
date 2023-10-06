@@ -61,10 +61,7 @@ import org.openrewrite.style.NamedStyles;
 
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -1772,8 +1769,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitStringTemplateExpression(KtStringTemplateExpression expression, ExecutionContext data) {
         KtStringTemplateEntry[] entries = expression.getEntries();
+        boolean hasStingTemplateEntry = Arrays.stream(entries).anyMatch(x -> !(x instanceof KtLiteralStringTemplateEntry));
 
-        if (entries.length > 1) {
+        if (hasStingTemplateEntry) {
             String delimiter = "\"";
             List<J> values = new ArrayList<>();
 
@@ -1791,18 +1789,19 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             );
         }
 
-        if (entries.length == 0) {
-            return new J.Literal(
-                    randomId(),
-                    Space.EMPTY,
-                    Markers.EMPTY,
-                    "",
-                    expression.getText(),
-                    null,
-                    primitiveType(expression)
-            );
-        }
-        return entries[0].accept(this, data).withPrefix(prefix(expression));
+        String valueSource = expression.getText();
+        StringBuilder valueSb = new StringBuilder();
+        Arrays.stream(entries).forEach(x -> valueSb.append(x.getText()));
+
+        return new J.Literal(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                valueSb.toString(),
+                valueSource,
+                null,
+                primitiveType(expression)
+        ).withPrefix(prefix(expression));
     }
 
     @Override
