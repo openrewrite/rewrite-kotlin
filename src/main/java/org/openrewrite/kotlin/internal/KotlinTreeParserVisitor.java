@@ -32,12 +32,11 @@ import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
 import org.jetbrains.kotlin.fir.declarations.FirVariable;
 import org.jetbrains.kotlin.fir.expressions.FirConstExpression;
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall;
+import org.jetbrains.kotlin.fir.references.FirResolvedCallableReference;
 import org.jetbrains.kotlin.fir.resolve.LookupTagUtilsKt;
 import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag;
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
-import org.jetbrains.kotlin.fir.symbols.impl.FirAnonymousObjectSymbol;
-import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol;
-import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol;
+import org.jetbrains.kotlin.fir.symbols.impl.*;
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
@@ -217,7 +216,36 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitCallableReferenceExpression(KtCallableReferenceExpression expression, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        FirResolvedCallableReference reference = (FirResolvedCallableReference) psiElementAssociations.primary(expression.getCallableReference());
+        JavaType.Method methodReferenceType = null;
+        if (reference.getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
+            methodReferenceType = typeMapping.methodDeclarationType(
+                    ((FirNamedFunctionSymbol) reference.getResolvedSymbol()).getFir(),
+                    TypeUtils.asFullyQualified(type(expression.getReceiverExpression())),
+                    currentFile.getSymbol()
+            );
+        }
+        JavaType.Variable fieldReferenceType = null;
+        if (reference.getResolvedSymbol() instanceof FirPropertySymbol) {
+            fieldReferenceType = typeMapping.variableType(
+                    (FirVariableSymbol<FirVariable>) reference.getResolvedSymbol(),
+                    TypeUtils.asFullyQualified(type(expression.getReceiverExpression())),
+                    currentFile.getSymbol()
+            );
+        }
+
+        return new J.MemberReference(
+                randomId(),
+                prefix(expression),
+                Markers.EMPTY,
+                padRight(convertToExpression(expression.getReceiverExpression().accept(this, data)),
+                        prefix(expression.findColonColon())),
+                null,
+                padLeft(prefix(expression.getLastChild()), expression.getCallableReference().accept(this, data).withPrefix(Space.EMPTY)),
+                type(expression.getCallableReference()),
+                methodReferenceType,
+                fieldReferenceType
+        );
     }
 
     @Override
