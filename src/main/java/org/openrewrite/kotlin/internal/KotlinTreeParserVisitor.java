@@ -635,7 +635,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitSimpleNameStringTemplateEntry(KtSimpleNameStringTemplateEntry entry, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        return new K.KString.Value(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                entry.getExpression().accept(this, data),
+                suffix(entry.getExpression()),
+                false
+        );
     }
 
     @Override
