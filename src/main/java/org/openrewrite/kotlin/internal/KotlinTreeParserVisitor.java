@@ -471,6 +471,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
+        if (parameter.isVarArg()) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         J.Identifier name = createIdentifier(parameter.getName(), Space.EMPTY, type(parameter));
 
         if (parameter.getTypeReference() != null) {
