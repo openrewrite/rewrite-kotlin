@@ -1994,8 +1994,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (psi instanceof KtDeclaration) {
             FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
             if (basedSymbol instanceof FirVariableSymbol) {
+                PsiElement owner = PsiTreeUtil.getParentOfType(psi, KtClass.class);
+                JavaType.FullyQualified ownerType = null;
+                if (owner != null) {
+                    ownerType = (JavaType.FullyQualified) type(owner);
+                }
                 FirVariableSymbol<? extends FirVariable> variableSymbol = (FirVariableSymbol<? extends FirVariable>) basedSymbol;
-                return typeMapping.variableType(variableSymbol, null, psiElementAssociations.getFile().getSymbol());
+                return typeMapping.variableType(variableSymbol, ownerType, psiElementAssociations.getFile().getSymbol());
             }
         }
         return null;
