@@ -724,7 +724,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitTypeProjection(KtTypeProjection typeProjection, ExecutionContext data) {
-        return typeProjection.getTypeReference().accept(this, data);
+        if (typeProjection.getTypeReference() != null) {
+            return typeProjection.getTypeReference().accept(this, data);
+        }
+
+        if (typeProjection.getProjectionKind() == KtProjectionKind.STAR) {
+            return new J.Wildcard(randomId(), prefix(typeProjection), Markers.EMPTY, null, null);
+        }
+
+        throw new UnsupportedOperationException("TODO");
     }
 
     @Override
@@ -1872,11 +1880,29 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitUserType(KtUserType type, ExecutionContext data) {
-        if (!type.getTypeArguments().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
+
+        NameTree nameTree = type.getReferenceExpression().accept(this, data).withPrefix(prefix(type));
+
+        List<KtTypeProjection> typeArguments = type.getTypeArguments();
+        List<JRightPadded<Expression>> parameters = new ArrayList<>(typeArguments.size());
+        if (!typeArguments.isEmpty()) {
+            for (KtTypeProjection typeProjection : typeArguments) {
+                parameters.add(padRight(convertToExpression(typeProjection.accept(this, data)), suffix(typeProjection)));
+            }
+
+            return new J.ParameterizedType(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    nameTree,
+                    JContainer.build(prefix(type.getTypeArgumentList()), parameters, Markers.EMPTY),
+                    type(type)
+            );
         }
+
+
         // TODO: fix NPE.
-        return type.getReferenceExpression().accept(this, data);
+        return nameTree;
     }
 
     @Override

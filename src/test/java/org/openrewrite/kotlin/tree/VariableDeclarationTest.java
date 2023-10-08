@@ -252,7 +252,7 @@ class VariableDeclarationTest implements RewriteTest {
           kotlin(
             """
               import org.foo.Test
-              val a : Test < * > = null
+              val a : Test  <   *    >     = null
               """
           )
         );
