@@ -182,7 +182,6 @@ class FieldAccessTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("typeInUse is changed, revisit after fixing undefined type issue")
     @Test
     void propertyFieldType() {
         rewriteRun(
