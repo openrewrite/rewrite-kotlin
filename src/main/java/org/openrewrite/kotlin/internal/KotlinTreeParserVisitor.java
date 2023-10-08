@@ -332,7 +332,31 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitDoWhileExpression(KtDoWhileExpression expression, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        J.Label label = null;
+//        if (expression.lalabel != null) {
+//            label = visitElement(doWhileLoop.label!!, data) as J.Label?
+//        }
+        return new J.DoWhileLoop(
+                randomId(),
+                prefix(expression),
+                Markers.EMPTY,
+                // FIXME NPE if no body
+                JRightPadded.build(expression.getBody().accept(this, data)
+                        .withPrefix(prefix(expression.getBody().getParent()))
+                ),
+                padLeft(prefix(expression.getWhileKeyword()), mapControlParentheses(expression.getCondition(), data))
+        );
+    }
+
+    private J.ControlParentheses<Expression> mapControlParentheses(KtExpression expression, ExecutionContext data) {
+        return new J.ControlParentheses<>(
+                randomId(),
+                prefix(expression.getParent()),
+                Markers.EMPTY,
+                padRight(convertToExpression(expression.accept(this, data))
+                        .withPrefix(prefix(expression.getParent())), suffix(expression.getParent())
+                )
+        );
     }
 
     @Override
@@ -1640,8 +1664,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitPostfixExpression(KtPostfixExpression expression, ExecutionContext data) {
         // TODO: fix NPE.
         J j = expression.getBaseExpression().accept(this, data);
-        if (expression.getOperationReference().getReferencedNameElementType() == KtTokens.EXCLEXCL) {
+        IElementType referencedNameElementType = expression.getOperationReference().getReferencedNameElementType();
+        if (referencedNameElementType == KtTokens.EXCLEXCL) {
             j = j.withMarkers(j.getMarkers().addIfAbsent(new CheckNotNull(randomId(), prefix(expression.getOperationReference()))));
+        } else if (referencedNameElementType == KtTokens.PLUSPLUS) {
+            j = new J.Unary(randomId(), prefix(expression), Markers.EMPTY, padLeft(prefix(expression.getOperationReference()), J.Unary.Type.PostIncrement), (Expression) j, type(expression));
         } else {
             throw new UnsupportedOperationException("TODO");
         }
