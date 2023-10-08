@@ -443,7 +443,7 @@ class VariableDeclarationTest implements RewriteTest {
             """
               class SomeParameterized<T>
               abstract class Test {
-                  abstract val SomeParameterized < Int > . receivedMember : Int
+                  abstract val SomeParameterized <  Int > . receivedMember : Int
               }
               """
           )

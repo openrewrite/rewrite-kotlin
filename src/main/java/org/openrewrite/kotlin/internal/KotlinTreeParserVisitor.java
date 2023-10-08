@@ -725,7 +725,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitTypeProjection(KtTypeProjection typeProjection, ExecutionContext data) {
         if (typeProjection.getTypeReference() != null) {
-            return typeProjection.getTypeReference().accept(this, data);
+            return typeProjection.getTypeReference().accept(this, data).withPrefix(prefix(typeProjection));
         }
 
         if (typeProjection.getProjectionKind() == KtProjectionKind.STAR) {
@@ -1737,7 +1737,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 variables
         );
 
-        if (getter != null || setter != null) {
+        if (getter != null || setter != null || receiver != null) {
             return new K.Property(
                     randomId(),
                     Space.EMPTY,
@@ -1900,8 +1900,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             );
         }
 
-
-        // TODO: fix NPE.
         return nameTree;
     }
 
@@ -1961,6 +1959,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 return J.Modifier.Type.Sealed;
             case "open":
                 return J.Modifier.Type.LanguageExtension;
+            case "abstract":
+                return J.Modifier.Type.Abstract;
             default:
                 throw new UnsupportedOperationException("Unsupported ModifierType : " + modifier);
         }
