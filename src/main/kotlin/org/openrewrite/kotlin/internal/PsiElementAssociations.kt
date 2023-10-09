@@ -21,7 +21,9 @@ import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFile
+import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
+import org.jetbrains.kotlin.fir.expressions.FirReturnExpression
 import org.jetbrains.kotlin.fir.expressions.impl.FirElseIfTrueCondition
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
@@ -176,23 +178,30 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
 
     enum class ExpressionType {
         CONSTRUCTOR,
-        METHOD_INVOCATION
+        METHOD_INVOCATION,
+        RETURN_EXPRESSION
+    }
+
+    fun getFunctionType(psi: KtExpression): ExpressionType {
+        val fir = fir(psi) { it is FirFunctionCall } as FirFunctionCall
+        return if (fir.calleeReference.resolved != null) {
+            when (fir.calleeReference.resolved!!.resolvedSymbol) {
+                is FirConstructorSymbol -> ExpressionType.CONSTRUCTOR
+                else -> ExpressionType.METHOD_INVOCATION
+            }
+        } else {
+            throw UnsupportedOperationException("Null resolved symbol on FirFunctionCall: $psi")
+        }
     }
 
     @OptIn(DfaInternals::class)
-    fun getExpressionType(psi: KtExpression): ExpressionType {
-        val fir = fir(psi) { it is FirFunctionCall }
-        return if (fir is FirFunctionCall) {
-            if (fir.calleeReference.resolved != null) {
-                return if (fir.calleeReference.resolved!!.resolvedSymbol is FirConstructorSymbol) {
-                    ExpressionType.CONSTRUCTOR
-                } else {
-                    ExpressionType.METHOD_INVOCATION
-                }
-            }
-            throw UnsupportedOperationException("Null resolved symbol on FirFunctionCall: $psi")
+    fun getExpressionType(psi: KtExpression): ExpressionType? {
+        val fir = fir(psi) { it is FirExpression }
+        return if (fir is FirReturnExpression) {
+            ExpressionType.RETURN_EXPRESSION
         } else {
-            throw UnsupportedOperationException("Unsupported expression type: $psi")
+            // TODO, other expression type if needed
+            null
         }
     }
 
