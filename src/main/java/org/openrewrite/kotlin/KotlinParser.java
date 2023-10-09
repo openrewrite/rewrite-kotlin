@@ -172,9 +172,9 @@ public class KotlinParser implements Parser {
                                         KotlinTypeMapping typeMapping = new KotlinTypeMapping(new JavaTypeCache(), firSession);
                                         PsiElementAssociations psiFirMapping = new PsiElementAssociations(typeMapping, kotlinSource.getFirFile());
                                         psiFirMapping.initialize();
-                                        System.out.println("======\nPSI - FIR mapping");
-                                        System.out.println(psiFirMapping);
-                                        System.out.println("======");
+                                        // System.out.println("======\nPSI - FIR mapping");
+                                        // System.out.println(psiFirMapping);
+                                        // System.out.println("======");
 
                                         KotlinTreeParserVisitor psiParser = new KotlinTreeParserVisitor(kotlinSource, firSession, typeMapping, psiFirMapping, styles, relativeTo, ctx);
                                         try {

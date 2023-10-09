@@ -80,8 +80,8 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                 }
             }
 
-            // print out logs
-            if (true) {
+            // print out logs, debug purpose only, to be removed after complete parser
+            if (false) {
                 found1ToNMapping = realCount > 1
 
                 println("---------")

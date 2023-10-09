@@ -51,6 +51,7 @@ import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.marker.ImplicitReturn;
+import org.openrewrite.java.marker.OmitParentheses;
 import org.openrewrite.java.marker.TrailingComma;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinTypeMapping;
@@ -916,6 +917,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         KtOperationReferenceExpression operationReference = expression.getOperationReference();
         J.Binary.Type javaBinaryType = mapJBinaryType(operationReference);
+        K.Binary.Type kotlinBinaryType = mapKBinaryType(operationReference);
+
         J.AssignmentOperation.Type assignmentOperationType = mapAssignmentOperationType(operationReference);
         Expression left = convertToExpression(expression.getLeft().accept(this, data)).withPrefix(Space.EMPTY);
         Expression right = convertToExpression((expression.getRight()).accept(this, data))
@@ -951,19 +954,50 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     right,
                     type
             );
+        } else if (kotlinBinaryType != null) {
+                return new K.Binary(
+                        randomId(),
+                        prefix(expression),
+                        Markers.EMPTY,
+                        left,
+                        padLeft(prefix(operationReference), kotlinBinaryType),
+                        right,
+                        Space.EMPTY,
+                        type
+                );
         } else {
-            K.Binary.Type kBinaryType = mapKBinaryType(operationReference);
-            return new K.Binary(
-                    randomId(),
-                    prefix(expression),
-                    Markers.EMPTY,
-                    left,
-                    padLeft(prefix(operationReference), kBinaryType),
-                    right,
-                    Space.EMPTY,
-                    type
-            );
+            if (operationReference.getIdentifier() != null && "to".equals(operationReference.getIdentifier().getText())) {
+                Markers markers = Markers.EMPTY
+                        .addIfAbsent(new Infix(randomId()))
+                        .addIfAbsent(new Extension(randomId()));
+
+                Expression selectExp = convertToExpression(expression.getLeft().accept(this, data).withPrefix(prefix(expression.getLeft())));
+                JRightPadded<Expression> select = padRight(selectExp, suffix(expression.getLeft()));
+                J.Identifier name = createIdentifier("to", Space.EMPTY, methodInvocationType(expression));
+                JContainer<Expression> typeParams = null;
+
+                List<JRightPadded<Expression>> expressions = new ArrayList<>(1);
+                Markers paramMarkers = markers.addIfAbsent(new OmitParentheses(randomId()));
+                Expression rightExp = convertToExpression(expression.getRight().accept(this, data).withPrefix(prefix(expression.getRight())));
+                JRightPadded<Expression> padded = padRight(rightExp, suffix(expression.getRight()));
+                expressions.add(padded);
+                JContainer<Expression> args = JContainer.build(Space.EMPTY, expressions, paramMarkers);
+                JavaType.Method methodType = methodInvocationType(expression);
+
+                return new J.MethodInvocation(
+                        randomId(),
+                        prefix(expression),
+                        markers,
+                        select,
+                        typeParams,
+                        name,
+                        args,
+                        methodType
+                );
+            }
         }
+
+        throw new UnsupportedOperationException("TODO");
     }
 
     @Nullable
@@ -1938,8 +1972,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     /*====================================================================
      * Mapping methods
      * ====================================================================*/
+    @Nullable
     private K.Binary.Type mapKBinaryType(KtOperationReferenceExpression operationReference) {
         IElementType elementType = operationReference.getOperationSignTokenType();
+        if (elementType == null) {
+            return null;
+        }
+
         if (elementType == KtTokens.NOT_IN)
             return K.Binary.Type.NotContains;
         else if (elementType == KtTokens.RANGE)
