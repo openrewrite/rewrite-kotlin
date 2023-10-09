@@ -84,7 +84,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     private final Charset charset;
     private final Boolean charsetBomMarked;
-    private final FirFile currentFile;
+    private final Stack<KtElement> ownerStack = new Stack<>();
     private final ExecutionContext executionContext;
 
     public KotlinTreeParserVisitor(KotlinSource kotlinSource,
@@ -104,7 +104,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         EncodingDetectingInputStream stream = kotlinSource.getInput().getSource(ctx);
         charset = stream.getCharset();
         charsetBomMarked = stream.isCharsetBomMarked();
-        currentFile = Objects.requireNonNull(kotlinSource.getFirFile());
+        ownerStack.push(kotlinSource.getKtFile());
         executionContext = ctx;
     }
 
@@ -221,7 +221,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             methodReferenceType = typeMapping.methodDeclarationType(
                     ((FirNamedFunctionSymbol) reference.getResolvedSymbol()).getFir(),
                     TypeUtils.asFullyQualified(type(expression.getReceiverExpression())),
-                    currentFile.getSymbol()
+                    owner(expression)
             );
         }
         JavaType.Variable fieldReferenceType = null;
@@ -229,7 +229,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             fieldReferenceType = typeMapping.variableType(
                     (FirVariableSymbol<FirVariable>) reference.getResolvedSymbol(),
                     TypeUtils.asFullyQualified(type(expression.getReceiverExpression())),
-                    currentFile.getSymbol()
+                    owner(expression)
             );
         }
 
@@ -253,6 +253,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 methodReferenceType,
                 fieldReferenceType
         );
+    }
+
+    private FirBasedSymbol<?> owner(PsiElement element) {
+        KtElement owner = ownerStack.peek() == element ? ownerStack.get(1) : ownerStack.peek();
+        if (owner instanceof  KtDeclaration) {
+            return psiElementAssociations.symbol(((KtDeclaration) owner));
+        } else if (owner instanceof KtFile) {
+            return ((FirFile) psiElementAssociations.primary(owner)).getSymbol();
+        }
+        return null;
     }
 
     @Override
@@ -552,7 +562,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 name,
                 emptyList(),
                 null,
-                variableType(parameter)
+                name.getFieldType()
         );
 
         vars.add(padRight(namedVariable, suffix(parameter)));
@@ -2123,11 +2133,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
      * Type related methods
      * ====================================================================*/
     @Nullable
-    private JavaType type(@Nullable PsiElement psi) {
+    private JavaType type(@Nullable KtElement psi) {
         if (psi == null) {
             return JavaType.Unknown.getInstance();
         }
-        return psiElementAssociations.type(psi, currentFile.getSymbol());
+        return psiElementAssociations.type(psi, owner(psi));
     }
 
     private JavaType.Primitive primitiveType(PsiElement expression) {
@@ -2140,13 +2150,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (psi instanceof KtDeclaration) {
             FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
             if (basedSymbol instanceof FirVariableSymbol) {
-                PsiElement owner = PsiTreeUtil.getParentOfType(psi, KtClass.class);
-                JavaType.FullyQualified ownerType = null;
-                if (owner != null) {
-                    ownerType = (JavaType.FullyQualified) type(owner);
-                }
-                FirVariableSymbol<? extends FirVariable> variableSymbol = (FirVariableSymbol<? extends FirVariable>) basedSymbol;
-                return typeMapping.variableType(variableSymbol, ownerType, psiElementAssociations.getFile().getSymbol());
+                return (JavaType.Variable) typeMapping.type(basedSymbol.getFir(), owner(psi));
             }
         }
         return null;
