@@ -160,6 +160,24 @@ public class KotlinTypeSignatureBuilderTest {
     }
 
     @Test
+    void fileField() {
+        FirProperty firProperty = getCompiledSource().getDeclarations().stream()
+          .filter(it -> it instanceof FirProperty && "field".equals(((FirProperty) it).getName().asString()))
+          .map(it -> (FirProperty) it).findFirst().orElseThrow();
+        assertThat(signatureBuilder().variableSignature(firProperty.getSymbol(), getCompiledSource().getSymbol()))
+          .isEqualTo("KotlinTypeGoatKt{name=field,type=kotlin.Int}");
+    }
+
+    @Test
+    void fileFunction() {
+        FirSimpleFunction function = getCompiledSource().getDeclarations().stream()
+          .filter(it -> it instanceof FirSimpleFunction && "function".equals(((FirSimpleFunction) it).getName().asString()))
+          .map(it -> (FirSimpleFunction) it).findFirst().orElseThrow();
+        assertThat(signatureBuilder().methodDeclarationSignature(function.getSymbol(), getCompiledSource().getSymbol()))
+          .isEqualTo("KotlinTypeGoatKt{name=function,return=kotlin.Unit,parameters=[]}");
+    }
+
+    @Test
     void constructor() {
         assertThat(constructorSignature())
                 .isEqualTo("org.openrewrite.kotlin.KotlinTypeGoat{name=<constructor>,return=org.openrewrite.kotlin.KotlinTypeGoat,parameters=[]}");
