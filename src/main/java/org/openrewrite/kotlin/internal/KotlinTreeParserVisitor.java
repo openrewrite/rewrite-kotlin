@@ -1658,11 +1658,23 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
 
         if (function.getTypeParameterList() != null) {
-            throw new UnsupportedOperationException("TODO");
+            List<KtTypeParameter> ktTypeParameters = function.getTypeParameters();
+            List<JRightPadded<J.TypeParameter>> params = new ArrayList<>(ktTypeParameters.size());
+
+            for (KtTypeParameter ktTypeParameter : ktTypeParameters) {
+                J.TypeParameter typeParameter = ktTypeParameter.accept(this, data).withPrefix(Space.EMPTY);
+                params.add(padRight(typeParameter, suffix(ktTypeParameter)));
+            }
+
+            typeParameters = new J.TypeParameters(
+                    randomId(),
+                    prefix(function.getTypeParameterList()),
+                    Markers.EMPTY,
+                    emptyList(),
+                    params
+            );
         }
-        if (function.getReceiverTypeReference() != null) {
-            throw new UnsupportedOperationException("TODO");
-        }
+
 
         List<KtTypeParameter> typeParams = function.getTypeParameters();
 
@@ -1717,6 +1729,51 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 rps.add(padRight(convertToStatement(param.accept(this, data)), Space.EMPTY));
             }
             params = JContainer.build(prefix(function.getValueParameterList()), rps, Markers.EMPTY);
+        }
+
+
+        if (function.getReceiverTypeReference() != null) {
+            markers = markers.addIfAbsent(new Extension(randomId()));
+            Expression receiver = convertToExpression(function.getReceiverTypeReference().accept(this, data)).withPrefix(prefix(function.getReceiverTypeReference()));
+            JRightPadded<J.VariableDeclarations.NamedVariable> infixReceiver = JRightPadded.build(
+                            new J.VariableDeclarations.NamedVariable(
+                                    randomId(),
+                                    Space.EMPTY,
+                                    Markers.EMPTY.addIfAbsent(new Extension(randomId())),
+                                    new J.Identifier(
+                                            randomId(),
+                                            Space.EMPTY,
+                                            Markers.EMPTY,
+                                            emptyList(),
+                                            "<receiverType>",
+                                            null,
+                                            null
+                                    ),
+                                    emptyList(),
+                                    padLeft(Space.EMPTY, receiver),
+                                    null
+                            )
+                    )
+                    .withAfter(suffix(function.getReceiverTypeReference()));
+
+            J.VariableDeclarations implicitParam = new J.VariableDeclarations(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY.addIfAbsent(new Extension(randomId())),
+                    emptyList(),
+                    emptyList(),
+                    null,
+                    null,
+                    emptyList(),
+                    singletonList(infixReceiver)
+            );
+            implicitParam = implicitParam.withMarkers(implicitParam.getMarkers().addIfAbsent(new TypeReferencePrefix(randomId(), Space.EMPTY)));
+
+            List<JRightPadded<Statement>> newStatements = new ArrayList<>(params.getElements().size() + 1);
+            newStatements.add(JRightPadded.build(implicitParam));
+            newStatements.addAll(params.getPadding().getElements());
+            params = params.getPadding().withElements(newStatements);
+
         }
 
         if (function.getTypeReference() != null) {
