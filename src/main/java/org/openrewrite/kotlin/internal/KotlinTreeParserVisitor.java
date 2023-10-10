@@ -694,9 +694,24 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitQualifiedExpression(KtQualifiedExpression expression, ExecutionContext data) {
         Expression receiver = (Expression) expression.getReceiverExpression().accept(this, data);
-        J.MethodInvocation selector = (J.MethodInvocation) expression.getSelectorExpression().accept(this, data);
-        return selector.getPadding()
-                .withSelect(padRight(receiver, suffix(expression.getReceiverExpression())));
+        Expression selector = (Expression) expression.getSelectorExpression().accept(this, data);
+        if (selector instanceof J.MethodInvocation) {
+            J.MethodInvocation methodInvocation = (J.MethodInvocation) selector;
+            return methodInvocation.getPadding()
+                    .withSelect(padRight(receiver, suffix(expression.getReceiverExpression())))
+                    .withName(methodInvocation.getName().withPrefix(prefix(expression.getSelectorExpression())))
+                    ;
+        } else {
+            J.Identifier identifier = (J.Identifier) selector;
+            return new J.FieldAccess(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    receiver,
+                    padLeft(suffix(expression.getReceiverExpression()), identifier),
+                    type(expression)
+            );
+        }
     }
 
     @Override
