@@ -1176,7 +1176,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         name.getPrefix(),
                         Markers.EMPTY,
                         name.withPrefix(Space.EMPTY),
-                        JContainer.build(prefix(expression.getTypeArgumentList()), singletonList(padRight(expr, Space.EMPTY)), Markers.EMPTY),
+                        JContainer.build(prefix(expression.getTypeArgumentList()), singletonList(padRight(expr, suffix(expression.getTypeArgumentList()))), Markers.EMPTY),
                         type(expression)
                 );
             }
