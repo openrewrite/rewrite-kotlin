@@ -671,10 +671,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             returnTypeExpression = accessor.getReturnTypeReference().accept(this, data).withPrefix(prefix(accessor.getReturnTypeReference()));
         }
 
-        if (accessor.getBodyBlockExpression() != accessor.getBodyExpression()) {
-            throw new UnsupportedOperationException("TODO. check what is the scenario for this case");
-        }
-
         if (accessor.getBodyBlockExpression() != null) {
             body = accessor.getBodyBlockExpression().accept(this, data).withPrefix(prefix(accessor.getBodyBlockExpression()));
         } else if (accessor.getBodyExpression() != null) {
@@ -2017,6 +2013,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         if (property.getSetter() != null) {
             setter = (J.MethodDeclaration) property.getSetter().accept(this, data);
+        }
+
+        if (getter != null && setter != null) {
+            isSetterFirst = property.getSetter().getTextRange().getStartOffset() < property.getGetter().getTextRange().getStartOffset();
         }
 
         if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {

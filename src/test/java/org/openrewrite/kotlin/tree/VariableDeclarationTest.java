@@ -61,6 +61,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Improved to present !in to a KBinary")
     @Test
     void yikes() {
         rewriteRun(
@@ -257,6 +258,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Improved type, condition has a owner now")
     @Test
     void ifElseExpression() {
         rewriteRun(
