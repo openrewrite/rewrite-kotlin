@@ -15,8 +15,6 @@
  */
 package org.openrewrite.kotlin;
 
-import org.jetbrains.kotlin.fir.declarations.FirProperty;
-import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.InMemoryExecutionContext;
@@ -157,7 +155,13 @@ public class KotlinTypeMappingTest {
 
         assertThat(md.getName().getType()).isEqualTo(md.getMethodType());
         assertThat(md.getMethodType().toString())
-          .isEqualTo("KotlinTypeGoatKt{name=function,return=kotlin.Unit,parameters=[]}");
+          .isEqualTo("KotlinTypeGoatKt{name=function,return=kotlin.Unit,parameters=[org.openrewrite.kotlin.C]}");
+
+        J.VariableDeclarations.NamedVariable nv = ((J.VariableDeclarations) md.getParameters().get(0)).getVariables().get(0);
+        assertThat(nv.getVariableType()).isEqualTo(nv.getName().getFieldType());
+        assertThat(nv.getType().toString()).isEqualTo("org.openrewrite.kotlin.C");
+        assertThat(nv.getVariableType().toString())
+          .isEqualTo("KotlinTypeGoatKt{name=function,return=kotlin.Unit,parameters=[org.openrewrite.kotlin.C]}{name=arg,type=org.openrewrite.kotlin.C}");
     }
 
     @Test

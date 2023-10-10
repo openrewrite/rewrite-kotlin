@@ -58,15 +58,17 @@ import org.openrewrite.kotlin.KotlinTypeSignatureBuilder.Companion.convertFileNa
 import org.openrewrite.kotlin.KotlinTypeSignatureBuilder.Companion.convertKotlinFqToJavaFq
 
 @Incubating(since = "0.0")
-class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession) : JavaTypeMapping<Any> {
+class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession, firFileSymbol: FirFileSymbol) : JavaTypeMapping<Any> {
     private val signatureBuilder: KotlinTypeSignatureBuilder
     private val typeCache: JavaTypeCache
     private val firSession: FirSession
+    private val firFileSymbol: FirFileSymbol
 
     init {
-        signatureBuilder = KotlinTypeSignatureBuilder(firSession)
+        signatureBuilder = KotlinTypeSignatureBuilder(firSession, firFileSymbol)
         this.typeCache = typeCache
         this.firSession = firSession
+        this.firFileSymbol = firFileSymbol
     }
 
     override fun type(type: Any?): JavaType {
@@ -184,6 +186,8 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession) : Java
                     if (classifierSymbol != null && classifierSymbol.fir is FirTypeParameter) {
                         return resolveConeTypeProjection(classifierSymbol.fir as FirTypeParameter, signature)
                     }
+                } else if (coneKotlinType is ConeClassLikeType) {
+                    return type(coneKotlinType, ownerFallBack)
                 }
                 return classType(type, signature, ownerFallBack)
             }
@@ -546,7 +550,7 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession) : Java
                 }
             }
             if (resolvedDeclaringType == null) {
-                return null
+                resolvedDeclaringType = TypeUtils.asFullyQualified(type(firFileSymbol.fir))
             }
             val returnType =
                 if (function is FirJavaMethod) type(methodSymbol.fir.returnTypeRef) else type(methodSymbol.resolvedReturnTypeRef)
@@ -844,7 +848,7 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession) : Java
             }
         }
         if (resolvedDeclaringType == null) {
-            return null
+            resolvedDeclaringType = TypeUtils.asFullyQualified(type(firFileSymbol.fir))
         }
         val returnType = type(functionCall.typeRef, ownerSymbol)
         method.unsafeSet(
@@ -882,6 +886,8 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession) : Java
             // TODO: fix type attribution for anonymous objects. Currently, returns JavaType.Unknown.
             if (symbol.dispatchReceiverType != null) {
                 resolvedOwner = type(symbol.dispatchReceiverType)
+            } else if (ownerFallBack is FirFunctionSymbol<*>) {
+                resolvedOwner = methodDeclarationType(ownerFallBack.fir, null, firFileSymbol)
             } else if (symbol.getContainingClassSymbol(firSession) != null) {
                 if (symbol.getContainingClassSymbol(firSession) !is FirAnonymousObjectSymbol) {
                     resolvedOwner = type(symbol.getContainingClassSymbol(firSession)!!.fir)
@@ -895,11 +901,11 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession) : Java
             resolvedOwner = type(ownerFallBack.fir)
         }
         if (resolvedOwner == null) {
-            resolvedOwner = JavaType.Unknown.getInstance()
+            resolvedOwner = type(firFileSymbol)
         }
         val typeRef =
             if (symbol.fir is FirJavaField || symbol.fir is FirEnumEntry) symbol.fir.returnTypeRef else symbol.resolvedReturnTypeRef
-        variable.unsafeSet(resolvedOwner!!, type(typeRef), annotations)
+        variable.unsafeSet(resolvedOwner, type(typeRef), annotations)
         return variable
     }
 
