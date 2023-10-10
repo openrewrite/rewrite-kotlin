@@ -826,7 +826,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         Markers markers = Markers.EMPTY;
         List<J.Annotation> annotations = new ArrayList<>();
 
-        J.Identifier name = createIdentifier(parameter, type(parameter));
+        if (parameter.getNameIdentifier() == null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        J.Identifier name = createIdentifier(parameter.getNameIdentifier(), type(parameter));
+        JContainer<TypeTree> bounds = JContainer.build(suffix(parameter.getNameIdentifier()),
+                singletonList(padRight(parameter.getExtendsBound().accept(this, data).withPrefix(prefix(parameter.getExtendsBound())),
+                        Space.EMPTY)),
+                Markers.EMPTY);
 
         return new J.TypeParameter(
                 randomId(),
@@ -834,7 +842,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 markers,
                 annotations,
                 name,
-                null
+                bounds
         );
     }
 
@@ -1662,7 +1670,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             List<JRightPadded<J.TypeParameter>> params = new ArrayList<>(ktTypeParameters.size());
 
             for (KtTypeParameter ktTypeParameter : ktTypeParameters) {
-                J.TypeParameter typeParameter = ktTypeParameter.accept(this, data).withPrefix(Space.EMPTY);
+                J.TypeParameter typeParameter = ktTypeParameter.accept(this, data).withPrefix(prefix(ktTypeParameter));
                 params.add(padRight(typeParameter, suffix(ktTypeParameter)));
             }
 

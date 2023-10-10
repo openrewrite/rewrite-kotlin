@@ -67,13 +67,6 @@ class ImportTest implements RewriteTest {
         );
     }
 
-    @Test
-    void debug() {
-        rewriteRun(
-          kotlin("fun <  T   :    Any     >   Class <   T    >     . createInstance( )   {    }")
-        );
-    }
-
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/158")
     @Test
     void methodName() {
