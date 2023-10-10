@@ -264,8 +264,12 @@ class MethodDeclarationTest implements RewriteTest {
     })
     void variance(String param) {
         rewriteRun(
-          kotlin("interface PT < T >"),
-          kotlin("fun generic ( n : PT < %s > ) { }".formatted(param))
+          kotlin(
+            """
+              interface PT < T >
+              fun generic ( n : PT < %s > ) { }
+              """.formatted(param)
+          )
         );
     }
 
