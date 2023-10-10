@@ -1153,7 +1153,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         } else if (type == null || type == PsiElementAssociations.ExpressionType.METHOD_INVOCATION) {
             J.Identifier name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
             if (!expression.getTypeArguments().isEmpty()) {
-                Expression expr = (Expression) expression.accept(this, data);
+//                Expression expr = (Expression) expression.accept(this, data);
                 throw new UnsupportedOperationException("TODO");
 //                name = new J.ParameterizedType(
 //                        randomId(),
@@ -1496,7 +1496,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                                                 .withPrefix(prefix(expression.getReceiverExpression())),
                                         suffix(expression.getReceiverExpression())
                                 )
-                        ).withPrefix(prefix(expression));
+                        )
+                        .withName(methodInvocation.getName().withPrefix(methodInvocation.getPrefix()))
+                        .withPrefix(prefix(expression))
+                ;
                 return methodInvocation;
             }
             return new J.MethodInvocation(
