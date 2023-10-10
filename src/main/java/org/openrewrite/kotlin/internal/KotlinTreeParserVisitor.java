@@ -508,7 +508,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitNullableType(KtNullableType nullableType, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        J j = nullableType.getInnerType().accept(this, data);
+        return j.withMarkers(j.getMarkers().addIfAbsent(new IsNullable(randomId(), suffix(nullableType.getInnerType()))));
     }
 
     @Override
