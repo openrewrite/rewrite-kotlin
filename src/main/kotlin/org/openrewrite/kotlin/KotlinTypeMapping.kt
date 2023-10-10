@@ -1020,6 +1020,9 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession, firFil
                     "*"
                 }
 
+                is ConeIntersectionType -> {
+                    ""
+                }
                 else -> {
                     type.toString()
                 }

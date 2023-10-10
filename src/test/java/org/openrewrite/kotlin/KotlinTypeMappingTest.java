@@ -383,7 +383,7 @@ public class KotlinTypeMappingTest {
                         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
                             if (methodMatcher.matches(method)) {
                                 assertThat(method.getMethodType().toString())
-                                  .isEqualTo("kotlin.collections.CollectionsKt{name=listOf,return=kotlin.collections.List<kotlin.Pair<kotlin.String, Generic{it(kotlin/Comparable<*> & java/io/Serializable)kotlin.Comparable<Generic{*}> & java.io.Serializable}>>,parameters=[kotlin.Array<Generic{? extends Generic{T}}>]}");
+                                  .isEqualTo("kotlin.collections.CollectionsKt{name=listOf,return=kotlin.collections.List<kotlin.Pair<kotlin.String, Generic{kotlin.Comparable<Generic{*}> & java.io.Serializable}>>,parameters=[kotlin.Array<Generic{? extends Generic{T}}>]}");
                                 found.set(true);
                             }
                             return super.visitMethodInvocation(method, atomicBoolean);
