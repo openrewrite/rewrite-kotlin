@@ -1005,7 +1005,9 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession, firFil
         val isGeneric = type is ConeKotlinTypeProjectionIn ||
                 type is ConeKotlinTypeProjectionOut ||
                 type is ConeStarProjection ||
-                type is ConeTypeParameterType
+                type is ConeTypeParameterType ||
+                type is ConeIntersectionType ||
+                type is ConeCapturedType
         if (isGeneric) {
             var variance: JavaType.GenericTypeVariable.Variance = JavaType.GenericTypeVariable.Variance.INVARIANT
             var bounds: MutableList<JavaType>? = null
@@ -1014,7 +1016,7 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession, firFil
                     "?"
                 }
 
-                is ConeStarProjection -> {
+                is ConeStarProjection, is ConeCapturedType -> {
                     "*"
                 }
 
@@ -1054,6 +1056,11 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession, firFil
                             bounds.add(type(bound))
                         }
                     }
+                }
+            } else if (type is ConeIntersectionType) {
+                bounds = ArrayList(type.intersectedTypes.size)
+                for (t: ConeTypeProjection in type.intersectedTypes) {
+                    bounds.add(type(t))
                 }
             }
             gtv.unsafeSet(name, variance, bounds)

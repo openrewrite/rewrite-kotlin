@@ -370,6 +370,32 @@ public class KotlinTypeMappingTest {
         }
 
         @Test
+        void genericIntersectionType() {
+            rewriteRun(
+              kotlin(
+                """
+                  val l = listOf ( "foo" to "1" , "bar" to 2 )
+                  """, spec -> spec.afterRecipe(cu -> {
+                    MethodMatcher methodMatcher = new MethodMatcher("kotlin.collections.CollectionsKt listOf(..)");
+                    AtomicBoolean found = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<AtomicBoolean>() {
+                        @Override
+                        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
+                            if (methodMatcher.matches(method)) {
+                                assertThat(method.getMethodType().toString())
+                                  .isEqualTo("kotlin.collections.CollectionsKt{name=listOf,return=kotlin.collections.List<kotlin.Pair<kotlin.String, Generic{it(kotlin/Comparable<*> & java/io/Serializable)kotlin.Comparable<Generic{*}> & java.io.Serializable}>>,parameters=[kotlin.Array<Generic{? extends Generic{T}}>]}");
+                                found.set(true);
+                            }
+                            return super.visitMethodInvocation(method, atomicBoolean);
+                        }
+                    }.visit(cu, found);
+                    assertThat(found.get()).isTrue();
+                })
+              )
+            );
+        }
+
+        @Test
         void coneProjection() {
             rewriteRun(
               kotlin(
