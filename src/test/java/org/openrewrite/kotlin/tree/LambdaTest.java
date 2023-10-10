@@ -16,7 +16,6 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
@@ -25,7 +24,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 @SuppressWarnings("RemoveRedundantQualifierName")
 class LambdaTest implements RewriteTest {
 
-    @ExpectedToFail("Space arrangement improved")
     @Test
     void binaryExpressionAsBody() {
         rewriteRun(

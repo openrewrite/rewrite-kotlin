@@ -309,7 +309,6 @@ class BinaryTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("!in is corrected")
     @Test
     void notIn() {
         rewriteRun(

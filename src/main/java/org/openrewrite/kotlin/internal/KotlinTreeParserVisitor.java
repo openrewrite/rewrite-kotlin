@@ -387,42 +387,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitExpression(KtExpression expression, ExecutionContext data) {
-        if (expression instanceof KtFunctionLiteral) {
-            KtFunctionLiteral ktFunctionLiteral = (KtFunctionLiteral) expression;
-            Markers markers = Markers.EMPTY;
-            J.Label label = null;
-            ktFunctionLiteral.getLBrace();
-            boolean hasBraces = true;
-            boolean omitDestruct = false;
-
-            if (ktFunctionLiteral.getValueParameterList() == null) {
-                throw new UnsupportedOperationException("TODO");
-            }
-
-            List<JRightPadded<J>> valueParams = new ArrayList<>(ktFunctionLiteral.getValueParameters().size());
-
-            for (KtParameter ktParameter: ktFunctionLiteral.getValueParameters()) {
-                valueParams.add(padRight( ktParameter.accept(this, data).withPrefix(prefix(ktParameter)), suffix(ktParameter)));
-            }
-
-            J.Lambda.Parameters params = new J.Lambda.Parameters(randomId(), prefix(ktFunctionLiteral.getValueParameterList()), Markers.EMPTY, false, valueParams);
-
-
-            J.Block body = ktFunctionLiteral.getBodyExpression().accept(this, data)
-                    .withPrefix(prefix(ktFunctionLiteral.getBodyExpression()));
-            body = body.withEnd(prefix(ktFunctionLiteral.getRBrace()));
-
-            return new J.Lambda(
-                    randomId(),
-                    prefix(expression),
-                    markers,
-                    params,
-                    prefix(ktFunctionLiteral.getArrow()),
-                    body,
-                    null
-            );
-        }
-
         throw new UnsupportedOperationException("TODO");
     }
 
@@ -479,11 +443,36 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitLambdaExpression(KtLambdaExpression expression, ExecutionContext data) {
-        if (expression.getFunctionLiteral() != null) {
-            return expression.getFunctionLiteral().accept(this, data);
+        KtFunctionLiteral functionLiteral = expression.getFunctionLiteral();
+        Markers markers = Markers.EMPTY;
+        J.Label label = null;
+        boolean hasBraces = true;
+        boolean omitDestruct = false;
+
+        if (functionLiteral.getValueParameterList() == null) {
+            throw new UnsupportedOperationException("TODO");
         }
 
-        throw new UnsupportedOperationException("TODO");
+        List<JRightPadded<J>> valueParams = new ArrayList<>(functionLiteral.getValueParameters().size());
+
+        for (KtParameter ktParameter : functionLiteral.getValueParameters()) {
+            valueParams.add(padRight(ktParameter.accept(this, data).withPrefix(prefix(ktParameter)), suffix(ktParameter)));
+        }
+
+        J.Lambda.Parameters params = new J.Lambda.Parameters(randomId(), prefix(functionLiteral.getValueParameterList()), Markers.EMPTY, false, valueParams);
+
+        J.Block body = functionLiteral.getBodyExpression().accept(this, data)
+                .withPrefix(prefix(functionLiteral.getBodyExpression()));
+
+        return new J.Lambda(
+                randomId(),
+                prefix(expression),
+                markers,
+                params,
+                prefix(functionLiteral.getArrow()),
+                body,
+                null
+        );
     }
 
     @Override
@@ -545,6 +534,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (parameter.isVarArg()) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        if (parameter.getDestructuringDeclaration() != null) {
             throw new UnsupportedOperationException("TODO");
         }
 
@@ -1006,16 +999,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     type
             );
         } else if (kotlinBinaryType != null) {
-                return new K.Binary(
-                        randomId(),
-                        prefix(expression),
-                        Markers.EMPTY,
-                        left,
-                        padLeft(prefix(operationReference), kotlinBinaryType),
-                        right,
-                        Space.EMPTY,
-                        type
-                );
+            return new K.Binary(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    left,
+                    padLeft(prefix(operationReference), kotlinBinaryType),
+                    right,
+                    Space.EMPTY,
+                    type
+            );
         } else {
             if (operationReference.getIdentifier() != null && "to".equals(operationReference.getIdentifier().getText())) {
                 Markers markers = Markers.EMPTY
@@ -1070,10 +1063,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitBlockExpression(KtBlockExpression expression, ExecutionContext data) {
         List<JRightPadded<Statement>> statements = new ArrayList<>();
-        for (KtExpression s : expression.getStatements()) {
-            J exp = s.accept(this, data);
+        for (KtExpression stmt : expression.getStatements()) {
+            J exp = stmt.accept(this, data);
 
-            PsiElementAssociations.ExpressionType expressionType = psiElementAssociations.getExpressionType(s);
+            PsiElementAssociations.ExpressionType expressionType = psiElementAssociations.getExpressionType(stmt);
             Statement statement;
             if (expressionType == PsiElementAssociations.ExpressionType.RETURN_EXPRESSION) {
                 boolean explicitReturn = false;
@@ -1081,23 +1074,25 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 if (!explicitReturn) {
                     markers = markers.addIfAbsent(new ImplicitReturn(randomId()));
                 }
-                statement = new K.KReturn(randomId(), new J.Return(randomId(), prefix(s), markers, convertToExpression(exp)), null);
+                statement = new K.KReturn(randomId(), new J.Return(randomId(), prefix(stmt), markers, convertToExpression(exp).withPrefix(Space.EMPTY)), null);
             } else {
                 statement = convertToStatement(exp);
             }
 
-            JRightPadded<Statement> build = maybeSemicolon(statement, s);
+            JRightPadded<Statement> build = maybeSemicolon(statement, stmt);
             statements.add(build);
         }
 
         boolean hasBraces = expression.getLBrace() != null;
+        Space end = expression.getLBrace() != null ? prefix(expression.getRBrace()) : suffix(expression);
+
         return new J.Block(
                 randomId(),
                 prefix(expression.getLBrace()),
                 hasBraces ? Markers.EMPTY : Markers.EMPTY.addIfAbsent(new OmitBraces(randomId())),
                 JRightPadded.build(false),
                 statements,
-                prefix(expression.getRBrace())
+                end
         );
     }
 
