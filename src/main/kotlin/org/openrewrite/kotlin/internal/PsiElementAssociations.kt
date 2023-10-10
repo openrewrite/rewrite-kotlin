@@ -157,9 +157,9 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
         while (p != null && !elementMap.containsKey(p)) {
             p = p.parent
             // don't skip KtDotQualifiedExpression for field access
-            if (p is KtDotQualifiedExpression) {
-                return null
-            }
+//            if (p is KtDotQualifiedExpression) {
+//                return null
+//            }
         }
 
         if (p == null) {

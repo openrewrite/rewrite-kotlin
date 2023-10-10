@@ -190,6 +190,22 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitBinaryWithTypeRHSExpression(KtBinaryExpressionWithTypeRHS expression, ExecutionContext data) {
+        if (expression.getOperationReference().getReferencedNameElementType() == KtTokens.AS_KEYWORD) {
+            J.Identifier clazz = expression.getRight().accept(this, data).withPrefix(prefix(expression.getRight()));
+            return new J.TypeCast(
+                    randomId(),
+                    prefix(expression),
+                    Markers.EMPTY,
+                    new J.ControlParentheses(
+                            randomId(),
+                            suffix(expression.getLeft()),
+                            Markers.EMPTY,
+                            JRightPadded.build(clazz)
+                    ),
+                    convertToExpression(expression.getLeft().accept(this, data))
+            );
+        }
+
         throw new UnsupportedOperationException("TODO");
     }
 
@@ -387,6 +403,42 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitExpression(KtExpression expression, ExecutionContext data) {
+        if (expression instanceof KtFunctionLiteral) {
+            KtFunctionLiteral ktFunctionLiteral = (KtFunctionLiteral) expression;
+            Markers markers = Markers.EMPTY;
+            J.Label label = null;
+            ktFunctionLiteral.getLBrace();
+            boolean hasBraces = true;
+            boolean omitDestruct = false;
+
+            if (ktFunctionLiteral.getValueParameterList() == null) {
+                throw new UnsupportedOperationException("TODO");
+            }
+
+            List<JRightPadded<J>> valueParams = new ArrayList<>(ktFunctionLiteral.getValueParameters().size());
+
+            for (KtParameter ktParameter: ktFunctionLiteral.getValueParameters()) {
+                valueParams.add(padRight( ktParameter.accept(this, data).withPrefix(prefix(ktParameter)), suffix(ktParameter)));
+            }
+
+            J.Lambda.Parameters params = new J.Lambda.Parameters(randomId(), prefix(ktFunctionLiteral.getValueParameterList()), Markers.EMPTY, false, valueParams);
+
+
+            J.Block body = ktFunctionLiteral.getBodyExpression().accept(this, data)
+                    .withPrefix(prefix(ktFunctionLiteral.getBodyExpression()));
+            body = body.withEnd(prefix(ktFunctionLiteral.getRBrace()));
+
+            return new J.Lambda(
+                    randomId(),
+                    prefix(expression),
+                    markers,
+                    params,
+                    prefix(ktFunctionLiteral.getArrow()),
+                    body,
+                    null
+            );
+        }
+
         throw new UnsupportedOperationException("TODO");
     }
 
@@ -1193,11 +1245,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             JavaType.Method methodType = methodInvocationType(expression);
             return new J.MethodInvocation(
                     randomId(),
-                    prefix(expression),
+                    Space.EMPTY,
                     Markers.EMPTY,
                     null,
                     null,
-                    name.withType(methodType),
+                    name.withType(methodType).withPrefix( prefix(expression)),
                     args,
                     methodType
             );

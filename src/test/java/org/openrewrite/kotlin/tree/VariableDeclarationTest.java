@@ -412,7 +412,7 @@ class VariableDeclarationTest implements RewriteTest {
                   val value : String = ""
               }
               fun method ( input : Any ) {
-                  val split = ( input as StringValue ) . value . split ( "-" ) . toTypedArray ( )
+                  val split = (  input   as    StringValue     ) .  value   .    split ( "-" ) .  toTypedArray   ( )
               }
               """
           )
