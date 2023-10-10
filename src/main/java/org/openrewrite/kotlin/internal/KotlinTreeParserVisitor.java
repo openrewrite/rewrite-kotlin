@@ -1253,11 +1253,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             JavaType.Method methodType = methodInvocationType(expression);
             return new J.MethodInvocation(
                     randomId(),
-                    Space.EMPTY,
+                    prefix(expression),
                     Markers.EMPTY,
                     null,
                     null,
-                    name.withType(methodType).withPrefix( prefix(expression)),
+                    name.withType(methodType), // .withPrefix( prefix(expression)),
                     args,
                     methodType
             );

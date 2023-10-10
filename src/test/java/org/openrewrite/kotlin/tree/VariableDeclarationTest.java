@@ -232,7 +232,7 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              val map = mapOf ( 1 to "one" , 2 to "two" , 3 to "three" )
+              val map =   mapOf ( 1 to "one" , 2 to "two" , 3 to "three" )
               """
           )
         );
