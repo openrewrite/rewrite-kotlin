@@ -831,10 +831,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         J.Identifier name = createIdentifier(parameter.getNameIdentifier(), type(parameter));
-        JContainer<TypeTree> bounds = JContainer.build(suffix(parameter.getNameIdentifier()),
-                singletonList(padRight(parameter.getExtendsBound().accept(this, data).withPrefix(prefix(parameter.getExtendsBound())),
-                        Space.EMPTY)),
-                Markers.EMPTY);
+        JContainer<TypeTree> bounds;
+        if (parameter.getExtendsBound() != null) {
+            bounds = JContainer.build(suffix(parameter.getNameIdentifier()),
+                    singletonList(padRight(parameter.getExtendsBound().accept(this, data).withPrefix(prefix(parameter.getExtendsBound())),
+                            Space.EMPTY)),
+                    Markers.EMPTY);
+        } else {
+            bounds = null;
+        }
 
         return new J.TypeParameter(
                 randomId(),
@@ -1371,7 +1376,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (!klass.getTypeParameters().isEmpty()) {
             List<JRightPadded<J.TypeParameter>> typeParameters = new ArrayList<>();
             for (KtTypeParameter ktTypeParameter : klass.getTypeParameters()) {
-                J.TypeParameter typeParameter = ktTypeParameter.accept(this, data).withPrefix(Space.EMPTY);
+                J.TypeParameter typeParameter = ktTypeParameter.accept(this, data).withPrefix(prefix(ktTypeParameter));
                 typeParameters.add(padRight(typeParameter, suffix(ktTypeParameter)));
             }
             typeParams = JContainer.build(prefix(klass.getTypeParameterList()), typeParameters, Markers.EMPTY);
