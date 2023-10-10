@@ -180,7 +180,7 @@ public class KotlinParser implements Parser {
                                         try {
                                             kcuPsi = psiParser.parse();
                                         } catch (UnsupportedOperationException ignore) {
-//                                            throw ignore;
+                                            throw ignore;
                                         }
 
                                         KotlinParserVisitor mappingVisitor = new KotlinParserVisitor(

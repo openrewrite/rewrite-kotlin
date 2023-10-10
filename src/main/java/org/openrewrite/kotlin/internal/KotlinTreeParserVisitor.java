@@ -1150,7 +1150,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     null,
                     methodInvocationType(expression)
             );
-        } else if (type == PsiElementAssociations.ExpressionType.METHOD_INVOCATION) {
+        } else if (type == null || type == PsiElementAssociations.ExpressionType.METHOD_INVOCATION) {
             J.Identifier name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
             if (!expression.getTypeArguments().isEmpty()) {
                 Expression expr = (Expression) expression.accept(this, data);
