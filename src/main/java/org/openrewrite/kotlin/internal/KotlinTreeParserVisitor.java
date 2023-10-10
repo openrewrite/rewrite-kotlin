@@ -256,8 +256,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     }
 
     private FirBasedSymbol<?> owner(PsiElement element) {
-        KtElement owner = ownerStack.peek() == element ? ownerStack.get(1) : ownerStack.peek();
-        if (owner instanceof  KtDeclaration) {
+        KtElement owner = ownerStack.peek() == element ? ownerStack.get(ownerStack.size() - 2) : ownerStack.peek();
+        if (owner instanceof KtDeclaration) {
             return psiElementAssociations.symbol(((KtDeclaration) owner));
         } else if (owner instanceof KtFile) {
             return ((FirFile) psiElementAssociations.primary(owner)).getSymbol();
@@ -1196,7 +1196,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     Markers.EMPTY,
                     null,
                     null,
-                    name.withType(methodType).withPrefix(Space.EMPTY),
+                    name.withType(methodType).withPrefix(prefix(expression)),
                     args,
                     methodType
             );
@@ -1233,6 +1233,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClass(KtClass klass, ExecutionContext data) {
+        ownerStack.push(klass);
+        try {
+            return visitClass0(klass, data);
+        } finally {
+            ownerStack.pop();
+        }
+    }
+
+    @NotNull
+    private J.ClassDeclaration visitClass0(KtClass klass, ExecutionContext data) {
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = new ArrayList<>();
         JContainer<J.TypeParameter> typeParams = null;
@@ -1480,9 +1490,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             J j = expression.getSelectorExpression().accept(this, data);
             if (j instanceof J.MethodInvocation) {
                 J.MethodInvocation methodInvocation = (J.MethodInvocation) j;
-                methodInvocation = methodInvocation.getPadding().withSelect(
-                        padRight(expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY), suffix(expression.getReceiverExpression()))
-                );
+                methodInvocation = methodInvocation.getPadding()
+                        .withSelect(
+                                padRight(expression.getReceiverExpression().accept(this, data)
+                                                .withPrefix(prefix(expression.getReceiverExpression())),
+                                        suffix(expression.getReceiverExpression())
+                                )
+                        ).withPrefix(prefix(expression));
                 return methodInvocation;
             }
             return new J.MethodInvocation(
@@ -1570,6 +1584,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitNamedFunction(KtNamedFunction function, ExecutionContext data) {
+        ownerStack.push(function);
+        try {
+            return visitNamedFunction0(function, data);
+        } finally {
+            ownerStack.pop();
+        }
+    }
+
+    @NotNull
+    private J.MethodDeclaration visitNamedFunction0(KtNamedFunction function, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = mapModifiers(function.getModifierList());
@@ -2184,6 +2208,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Nullable
     private JavaType.Method methodInvocationType(PsiElement psi) {
         FirElement firElement = psiElementAssociations.component(psi);
+        if (firElement == null) {
+            // TODO analyze why this is required (example `MethodReferenceTest#noReceiver()`)
+            firElement = psiElementAssociations.component(psi.getParent());
+        }
         if (firElement instanceof FirFunctionCall) {
             return typeMapping.methodInvocationType((FirFunctionCall) firElement, psiElementAssociations.getFile().getSymbol());
         }
