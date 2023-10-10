@@ -1192,7 +1192,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             JavaType.Method methodType = methodInvocationType(expression);
             return new J.MethodInvocation(
                     randomId(),
-                    prefix(expression),
+                    Space.EMPTY,
                     Markers.EMPTY,
                     null,
                     null,
@@ -1952,10 +1952,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitStringTemplateExpression(KtStringTemplateExpression expression, ExecutionContext data) {
         KtStringTemplateEntry[] entries = expression.getEntries();
-        boolean hasStingTemplateEntry = Arrays.stream(entries).anyMatch(x -> !(x instanceof KtLiteralStringTemplateEntry));
+        boolean hasStringTemplateEntry = Arrays.stream(entries).anyMatch(x -> !(x instanceof KtLiteralStringTemplateEntry));
 
-        if (hasStingTemplateEntry) {
-            String delimiter = "\"";
+        if (hasStringTemplateEntry) {
+            String delimiter = expression.getFirstChild().getText();
             List<J> values = new ArrayList<>();
 
             for (KtStringTemplateEntry entry : entries) {
