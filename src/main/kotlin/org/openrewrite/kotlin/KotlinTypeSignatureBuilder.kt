@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.fir.java.declarations.FirJavaField
 import org.jetbrains.kotlin.fir.java.declarations.FirJavaMethod
 import org.jetbrains.kotlin.fir.java.declarations.FirJavaValueParameter
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
+import org.jetbrains.kotlin.fir.resolve.inference.ConeTypeParameterBasedTypeVariable
 import org.jetbrains.kotlin.fir.resolve.toFirRegularClass
 import org.jetbrains.kotlin.fir.resolve.toFirRegularClassSymbol
 import org.jetbrains.kotlin.fir.resolve.toSymbol
@@ -188,6 +189,14 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession) : JavaTypeS
 
             is FirOuterClassTypeParameterRef -> {
                 return signature(type.symbol)
+            }
+
+            is ConeTypeVariable -> {
+                when (type) {
+                    is ConeTypeParameterBasedTypeVariable -> {
+                        return signature(type.typeParameterSymbol)
+                    }
+                }
             }
         }
         return "{undefined}"
@@ -387,6 +396,11 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession) : JavaTypeS
             s.append("}")
         } else if (type is ConeCapturedType && type.lowerType == null) {
             s.append("*")
+        } else if (type is ConeStubTypeForChainInference) {
+            if (type.typeArguments.isNotEmpty()) {
+                throw UnsupportedOperationException("Unsupported ConeTypeProjection contains type arguments" + type.javaClass.getName())
+            }
+            s.append(signature(type.constructor.variable))
         } else {
             throw IllegalArgumentException("Unsupported ConeTypeProjection " + type.javaClass.getName())
         }
@@ -563,6 +577,8 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession) : JavaTypeS
             }
         } else if (ownerSymbol is FirFunctionSymbol<*>) {
             owner = methodDeclarationSignature(ownerSymbol, null)
+        } else if (ownerSymbol is FirFileSymbol) {
+            owner = convertFileNameToFqn(ownerSymbol.fir.name)
         } else if (ownerSymbol != null) {
             owner = classSignature(ownerSymbol.fir)
         }
@@ -588,6 +604,8 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession) : JavaTypeS
         var owner = "{undefined}"
         if (functionCall.explicitReceiver != null) {
             owner = signature(functionCall.explicitReceiver!!.typeRef)
+        } else if ((functionCall.calleeReference as FirResolvedNamedReference).resolvedSymbol is FirConstructorSymbol) {
+            return signature((functionCall.calleeReference as FirResolvedNamedReference).resolvedSymbol as FirConstructorSymbol)
         } else if (functionCall.calleeReference is FirResolvedNamedReference) {
             if ((functionCall.calleeReference as FirResolvedNamedReference).resolvedSymbol is FirNamedFunctionSymbol) {
                 val resolvedSymbol =

@@ -15,12 +15,15 @@
  */
 package org.openrewrite.kotlin;
 
+import org.jetbrains.kotlin.fir.declarations.FirProperty;
+import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.Parser;
 import org.openrewrite.internal.StringUtils;
+import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Flag;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
@@ -28,8 +31,13 @@ import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.test.RewriteTest;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.ExecutionContext.REQUIRE_PRINT_EQUALS_INPUT;
@@ -39,26 +47,26 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 @SuppressWarnings("ConstantConditions")
 public class KotlinTypeMappingTest {
     private static final String goat = StringUtils.readFully(KotlinTypeMappingTest.class.getResourceAsStream("/KotlinTypeGoat.kt"));
-
+    private static final K.CompilationUnit cu;
     private static final K.ClassDeclaration goatClassDeclaration;
 
     static {
         InMemoryExecutionContext ctx = new InMemoryExecutionContext();
         ctx.putMessage(REQUIRE_PRINT_EQUALS_INPUT, false);
-        //noinspection OptionalGetWithoutIsPresent
-        goatClassDeclaration = requireNonNull(((K.CompilationUnit) KotlinParser.builder()
-          .logCompilationWarningsAndErrors(true)
-          .build()
-          .parse(ctx, goat)
-          .findFirst()
-          .get())
+        cu = (K.CompilationUnit) KotlinParser.builder()
+            .logCompilationWarningsAndErrors(true)
+            .build()
+            .parseInputs(singletonList(new Parser.Input(Paths.get("KotlinTypeGoat.kt"), () -> new ByteArrayInputStream(goat.getBytes(StandardCharsets.UTF_8)))), null, ctx)
+            .findFirst()
+            .orElseThrow();
+
+        goatClassDeclaration = cu
           .getStatements()
           .stream()
           .filter(K.ClassDeclaration.class::isInstance)
           .findFirst()
           .map(K.ClassDeclaration.class::cast)
-          .orElseThrow()
-        );
+          .orElseThrow();
     }
 
     private static final JavaType.Parameterized goatType =
@@ -125,6 +133,31 @@ public class KotlinTypeMappingTest {
         assertThat(property.getSetter().getMethodType().getName()).isEqualTo("accessor");
         assertThat(property.getSetter().getMethodType()).isEqualTo(property.getSetter().getName().getType());
         assertThat(property.getSetter().getMethodType().toString().substring(declaringType.toString().length())).isEqualTo("{name=accessor,return=kotlin.Unit,parameters=[kotlin.Int]}");
+    }
+
+    @Test
+    void fileField() {
+        J.VariableDeclarations.NamedVariable nv = cu.getStatements().stream()
+          .filter(it -> it instanceof J.VariableDeclarations)
+          .flatMap(it -> ((J.VariableDeclarations) it).getVariables().stream())
+          .filter(it -> "field".equals(it.getSimpleName())).findFirst().orElseThrow();
+
+        assertThat(nv.getName().getType().toString()).isEqualTo("kotlin.Int");
+        assertThat(nv.getName().getFieldType()).isEqualTo(nv.getVariableType());
+        assertThat(nv.getVariableType().toString())
+          .isEqualTo("KotlinTypeGoatKt{name=field,type=kotlin.Int}");
+    }
+
+    @Test
+    void fileFunction() {
+        J.MethodDeclaration md = cu.getStatements().stream()
+            .filter(it -> it instanceof J.MethodDeclaration)
+              .map(J.MethodDeclaration.class::cast)
+                .filter(it -> "function".equals(it.getSimpleName())).findFirst().orElseThrow();
+
+        assertThat(md.getName().getType()).isEqualTo(md.getMethodType());
+        assertThat(md.getMethodType().toString())
+          .isEqualTo("KotlinTypeGoatKt{name=function,return=kotlin.Unit,parameters=[]}");
     }
 
     @Test
@@ -306,18 +339,90 @@ public class KotlinTypeMappingTest {
     class ParsingTest implements RewriteTest {
         @Test
         @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/303")
-        @ExpectedToFail
         void coneTypeProjection() {
             rewriteRun(
               kotlin(
                 """
-                  val labels: List<String> = listOf("")
-                  val label: String = ""
-                  val newLabels = buildList {
-                      addAll(labels)
-                      add(label)
+                  val newList = buildList {
+                      addAll(listOf(""))
                   }
-                  """
+                  """, spec -> spec.afterRecipe(cu -> {
+                    MethodMatcher methodMatcher = new MethodMatcher("kotlin.collections.MutableList addAll(..)");
+                    AtomicBoolean found = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<AtomicBoolean>() {
+                        @Override
+                        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
+                            if (methodMatcher.matches(method)) {
+                                assertThat(method.getMethodType().toString()).isEqualTo("kotlin.collections.MutableList<Generic{E}>{name=addAll,return=kotlin.Boolean,parameters=[kotlin.collections.Collection<Generic{E}>]}");
+                                found.set(true);
+                            }
+                            return super.visitMethodInvocation(method, found);
+                        }
+                    }.visit(cu, found);
+                    assertThat(found.get()).isTrue();
+                })
+              )
+            );
+        }
+
+        @Test
+        void destructs() {
+            rewriteRun(
+              kotlin(
+                """
+                  fun foo() {
+                      val ( a , b , c ) = Triple ( 1 , 2 , 3 )
+                  }
+                  """, spec -> spec.afterRecipe(cu -> {
+                    AtomicBoolean found = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<AtomicBoolean>() {
+                        @Override
+                        public K.DestructuringDeclaration visitDestructuringDeclaration(K.DestructuringDeclaration destructuringDeclaration, AtomicBoolean atomicBoolean) {
+                            atomicBoolean.set(true);
+                            return super.visitDestructuringDeclaration(destructuringDeclaration, atomicBoolean);
+                        }
+
+                        @Override
+                        public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean atomicBoolean) {
+                            if ("Triple".equals(((J.Identifier) newClass.getClazz()).getSimpleName())) {
+                                assertThat(newClass.getClazz().getType().toString()).isEqualTo("kotlin.Triple<Generic{A}, Generic{B}, Generic{C}>");
+                                assertThat(newClass.getConstructorType().toString()).isEqualTo("kotlin.Triple{name=<constructor>,return=kotlin.Triple,parameters=[Generic{A},Generic{B},Generic{C}]}");
+                            }
+                            return super.visitNewClass(newClass, atomicBoolean);
+                        }
+
+                        @Override
+                        public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, AtomicBoolean atomicBoolean) {
+                            switch (variable.getSimpleName()) {
+                                case "<destruct>" -> assertThat(variable.getName().getType().toString())
+                                  .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>");
+                                case "a" -> {
+                                    assertThat(variable.getVariableType().toString())
+                                      .isEqualTo("openRewriteFile0Kt{name=a,type=kotlin.Int}");
+                                    assertThat(variable.getInitializer()).isInstanceOf(J.MethodInvocation.class);
+                                    assertThat(((J.MethodInvocation) variable.getInitializer()).getMethodType().toString())
+                                      .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=component1,return=kotlin.Int,parameters=[]}");
+                                }
+                                case "b" -> {
+                                    assertThat(variable.getVariableType().toString())
+                                      .isEqualTo("openRewriteFile0Kt{name=b,type=kotlin.Int}");
+                                    assertThat(variable.getInitializer()).isInstanceOf(J.MethodInvocation.class);
+                                    assertThat(((J.MethodInvocation) variable.getInitializer()).getMethodType().toString())
+                                      .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=component2,return=kotlin.Int,parameters=[]}");
+                                }
+                                case "c" -> {
+                                    assertThat(variable.getVariableType().toString())
+                                      .isEqualTo("openRewriteFile0Kt{name=c,type=kotlin.Int}");
+                                    assertThat(variable.getInitializer()).isInstanceOf(J.MethodInvocation.class);
+                                    assertThat(((J.MethodInvocation) variable.getInitializer()).getMethodType().toString())
+                                      .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=component3,return=kotlin.Int,parameters=[]}");
+                                }
+                            }
+                            return super.visitVariable(variable, atomicBoolean);
+                        }
+                    }.visit(cu, found);
+                    assertThat(found.get()).isTrue();
+                })
               )
             );
         }
