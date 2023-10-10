@@ -450,6 +450,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type improved, field has a String type now")
     @SuppressWarnings("RedundantSetter")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
@@ -458,8 +459,8 @@ class VariableDeclarationTest implements RewriteTest {
           kotlin(
             """
               var s : String = ""
-                  set ( value ) {
-                      field = value
+                  set  (   value    )     {
+                      field  =   value
                   }
               """
           )

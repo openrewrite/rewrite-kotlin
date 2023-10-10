@@ -644,9 +644,20 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         name = createIdentifier(accessor.getNamePlaceholder().getText(), Space.EMPTY, type(accessor));
 
-        boolean hasParam = accessor.getParameter() != null;
-        if (hasParam) {
-            throw new UnsupportedOperationException("TODO");
+
+        List<KtParameter> ktParameters = accessor.getValueParameters();
+        if (!ktParameters.isEmpty()) {
+            if (ktParameters.size() != 1) {
+                throw new UnsupportedOperationException("TODO");
+            }
+
+            List<JRightPadded<Statement>> parameters = new ArrayList<>();
+            for (KtParameter ktParameter : ktParameters) {
+                Statement stmt = convertToStatement(ktParameter.accept(this, data).withPrefix(prefix(ktParameter.getParent())));
+                parameters.add(padRight(stmt, prefix(accessor.getRightParenthesis())));
+            }
+
+            params = JContainer.build(prefix(accessor.getLeftParenthesis()), parameters, Markers.EMPTY);
         } else {
             params = JContainer.build(
                     prefix(accessor.getLeftParenthesis()),
@@ -655,17 +666,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             );
         }
 
-        if (accessor.getBodyBlockExpression() != null) {
-            throw new UnsupportedOperationException("TODO");
-        }
-
         if (accessor.getReturnTypeReference() != null) {
             markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), suffix(accessor.getRightParenthesis())));
             returnTypeExpression = accessor.getReturnTypeReference().accept(this, data).withPrefix(prefix(accessor.getReturnTypeReference()));
         }
 
-        if (accessor.getBodyExpression() != null) {
-            J.Identifier label = null;
+        if (accessor.getBodyBlockExpression() != accessor.getBodyExpression()) {
+            throw new UnsupportedOperationException("TODO. check what is the scenario for this case");
+        }
+
+        if (accessor.getBodyBlockExpression() != null) {
+            body = accessor.getBodyBlockExpression().accept(this, data).withPrefix(prefix(accessor.getBodyBlockExpression()));
+        } else if (accessor.getBodyExpression() != null) {
             body = convertToBlock(accessor.getBodyExpression(), data).withPrefix(prefix(accessor.getEqualsToken()));
         } else {
             throw new UnsupportedOperationException("TODO");
@@ -2004,8 +2016,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (property.getSetter() != null) {
-            throw new UnsupportedOperationException("TODO");
-        } else if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {
+            setter = (J.MethodDeclaration) property.getSetter().accept(this, data);
+        }
+
+        if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {
             throw new UnsupportedOperationException("TODO");
         } else if (!property.getAnnotationEntries().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
@@ -2208,12 +2222,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return null;
         }
 
-        if (elementType == KtTokens.NOT_IN)
+        if (elementType == KtTokens.NOT_IN) {
             return K.Binary.Type.NotContains;
-        else if (elementType == KtTokens.RANGE)
+        } else if (elementType == KtTokens.RANGE) {
             return K.Binary.Type.RangeTo;
-        else
+        } else if (elementType == KtTokens.EQ) {
+            return null;
+        } else {
             throw new UnsupportedOperationException("Unsupported OPERATION_REFERENCE type :" + elementType);
+        }
     }
 
     @Nullable
