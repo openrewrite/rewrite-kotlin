@@ -449,18 +449,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         boolean hasBraces = true;
         boolean omitDestruct = false;
 
-        if (functionLiteral.getValueParameterList() == null) {
-            throw new UnsupportedOperationException("TODO");
-        }
-
         List<JRightPadded<J>> valueParams = new ArrayList<>(functionLiteral.getValueParameters().size());
-
         for (KtParameter ktParameter : functionLiteral.getValueParameters()) {
             valueParams.add(padRight(ktParameter.accept(this, data).withPrefix(prefix(ktParameter)), suffix(ktParameter)));
         }
 
         J.Lambda.Parameters params = new J.Lambda.Parameters(randomId(), prefix(functionLiteral.getValueParameterList()), Markers.EMPTY, false, valueParams);
-
         J.Block body = functionLiteral.getBodyExpression().accept(this, data)
                 .withPrefix(prefix(functionLiteral.getBodyExpression()));
 
@@ -646,7 +640,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitQualifiedExpression(KtQualifiedExpression expression, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        Expression receiver = (Expression) expression.getReceiverExpression().accept(this, data);
+        J.MethodInvocation selector = (J.MethodInvocation) expression.getSelectorExpression().accept(this, data);
+        return selector.getPadding()
+                .withSelect(padRight(receiver, suffix(expression.getReceiverExpression())));
     }
 
     @Override
@@ -679,7 +676,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitSafeQualifiedExpression(KtSafeQualifiedExpression expression, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        J j = visitQualifiedExpression(expression, data);
+        ASTNode safeAccess = expression.getNode().findChildByType(KtTokens.SAFE_ACCESS);
+        return j.withMarkers(j.getMarkers().addIfAbsent(new IsNullSafe(randomId(), prefix(safeAccess.getPsi()))));
     }
 
     @Override
@@ -1168,6 +1167,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
             List<JRightPadded<Expression>> expressions = new ArrayList<>(arguments.size());
             Markers markers = Markers.EMPTY;
+            if (expression.getValueArgumentList() == null) {
+                markers = markers.addIfAbsent(new OmitParentheses(randomId()));
+            }
 
             if (!arguments.isEmpty()) {
                 for (int i = 0; i < arguments.size(); i++) {
