@@ -1011,7 +1011,7 @@ class KotlinTypeMapping(typeCache: JavaTypeCache, firSession: FirSession, firFil
             var bounds: MutableList<JavaType>? = null
             val name: String = when (type) {
                 is ConeKotlinTypeProjectionIn, is ConeKotlinTypeProjectionOut -> {
-                    ""
+                    "?"
                 }
 
                 is ConeStarProjection -> {
