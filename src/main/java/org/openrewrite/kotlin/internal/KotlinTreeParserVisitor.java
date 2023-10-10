@@ -949,9 +949,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         } else if (argument.isNamed()) {
             throw new UnsupportedOperationException("TODO");
+        } else if (argument.isSpread()) {
+            throw new UnsupportedOperationException("TODO");
         }
 
-        return argument.getArgumentExpression().accept(this, data);
+        J j = argument.getArgumentExpression().accept(this, data);
+        return argument instanceof KtLambdaArgument ? j.withMarkers(j.getMarkers().addIfAbsent(new TrailingLambdaArgument(randomId()))) : j;
     }
 
     @Override
