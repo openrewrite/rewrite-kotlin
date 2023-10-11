@@ -853,6 +853,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
+        if (parameter.getModifierList() != null && parameter.getModifierList().getNode().findChildByType(KtTokens.REIFIED_KEYWORD) != null) {
+            markers = markers.addIfAbsent(new Reified(randomId()));
+        }
+
         J.Identifier name = createIdentifier(parameter.getNameIdentifier(), type(parameter));
         JContainer<TypeTree> bounds;
         if (parameter.getExtendsBound() != null) {
