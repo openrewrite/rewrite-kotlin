@@ -1992,6 +1992,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             markers = markers.addIfAbsent(new By(randomId()));
         }
 
+        Markers rpMarker = Markers.EMPTY;
+        Space maybeBeforeSemicolon = Space.EMPTY;
+        if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {
+            rpMarker = rpMarker.addIfAbsent(new Semicolon(randomId()));
+            maybeBeforeSemicolon = prefix(property.getLastChild());
+        }
+
         J.VariableDeclarations.NamedVariable namedVariable =
                 new J.VariableDeclarations.NamedVariable(
                         randomId(),
@@ -2004,7 +2011,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         variableType(property)
                 );
 
-        variables.add(padRight(namedVariable, Space.EMPTY));
+        variables.add(padRight(namedVariable, maybeBeforeSemicolon).withMarkers(rpMarker));
 
         if (property.getColon() != null) {
             markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(property.getColon())));
@@ -2025,9 +2032,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             isSetterFirst = property.getSetter().getTextRange().getStartOffset() < property.getGetter().getTextRange().getStartOffset();
         }
 
-        if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {
-            throw new UnsupportedOperationException("TODO");
-        } else if (!property.getAnnotationEntries().isEmpty()) {
+        if (!property.getAnnotationEntries().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
         }
 
