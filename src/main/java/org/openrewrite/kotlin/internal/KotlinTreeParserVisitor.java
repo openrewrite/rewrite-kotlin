@@ -1874,16 +1874,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         Markers markers = Markers.EMPTY;
         JContainer<Expression> args;
 
-        if (declaration.isObjectLiteral()) {
+        if (declaration.getSuperTypeList() == null) {
             args = JContainer.empty();
             args = args.withMarkers(Markers.build(singletonList(new OmitParentheses(randomId()))));
         } else {
-            if (declaration.getSuperTypeList() == null) {
-                throw new UnsupportedOperationException("TODO");
-            }
-
             KtValueArgumentList ktArgs = declaration.getSuperTypeList().getEntries().get(0).getStubOrPsiChild(KtStubElementTypes.VALUE_ARGUMENT_LIST);
-
             if (ktArgs != null && ktArgs.getArguments().isEmpty()) {
                 args = JContainer.build(
                         prefix(ktArgs),
