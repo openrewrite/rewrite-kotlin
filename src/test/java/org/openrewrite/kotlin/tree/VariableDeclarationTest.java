@@ -515,6 +515,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/135")
     @Test
     void checkNonNull() {

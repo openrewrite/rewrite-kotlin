@@ -398,7 +398,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitEscapeStringTemplateEntry(KtEscapeStringTemplateEntry entry, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        throw new UnsupportedOperationException("Not required");
     }
 
     @Override
@@ -2140,7 +2140,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitStringTemplateExpression(KtStringTemplateExpression expression, ExecutionContext data) {
         KtStringTemplateEntry[] entries = expression.getEntries();
-        boolean hasStringTemplateEntry = Arrays.stream(entries).anyMatch(x -> !(x instanceof KtLiteralStringTemplateEntry));
+        boolean hasStringTemplateEntry = Arrays.stream(entries).anyMatch(x -> x instanceof KtBlockStringTemplateEntry);
 
         if (hasStringTemplateEntry) {
             String delimiter = expression.getFirstChild().getText();
