@@ -205,7 +205,7 @@ public class KotlinTypeMappingTest {
     @Test
     void generic() {
         JavaType.GenericTypeVariable generic = (JavaType.GenericTypeVariable) TypeUtils.asParameterized(firstMethodParameter("generic")).getTypeParameters().get(0);
-        assertThat(generic.getName()).isEqualTo("");
+        assertThat(generic.getName()).isEqualTo("?");
         assertThat(generic.getVariance()).isEqualTo(COVARIANT);
         assertThat(TypeUtils.asFullyQualified(generic.getBounds().get(0)).getFullyQualifiedName()).isEqualTo("org.openrewrite.kotlin.C");
     }
@@ -213,7 +213,7 @@ public class KotlinTypeMappingTest {
     @Test
     void genericContravariant() {
         JavaType.GenericTypeVariable generic = (JavaType.GenericTypeVariable) TypeUtils.asParameterized(firstMethodParameter("genericContravariant")).getTypeParameters().get(0);
-        assertThat(generic.getName()).isEqualTo("");
+        assertThat(generic.getName()).isEqualTo("?");
         assertThat(generic.getVariance()).isEqualTo(CONTRAVARIANT);
         assertThat(TypeUtils.asFullyQualified(generic.getBounds().get(0)).getFullyQualifiedName()).
           isEqualTo("org.openrewrite.kotlin.C");
@@ -243,7 +243,7 @@ public class KotlinTypeMappingTest {
         JavaType.Parameterized param = (JavaType.Parameterized) firstMethodParameter("genericRecursive");
         JavaType typeParam = param.getTypeParameters().get(0);
         JavaType.GenericTypeVariable generic = (JavaType.GenericTypeVariable) typeParam;
-        assertThat(generic.getName()).isEqualTo("");
+        assertThat(generic.getName()).isEqualTo("?");
         assertThat(generic.getVariance()).isEqualTo(COVARIANT);
         assertThat(TypeUtils.asParameterized(generic.getBounds().get(0))).isNotNull();
 
