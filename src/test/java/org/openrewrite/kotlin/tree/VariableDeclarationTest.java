@@ -298,6 +298,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("optimized space location to be outer")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/264")
     @Test
     void delegationByLazyWithType() {

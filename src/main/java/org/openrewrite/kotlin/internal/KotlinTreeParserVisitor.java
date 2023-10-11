@@ -1995,10 +1995,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         J.VariableDeclarations.NamedVariable namedVariable =
                 new J.VariableDeclarations.NamedVariable(
                         randomId(),
-                        Space.EMPTY,
+                        prefix(property.getNameIdentifier()),
                         Markers.EMPTY,
                         // TODO: fix NPE.
-                        createIdentifier(property.getNameIdentifier(), type(property)),
+                        createIdentifier(property.getNameIdentifier(), type(property)).withPrefix(Space.EMPTY),
                         emptyList(),
                         initializer,
                         variableType(property)
