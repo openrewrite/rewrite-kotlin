@@ -369,7 +369,8 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              operator fun String.provideDelegate(thisRef: T, prop: kotlin.reflect.KProperty<*>): kotlin.properties.ReadOnlyProperty<T, Any> {
+              operator fun String.provideDelegate(thisRef: T,
+                     prop :  kotlin   .    reflect     . KProperty  <*>   ): kotlin.properties.ReadOnlyProperty<T, Any> {
                   return null!!
               }
               class T {

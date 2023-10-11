@@ -1157,18 +1157,19 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         for (KtExpression stmt : expression.getStatements()) {
             J exp = stmt.accept(this, data);
 
-            PsiElementAssociations.ExpressionType expressionType = psiElementAssociations.getExpressionType(stmt);
-            Statement statement;
-            if (expressionType == PsiElementAssociations.ExpressionType.RETURN_EXPRESSION) {
-                boolean explicitReturn = false;
-                Markers markers = Markers.EMPTY;
-                if (!explicitReturn) {
-                    markers = markers.addIfAbsent(new ImplicitReturn(randomId()));
-                }
-                statement = new K.KReturn(randomId(), new J.Return(randomId(), prefix(stmt), markers, convertToExpression(exp).withPrefix(Space.EMPTY)), null);
-            } else {
-                statement = convertToStatement(exp);
-            }
+            Statement statement = convertToStatement(exp);;
+
+//            PsiElementAssociations.ExpressionType expressionType = psiElementAssociations.getExpressionType(stmt);
+//            if (expressionType == PsiElementAssociations.ExpressionType.RETURN_EXPRESSION) {
+//                boolean explicitReturn = false;
+//                Markers markers = Markers.EMPTY;
+//                if (!explicitReturn) {
+//                    markers = markers.addIfAbsent(new ImplicitReturn(randomId()));
+//                }
+//                statement = new K.KReturn(randomId(), new J.Return(randomId(), prefix(stmt), markers, convertToExpression(exp).withPrefix(Space.EMPTY)), null);
+//            } else {
+//                statement = convertToStatement(exp);
+//            }
 
             JRightPadded<Statement> build = maybeSemicolon(statement, stmt);
             statements.add(build);
@@ -2196,8 +2197,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitUserType(KtUserType type, ExecutionContext data) {
+        J.Identifier name = (J.Identifier) type.getReferenceExpression().accept(this, data);
+        NameTree nameTree = name;
 
-        NameTree nameTree = type.getReferenceExpression().accept(this, data).withPrefix(prefix(type));
+        if (type.getQualifier() != null) {
+            Expression select = convertToExpression(type.getQualifier().accept(this, data)).withPrefix(prefix(type.getQualifier()));
+            nameTree = new J.FieldAccess(randomId(), Space.EMPTY, Markers.EMPTY, select, padLeft(suffix(type.getQualifier()), name), null );
+        }
 
         List<KtTypeProjection> typeArguments = type.getTypeArguments();
         List<JRightPadded<Expression>> parameters = new ArrayList<>(typeArguments.size());
