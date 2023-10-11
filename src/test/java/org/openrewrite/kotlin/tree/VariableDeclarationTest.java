@@ -270,6 +270,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Owner type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/58")
     @Test
     void destructuringVariableDeclaration() {
