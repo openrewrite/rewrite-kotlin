@@ -1870,24 +1870,31 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitObjectDeclaration(KtObjectDeclaration declaration, ExecutionContext data) {
-        TypeTree clazz;
+        TypeTree clazz = null;
         Markers markers = Markers.EMPTY;
         JContainer<Expression> args;
 
-        if (declaration.getSuperTypeList() == null) {
-            throw new UnsupportedOperationException("TODO");
-        }
-
-        KtValueArgumentList ktArgs = declaration.getSuperTypeList().getEntries().get(0).getStubOrPsiChild(KtStubElementTypes.VALUE_ARGUMENT_LIST);
-
-        if (ktArgs != null && ktArgs.getArguments().isEmpty()) {
-            args = JContainer.build(
-                    prefix(ktArgs),
-                    singletonList(padRight(new J.Empty(randomId(), prefix(ktArgs.getRightParenthesis()), Markers.EMPTY), Space.EMPTY)
-                    ), Markers.EMPTY
-            );
+        if (declaration.isObjectLiteral()) {
+            args = JContainer.empty();
+            args = args.withMarkers(Markers.build(singletonList(new OmitParentheses(randomId()))));
         } else {
-            throw new UnsupportedOperationException("TODO, support multiple ObjectDeclaration arguments");
+            if (declaration.getSuperTypeList() == null) {
+                throw new UnsupportedOperationException("TODO");
+            }
+
+            KtValueArgumentList ktArgs = declaration.getSuperTypeList().getEntries().get(0).getStubOrPsiChild(KtStubElementTypes.VALUE_ARGUMENT_LIST);
+
+            if (ktArgs != null && ktArgs.getArguments().isEmpty()) {
+                args = JContainer.build(
+                        prefix(ktArgs),
+                        singletonList(padRight(new J.Empty(randomId(), prefix(ktArgs.getRightParenthesis()), Markers.EMPTY), Space.EMPTY)
+                        ), Markers.EMPTY
+                );
+            } else {
+                throw new UnsupportedOperationException("TODO, support multiple ObjectDeclaration arguments");
+            }
+
+            clazz = declaration.getSuperTypeList().accept(this, data).withPrefix(Space.EMPTY);
         }
 
         // TODO: fix NPE.
@@ -1897,8 +1904,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             markers = markers.add(new KObject(randomId(), Space.EMPTY));
             markers = markers.add(new TypeReferencePrefix(randomId(), prefix(declaration.getColon())));
         }
-
-        clazz = declaration.getSuperTypeList().accept(this, data).withPrefix(Space.EMPTY);
 
         return new J.NewClass(
                 randomId(),

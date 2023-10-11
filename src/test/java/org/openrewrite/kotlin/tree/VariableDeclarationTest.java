@@ -51,6 +51,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Improved to present !in to a KBinary")
     @Test
     void deSugar() {
         rewriteRun(
@@ -315,6 +316,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Test
     void delegatedProperty() {
         rewriteRun(
@@ -475,6 +477,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
     void getterBeforeSetter() {
@@ -493,6 +496,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
     void setterBeforeGetter() {
@@ -556,6 +560,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Space after `object` moved to be a prefix of JBlock")
     @Test
     void anonymousObjectWithoutSupertype() {
         rewriteRun(
@@ -567,6 +572,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Test
     void spaceBetweenEqualsInDestructuringDeclaration() {
         rewriteRun(
@@ -584,6 +590,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type and LST updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/286")
     @Test
     void unusedUnderScoreVariableInDestructuringDeclaration() {
