@@ -1980,11 +1980,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             markers = markers.addIfAbsent(new Extension(randomId()));
         }
 
-        JLeftPadded<Expression> initializer = property.getInitializer() != null ?
-                padLeft(prefix(property.getEqualsToken()),
-                        convertToExpression(property.getInitializer().accept(this, data)
-                                .withPrefix(prefix(property.getInitializer()))))
-                : null;
+        JLeftPadded<Expression> initializer = null;
+        if (property.getInitializer() != null) {
+            initializer = padLeft(prefix(property.getEqualsToken()),
+                    convertToExpression(property.getInitializer().accept(this, data)
+                            .withPrefix(prefix(property.getInitializer()))));
+        } else if (property.getDelegate() != null) {
+            Space afterByKeyword = prefix(property.getDelegate().getExpression());
+            Expression initializerExp = convertToExpression(property.getDelegate().accept(this, data)).withPrefix(afterByKeyword);
+            initializer = padLeft(prefix(property.getDelegate()), initializerExp);
+            markers = markers.addIfAbsent(new By(randomId()));
+        }
 
         J.VariableDeclarations.NamedVariable namedVariable =
                 new J.VariableDeclarations.NamedVariable(
@@ -2022,10 +2028,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (property.getLastChild().getNode().getElementType() == KtTokens.SEMICOLON) {
             throw new UnsupportedOperationException("TODO");
         } else if (!property.getAnnotationEntries().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
-        }
-
-        if (PsiTreeUtil.getChildOfType(property, KtPropertyDelegate.class) != null) {
             throw new UnsupportedOperationException("TODO");
         }
 
@@ -2080,7 +2082,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitPropertyDelegate(KtPropertyDelegate delegate, ExecutionContext data) {
-        throw new UnsupportedOperationException("Unsupported KtPropertyDelegate");
+        if (delegate.getExpression() == null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+        // Markers initMarkers = Markers.EMPTY.addIfAbsent(new By(randomId()));
+        return delegate.getExpression().accept(this, data)
+                .withPrefix(prefix(delegate));
     }
 
     @Override

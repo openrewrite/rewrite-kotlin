@@ -305,7 +305,7 @@ class VariableDeclarationTest implements RewriteTest {
           kotlin(
             """
               class User {
-                  val value: Int by lazy { 10 }
+                  val value  :   Int    by     lazy {  10   }
               }
               """
           )
