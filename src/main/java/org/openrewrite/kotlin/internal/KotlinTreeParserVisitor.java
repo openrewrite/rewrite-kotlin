@@ -1046,7 +1046,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (argument.getArgumentExpression() == null) {
             throw new UnsupportedOperationException("TODO");
         } else if (argument.isNamed()) {
-            throw new UnsupportedOperationException("TODO");
+            J.Identifier name = createIdentifier(argument.getArgumentName(), type(argument.getArgumentName()));
+            Expression expr = convertToExpression(argument.getArgumentExpression().accept(this, data));
+
+            return new J.Assignment(
+                    randomId(),
+                    prefix(argument.getArgumentName()),
+                    Markers.EMPTY,
+                    name,
+                    padLeft(suffix(argument.getArgumentName()), expr),
+                    type(argument.getArgumentExpression())
+            );
         } else if (argument.isSpread()) {
             throw new UnsupportedOperationException("TODO");
         }

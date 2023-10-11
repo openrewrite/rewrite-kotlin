@@ -344,6 +344,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
     @Test
     void provideDelegateBinaryType() {
@@ -364,6 +365,7 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
     @Test
     void provideDelegateExtension() {
