@@ -319,7 +319,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitConstructorCalleeExpression(KtConstructorCalleeExpression constructorCalleeExpression, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        return constructorCalleeExpression.getConstructorReferenceExpression().accept(this, data);
     }
 
     @Override
@@ -642,8 +642,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         JContainer<Statement> params = null;
         J.Block body = null;
 
-        name = createIdentifier(accessor.getNamePlaceholder().getText(), Space.EMPTY, type(accessor));
+        for (KtAnnotationEntry annotationEntry : accessor.getAnnotationEntries()) {
+            leadingAnnotations.add((J.Annotation) annotationEntry.accept(this, data));
+        }
 
+        name = createIdentifier(accessor.getNamePlaceholder().getText(), prefix(accessor.getNamePlaceholder()), type(accessor));
 
         List<KtParameter> ktParameters = accessor.getValueParameters();
         if (!ktParameters.isEmpty()) {
@@ -1028,11 +1031,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (annotationEntry.getValueArgumentList() != null) {
             throw new UnsupportedOperationException("TODO");
         }
-        if (annotationEntry.getTypeReference() != null) {
-            throw new UnsupportedOperationException("TODO");
-        }
 
-        throw new UnsupportedOperationException("TODO");
+        return new J.Annotation(
+                randomId(),
+                prefix(annotationEntry),
+                markers,
+                (NameTree) annotationEntry.getCalleeExpression().accept(this, data),
+                null
+        );
     }
 
     @Override
