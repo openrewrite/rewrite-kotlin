@@ -1998,7 +1998,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitObjectLiteralExpression(KtObjectLiteralExpression expression, ExecutionContext data) {
         KtObjectDeclaration declaration = expression.getObjectDeclaration();
-
         TypeTree clazz = null;
         Markers markers = Markers.EMPTY;
         JContainer<Expression> args;
@@ -2045,6 +2044,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitObjectDeclaration(KtObjectDeclaration declaration, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
+        List<J.Modifier> modifiers = new ArrayList<>();
+
+        modifiers.add(new J.Modifier(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                null,
+                J.Modifier.Type.Final,
+                emptyList()
+        ));
 
         if (!declaration.getAnnotationEntries().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
@@ -2056,8 +2065,20 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        // TODO: fix NPE.
-        J.Block body = (J.Block) declaration.getBody().accept(this, data);
+        J.Block body;
+        if (declaration.getBody() == null) {
+            body = new J.Block(
+                    randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    padRight(false, Space.EMPTY),
+                    emptyList(),
+                    Space.EMPTY
+            );
+            body = body.withMarkers(body.getMarkers().addIfAbsent(new OmitBraces(randomId())));
+        } else {
+            body = (J.Block) declaration.getBody().accept(this, data);
+        }
 
         if (declaration.getObjectKeyword() != null) {
             markers = markers.add(new KObject(randomId(), Space.EMPTY));
@@ -2078,7 +2099,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 prefix(declaration),
                 markers,
                 emptyList(),
-                emptyList(),
+                modifiers,
                 new J.ClassDeclaration.Kind(
                         randomId(),
                         prefix(declaration.getObjectKeyword()),
