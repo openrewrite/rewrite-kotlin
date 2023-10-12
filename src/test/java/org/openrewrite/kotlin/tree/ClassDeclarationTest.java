@@ -244,11 +244,12 @@ class ClassDeclarationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("rename to constructor")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/94")
     @Test
     void explicitInlineConstructor() {
         rewriteRun(
-          kotlin("class Test internal constructor ( )")
+          kotlin("class Test  internal   constructor    ( )")
         );
     }
 

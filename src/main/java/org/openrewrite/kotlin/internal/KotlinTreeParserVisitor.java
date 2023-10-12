@@ -646,6 +646,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = new ArrayList<>();
 
+        if (constructor.getModifierList() != null) {
+            KtModifierList ktModifierList = constructor.getModifierList();
+            modifiers.addAll(mapModifiers(ktModifierList));
+        }
+
+        if (constructor.getConstructorKeyword() != null) {
+            modifiers.add(mapModifier(constructor.getConstructorKeyword(), Collections.emptyList()));
+        }
+
         JavaType type = type(constructor);
 
         J.Identifier name = new J.Identifier(
@@ -679,8 +688,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 statements.add(padRight(convertToStatement(ktParameter.accept(this, data)), Space.EMPTY, markers));
             }
 
+            if (ktParameters.isEmpty()) {
+                Statement param = new J.Empty(randomId(), prefix(constructor.getValueParameterList().getRightParenthesis()), Markers.EMPTY);
+                statements.add(padRight(param, Space.EMPTY) );
+            }
+
             params = JContainer.build(
-                    Space.EMPTY,
+                    prefix(constructor.getValueParameterList()),
                     statements,
                     Markers.EMPTY);
         } else {
