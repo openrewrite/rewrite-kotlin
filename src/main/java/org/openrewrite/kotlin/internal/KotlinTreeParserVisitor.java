@@ -1437,6 +1437,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         Markers markers = Markers.EMPTY;
         J.MethodDeclaration primaryConstructor = null;
 
+
         if (klass.getModifierList() != null) {
             PsiElement child = klass.getModifierList().getFirstChild();
             while (child != null) {
@@ -1494,8 +1495,44 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             primaryConstructor = (J.MethodDeclaration) klass.getPrimaryConstructor().accept(this, data);
             body = body.withStatements(ListUtils.concat(primaryConstructor, body.getStatements()));
             markers = markers.addIfAbsent(new PrimaryConstructor(randomId()));
-        } else if (!klass.getSuperTypeListEntries().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
+        }
+
+
+        if (!klass.getSuperTypeListEntries().isEmpty()) {
+            List<JRightPadded<TypeTree>> superTypes = new ArrayList<>(klass.getSuperTypeListEntries().size());
+
+            for (KtSuperTypeListEntry superTypeListEntry : klass.getSuperTypeListEntries()) {
+                if (superTypeListEntry instanceof KtSuperTypeCallEntry ) {
+                    KtSuperTypeCallEntry superTypeCallEntry = (KtSuperTypeCallEntry) superTypeListEntry;
+                    J.Identifier typeTree = (J.Identifier) superTypeCallEntry.getCalleeExpression().accept(this, data);
+                    JContainer<Expression> args;
+
+                    if (!superTypeCallEntry.getValueArguments().isEmpty()) {
+                        throw new UnsupportedOperationException("TODO");
+                    } else {
+                        KtValueArgumentList ktArgList = superTypeCallEntry.getValueArgumentList();
+                        args = JContainer.build(
+                                prefix(ktArgList),
+                                singletonList(padRight(new J.Empty(randomId(), prefix(ktArgList.getRightParenthesis()), Markers.EMPTY), Space.EMPTY)
+                                ),
+                                markers
+                        );
+                    }
+
+                    K.ConstructorInvocation delegationCall = new K.ConstructorInvocation(
+                            randomId(),
+                            prefix(klass.getSuperTypeList()),
+                            Markers.EMPTY,
+                            typeTree,
+                            args
+                    );
+                    superTypes.add(padRight(delegationCall, Space.EMPTY));
+                } else {
+                    throw new UnsupportedOperationException("TODO");
+                }
+            }
+
+            implementings = JContainer.build(prefix(klass.getColon()), superTypes, Markers.EMPTY);
         }
 
         if (!klass.getTypeParameters().isEmpty()) {
