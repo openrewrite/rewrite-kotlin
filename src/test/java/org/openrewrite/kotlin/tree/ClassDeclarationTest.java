@@ -415,7 +415,7 @@ class ClassDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin("""
             class Test {
-                init {
+                init   {
                     println ( "Hello, world!" )
                 }
             }

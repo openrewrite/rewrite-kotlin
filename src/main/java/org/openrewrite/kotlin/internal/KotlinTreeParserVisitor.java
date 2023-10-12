@@ -289,7 +289,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClassInitializer(KtClassInitializer initializer, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        J.Block staticInit = (J.Block) initializer.getBody().accept(this, data).withPrefix(prefix(initializer));
+        staticInit = staticInit.getPadding().withStatic(padRight(true, prefix(initializer.getBody())));
+        return staticInit;
     }
 
     @Override
@@ -1291,7 +1293,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         return new J.Block(
                 randomId(),
-                prefix(expression.getLBrace()),
+                prefix(expression),
                 hasBraces ? Markers.EMPTY : Markers.EMPTY.addIfAbsent(new OmitBraces(randomId())),
                 JRightPadded.build(false),
                 statements,
