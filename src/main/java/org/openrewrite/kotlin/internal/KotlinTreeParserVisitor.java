@@ -662,7 +662,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 Space.EMPTY,
                 Markers.EMPTY,
                 emptyList(),
-                "constructor",
+                "<constructor>",
                 type,
                 null
         );

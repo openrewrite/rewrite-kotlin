@@ -208,7 +208,6 @@ class ClassDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("rename J.Identifier of the primaryConstructor to `constructor`")
     @Test
     void primaryConstructor() {
         rewriteRun(
@@ -244,7 +243,6 @@ class ClassDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("rename to constructor")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/94")
     @Test
     void explicitInlineConstructor() {
