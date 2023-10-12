@@ -131,7 +131,7 @@ class ClassDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              interface C {
+              interface  C   {
                   class Inner {
                   }
               }

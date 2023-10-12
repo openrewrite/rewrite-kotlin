@@ -1484,6 +1484,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     emptyList(),
                     J.ClassDeclaration.Kind.Type.Class
             );
+        } else if (klass.getClassOrInterfaceKeyword() != null) {
+            kind = new J.ClassDeclaration.Kind(
+                    randomId(),
+                    prefix(klass.getClassOrInterfaceKeyword()),
+                    Markers.EMPTY,
+                    emptyList(),
+                    J.ClassDeclaration.Kind.Type.Interface
+            );
         } else {
             throw new UnsupportedOperationException("TODO");
         }
