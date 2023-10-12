@@ -2522,6 +2522,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 return J.Modifier.Type.Private;
             case "sealed":
                 return J.Modifier.Type.Sealed;
+            case "enum":
             case "open":
                 return J.Modifier.Type.LanguageExtension;
             case "abstract":

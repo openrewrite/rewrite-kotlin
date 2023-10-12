@@ -157,7 +157,7 @@ class ClassDeclarationTest implements RewriteTest {
     @Test
     void enumClass() {
         rewriteRun(
-          kotlin("enum class A")
+          kotlin("enum  class A")
         );
     }
 
