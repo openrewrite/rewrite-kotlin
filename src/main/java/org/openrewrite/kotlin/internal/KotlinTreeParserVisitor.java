@@ -601,13 +601,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             typeExpression = parameter.getTypeReference().accept(this, data).withPrefix(prefix(parameter.getTypeReference()));
         }
 
+        JLeftPadded<Expression> initializer =
+                parameter.getDefaultValue() != null ? padLeft(prefix(parameter.getDefaultValue()), (Expression) parameter.getDefaultValue().accept(this, data)) : null;
+
         J.VariableDeclarations.NamedVariable namedVariable = new J.VariableDeclarations.NamedVariable(
                 randomId(),
                 Space.EMPTY,
                 Markers.EMPTY,
                 name,
                 emptyList(),
-                null,
+                initializer,
                 name.getFieldType()
         );
 
@@ -1934,24 +1937,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitObjectLiteralExpression(KtObjectLiteralExpression expression, ExecutionContext data) {
-        return expression.getObjectDeclaration().accept(this, data).withPrefix(prefix(expression));
-    }
+        KtObjectDeclaration declaration = expression.getObjectDeclaration();
 
-    @Override
-    public J visitObjectDeclaration(KtObjectDeclaration declaration, ExecutionContext data) {
         TypeTree clazz = null;
         Markers markers = Markers.EMPTY;
         JContainer<Expression> args;
-
-        if (!declaration.getAnnotationEntries().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
-        }
-        if (declaration.getModifierList() != null) {
-            throw new UnsupportedOperationException("TODO");
-        }
-        if (declaration.getTypeParameterList() != null) {
-            throw new UnsupportedOperationException("TODO");
-        }
 
         if (declaration.getSuperTypeList() == null) {
             args = JContainer.empty();
@@ -1969,6 +1959,41 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
 
             clazz = declaration.getSuperTypeList().accept(this, data).withPrefix(Space.EMPTY);
+        }
+
+        // TODO: fix NPE.
+        J.Block body = (J.Block) declaration.getBody().accept(this, data);
+
+        if (declaration.getObjectKeyword() != null) {
+            markers = markers.add(new KObject(randomId(), Space.EMPTY));
+            markers = markers.add(new TypeReferencePrefix(randomId(), prefix(declaration.getColon())));
+        }
+
+        return new J.NewClass(
+                randomId(),
+                prefix(declaration),
+                markers,
+                null,
+                suffix(declaration.getColon()),
+                clazz,
+                args,
+                body,
+                null
+        );
+    }
+
+    @Override
+    public J visitObjectDeclaration(KtObjectDeclaration declaration, ExecutionContext data) {
+        Markers markers = Markers.EMPTY;
+
+        if (!declaration.getAnnotationEntries().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
+        }
+        if (declaration.getModifierList() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+        if (declaration.getTypeParameterList() != null) {
+            throw new UnsupportedOperationException("TODO");
         }
 
         // TODO: fix NPE.
