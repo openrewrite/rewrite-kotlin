@@ -550,6 +550,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitModifierList(KtModifierList list, ExecutionContext data) {
+        if (list.getModifier(KtTokens.VARARG_KEYWORD) != null) {
+            return new J.Modifier(randomId(), prefix(list), Markers.EMPTY,
+                    KtTokens.VARARG_KEYWORD.getValue(), J.Modifier.Type.LanguageExtension, emptyList());
+        }
+
         throw new UnsupportedOperationException("TODO");
     }
 
@@ -580,15 +585,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        if (parameter.isVarArg()) {
-            throw new UnsupportedOperationException("TODO");
+        if (parameter.getModifierList() != null) {
+            J.Modifier modifier = (J.Modifier) parameter.getModifierList().accept(this, data);
+            modifiers.add(modifier);
         }
 
         if (parameter.getDestructuringDeclaration() != null) {
             throw new UnsupportedOperationException("TODO");
         }
 
-        J.Identifier name = createIdentifier(parameter.getName(), Space.EMPTY, type(parameter));
+        J.Identifier name = createIdentifier(parameter.getNameIdentifier(), type(parameter));
 
         if (parameter.getTypeReference() != null) {
             markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(parameter.getColon())));
