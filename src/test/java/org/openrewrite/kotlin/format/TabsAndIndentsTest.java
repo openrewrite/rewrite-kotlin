@@ -142,9 +142,10 @@ class TabsAndIndentsTest implements RewriteTest {
           kotlin(
             """
               class Test {
+                  @Suppress
                   private fun firstArgNoPrefix (first: String,
-                   second: Int,
-                   third: String) {
+                      second: Int,
+                      third: String) {
                   }
                   private fun firstArgOnNewLine(
                           first: String,
@@ -155,6 +156,7 @@ class TabsAndIndentsTest implements RewriteTest {
               """,
             """
               class Test {
+                  @Suppress
                   private fun firstArgNoPrefix (first: String,
                                                 second: Int,
                                                 third: String) {
@@ -2269,6 +2271,21 @@ class TabsAndIndentsTest implements RewriteTest {
                       let {
                       }
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldAssignment() {
+        rewriteRun(
+          kotlin(
+            """
+              class Point(var x: Int, var y: Int)
+              fun x(p: Point) {
+                  p.x =
+                      3
               }
               """
           )

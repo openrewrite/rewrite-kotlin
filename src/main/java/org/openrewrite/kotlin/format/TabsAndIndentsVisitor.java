@@ -240,7 +240,7 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
 
     @Override
     public <T> JLeftPadded<T> visitLeftPadded(@Nullable JLeftPadded<T> left, JLeftPadded.Location loc, P p) {
-        if (loc == JLeftPadded.Location.VARIABLE_INITIALIZER) {
+        if (loc == JLeftPadded.Location.VARIABLE_INITIALIZER || loc == JLeftPadded.Location.ASSIGNMENT) {
             // this formatting option also applies to variable declarations
             getCursor().putMessage("indentType",
                     wrappingStyle.getExpressionBodyFunctions().getUseContinuationIndent() ? IndentType.CONTINUATION_INDENT : IndentType.INDENT);
@@ -302,7 +302,9 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
                                     alignTo = firstArg.getPrefix().getLastWhitespace().length() - 1;
                                 } else {
                                     String source = method.print(getCursor());
-                                    alignTo = source.indexOf(firstArg.print(getCursor())) - 1;
+                                    int firstArgIndex = source.indexOf(firstArg.print(getCursor()));
+                                    int lineBreakIndex = source.lastIndexOf('\n', firstArgIndex);
+                                    alignTo = (firstArgIndex - (lineBreakIndex == -1 ? 0 : lineBreakIndex)) - 1;
                                 }
                                 getCursor().getParentOrThrow().putMessage("lastIndent", alignTo - style.getContinuationIndent());
                                 elem = visitAndCast(elem, p);
