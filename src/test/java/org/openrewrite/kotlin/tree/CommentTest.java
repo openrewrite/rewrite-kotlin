@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
@@ -78,6 +79,7 @@ class CommentTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Only supported by psi-based parser")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/320")
     @Test
     void nestedComment() {

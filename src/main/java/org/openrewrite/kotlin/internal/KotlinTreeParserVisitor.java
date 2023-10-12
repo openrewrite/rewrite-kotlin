@@ -582,7 +582,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (parameter.getValOrVarKeyword() != null) {
-            throw new UnsupportedOperationException("TODO");
+            modifiers.add(mapModifier(parameter.getValOrVarKeyword(), Collections.emptyList()));
         }
 
         if (parameter.getModifierList() != null) {
@@ -628,12 +628,72 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitParameterList(KtParameterList list, ExecutionContext data) {
+
+
+
         throw new UnsupportedOperationException("TODO");
     }
 
     @Override
     public J visitPrimaryConstructor(KtPrimaryConstructor constructor, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        if (constructor.getBodyExpression() != null) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        List<J.Annotation> leadingAnnotations = new ArrayList<>();
+        List<J.Modifier> modifiers =  new ArrayList<>();
+
+        JavaType type = type(constructor);
+
+        J.Identifier name = new J.Identifier(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                emptyList(),
+                "constructor",
+                type,
+                null
+        );
+
+        JContainer<Statement> params;
+
+        if (constructor.getValueParameterList() != null) {
+            // constructor.getValueParameterList().accept(this, data);
+
+            //  todo. move to constructor.getValueParameterList().accept(this, data);
+            List<KtParameter> ktParameters = constructor.getValueParameters();
+            List<JRightPadded<Statement>> statements = new ArrayList<>(ktParameters.size());
+
+            for (KtParameter ktParameter : ktParameters) {
+                statements.add(padRight(convertToStatement(ktParameter.accept(this, data)), Space.EMPTY));
+            }
+
+            params = JContainer.build(
+                    Space.EMPTY,
+                    statements,
+                    Markers.EMPTY);
+        } else {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        return new J.MethodDeclaration(
+                randomId(),
+                prefix(constructor),
+                Markers.build(singletonList(new PrimaryConstructor(randomId()))),
+                leadingAnnotations,
+                modifiers,
+                null,
+                null,
+                new J.MethodDeclaration.IdentifierWithAnnotations(
+                        name.withMarkers(name.getMarkers().addIfAbsent(new Implicit(randomId()))),
+                        emptyList()
+                ),
+                params,
+                null,
+                null,
+                null,
+                methodDeclarationType(constructor)
+        );
     }
 
     @Override
@@ -1363,6 +1423,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<J.Modifier> modifiers = new ArrayList<>();
         JContainer<J.TypeParameter> typeParams = null;
         JContainer<TypeTree> implementings = null;
+        Markers markers = Markers.EMPTY;
+        J.MethodDeclaration primaryConstructor= null;
 
         if (klass.getModifierList() != null) {
             PsiElement child = klass.getModifierList().getFirstChild();
@@ -1418,7 +1480,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (klass.getPrimaryConstructor() != null) {
-            throw new UnsupportedOperationException("TODO");
+            primaryConstructor = (J.MethodDeclaration) klass.getPrimaryConstructor().accept(this, data);
+            body = body.withStatements(ListUtils.concat(primaryConstructor, body.getStatements()));
+            markers = markers.addIfAbsent(new PrimaryConstructor(randomId()));
         } else if (!klass.getSuperTypeListEntries().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
         }
@@ -1435,7 +1499,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         return new J.ClassDeclaration(
                 randomId(),
                 prefix(klass),
-                Markers.EMPTY,
+                markers,
                 leadingAnnotations,
                 modifiers,
                 kind,

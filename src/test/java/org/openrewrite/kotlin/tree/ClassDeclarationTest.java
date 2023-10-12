@@ -210,7 +210,7 @@ class ClassDeclarationTest implements RewriteTest {
     @Test
     void primaryConstructor() {
         rewriteRun(
-          kotlin("class Test ( val answer : Int )")
+          kotlin("class Test  (   val    answer : Int )")
         );
     }
 
