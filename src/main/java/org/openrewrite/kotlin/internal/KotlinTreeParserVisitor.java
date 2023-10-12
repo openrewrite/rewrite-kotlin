@@ -666,8 +666,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             List<KtParameter> ktParameters = constructor.getValueParameters();
             List<JRightPadded<Statement>> statements = new ArrayList<>(ktParameters.size());
 
-            for (KtParameter ktParameter : ktParameters) {
-                statements.add(padRight(convertToStatement(ktParameter.accept(this, data)), Space.EMPTY));
+            for (int i = 0; i < ktParameters.size(); i++) {
+                KtParameter ktParameter = ktParameters.get(i);
+                Markers markers = Markers.EMPTY;
+                if (i == ktParameters.size() - 1) {
+                    PsiElement maybeComma = PsiTreeUtil.findSiblingForward(ktParameter, KtTokens.COMMA, null);
+                    if (maybeComma != null && maybeComma.getNode().getElementType() == KtTokens.COMMA) {
+                        markers = markers.addIfAbsent(new TrailingComma(randomId(), suffix(maybeComma)));
+                    }
+                }
+                statements.add(padRight(convertToStatement(ktParameter.accept(this, data)), Space.EMPTY, markers));
             }
 
             params = JContainer.build(
