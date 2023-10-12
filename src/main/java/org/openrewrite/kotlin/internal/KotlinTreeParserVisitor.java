@@ -32,6 +32,7 @@ import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
 import org.jetbrains.kotlin.fir.declarations.FirVariable;
 import org.jetbrains.kotlin.fir.expressions.FirConstExpression;
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall;
+import org.jetbrains.kotlin.fir.expressions.FirStringConcatenationCall;
 import org.jetbrains.kotlin.fir.references.FirResolvedCallableReference;
 import org.jetbrains.kotlin.fir.resolve.LookupTagUtilsKt;
 import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag;
@@ -2272,7 +2273,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitStringTemplateExpression(KtStringTemplateExpression expression, ExecutionContext data) {
         KtStringTemplateEntry[] entries = expression.getEntries();
-        boolean hasStringTemplateEntry = Arrays.stream(entries).anyMatch(x -> x instanceof KtBlockStringTemplateEntry);
+        boolean hasStringTemplateEntry = Arrays.stream(entries).anyMatch(x ->
+                x instanceof KtBlockStringTemplateEntry ||
+                x instanceof KtSimpleNameStringTemplateEntry);
 
         if (hasStringTemplateEntry) {
             String delimiter = expression.getFirstChild().getText();
@@ -2494,7 +2497,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     private JavaType.Primitive primitiveType(PsiElement expression) {
         // TODO: fix NPE.
-        return typeMapping.primitive((ConeClassLikeType) ((FirResolvedTypeRef) ((FirConstExpression<?>) psiElementAssociations.primary(expression)).getTypeRef()).getType());
+        FirElement firElement = psiElementAssociations.primary(expression);
+        if (firElement instanceof FirConstExpression) {
+            return typeMapping.primitive((ConeClassLikeType) ((FirResolvedTypeRef) ((FirConstExpression<?>) firElement).getTypeRef()).getType());
+        }
+
+        if (firElement instanceof FirStringConcatenationCall) {
+            return JavaType.Primitive.String;
+        }
+
+        return null;
     }
 
     @Nullable
