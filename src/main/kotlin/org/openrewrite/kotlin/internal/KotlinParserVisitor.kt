@@ -2184,7 +2184,7 @@ class KotlinParserVisitor(
                         name,
                         emptyList(),
                         initializer,
-                        typeMapping.variableType(property.symbol, null, getCurrentFile())
+                        typeMapping.variableType(property.symbol, null, owner(property)?.symbol)
                 )
         )
         variables = ArrayList(1)
@@ -4317,7 +4317,7 @@ class KotlinParserVisitor(
                 Space.EMPTY,
                 Markers.EMPTY,
                 emptyList(),
-                node.name!!,
+                "<constructor>",
                 type as? JavaType.Method,
                 null
         )
