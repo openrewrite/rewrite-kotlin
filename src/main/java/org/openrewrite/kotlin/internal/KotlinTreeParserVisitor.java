@@ -945,28 +945,38 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitTypeParameter(KtTypeParameter parameter, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
         List<J.Annotation> annotations = new ArrayList<>();
-
+        J.Identifier name = null;
+        JContainer<TypeTree> bounds = null;
         if (parameter.getNameIdentifier() == null) {
             throw new UnsupportedOperationException("TODO");
         }
 
-        if (parameter.getVariance() != Variance.INVARIANT) {
-            throw new UnsupportedOperationException("TODO");
-        }
+        if (parameter.getVariance() == Variance.INVARIANT) {
+            if (parameter.getModifierList() != null && parameter.getModifierList().getNode().findChildByType(KtTokens.REIFIED_KEYWORD) != null) {
+                markers = markers.addIfAbsent(new Reified(randomId()));
+            }
 
-        if (parameter.getModifierList() != null && parameter.getModifierList().getNode().findChildByType(KtTokens.REIFIED_KEYWORD) != null) {
-            markers = markers.addIfAbsent(new Reified(randomId()));
-        }
+            name = createIdentifier(parameter.getNameIdentifier(), type(parameter));
 
-        J.Identifier name = createIdentifier(parameter.getNameIdentifier(), type(parameter));
-        JContainer<TypeTree> bounds;
-        if (parameter.getExtendsBound() != null) {
-            bounds = JContainer.build(suffix(parameter.getNameIdentifier()),
-                    singletonList(padRight(parameter.getExtendsBound().accept(this, data).withPrefix(prefix(parameter.getExtendsBound())),
-                            Space.EMPTY)),
+            if (parameter.getExtendsBound() != null) {
+                bounds = JContainer.build(suffix(parameter.getNameIdentifier()),
+                        singletonList(padRight(parameter.getExtendsBound().accept(this, data).withPrefix(prefix(parameter.getExtendsBound())),
+                                Space.EMPTY)),
+                        Markers.EMPTY);
+            }
+        } else if (parameter.getVariance() == Variance.IN_VARIANCE ||
+                parameter.getVariance() == Variance.OUT_VARIANCE) {
+            GenericType.Variance variance = parameter.getVariance() == Variance.IN_VARIANCE ?
+                    GenericType.Variance.CONTRAVARIANT : GenericType.Variance.COVARIANT;
+            markers = markers.addIfAbsent(new GenericType(randomId(), variance));
+            name = createIdentifier("Any", Space.EMPTY, null).withMarkers(Markers.build(singletonList(new Implicit(randomId())))); //  new J.Identifier(
+            bounds = JContainer.build(
+                    Space.EMPTY,
+                    singletonList(padRight(
+                            createIdentifier(parameter.getNameIdentifier(), type(parameter)), Space.EMPTY)),
                     Markers.EMPTY);
         } else {
-            bounds = null;
+            throw new UnsupportedOperationException("TODO");
         }
 
         return new J.TypeParameter(
