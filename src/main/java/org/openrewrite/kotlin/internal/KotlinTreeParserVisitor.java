@@ -2300,7 +2300,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (!property.getAnnotationEntries().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
+            for (KtAnnotationEntry ktAnnotationEntry : property.getAnnotationEntries()) {
+                J.Annotation annotation = (J.Annotation) ktAnnotationEntry.accept(this, data);
+                leadingAnnotations.add(annotation);
+            }
         }
 
         J.VariableDeclarations variableDeclarations = new J.VariableDeclarations(
@@ -2557,6 +2560,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 return J.Modifier.Type.Sealed;
             case "enum":
             case "open":
+            case "annotation":
                 return J.Modifier.Type.LanguageExtension;
             case "abstract":
                 return J.Modifier.Type.Abstract;
