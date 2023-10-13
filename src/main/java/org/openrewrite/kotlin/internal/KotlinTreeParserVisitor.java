@@ -969,7 +969,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             GenericType.Variance variance = parameter.getVariance() == Variance.IN_VARIANCE ?
                     GenericType.Variance.CONTRAVARIANT : GenericType.Variance.COVARIANT;
             markers = markers.addIfAbsent(new GenericType(randomId(), variance));
-            name = createIdentifier("Any", Space.EMPTY, null).withMarkers(Markers.build(singletonList(new Implicit(randomId())))); //  new J.Identifier(
+            name = createIdentifier("<Any>", Space.EMPTY, null).withMarkers(Markers.build(singletonList(new Implicit(randomId())))); //  new J.Identifier(
             bounds = JContainer.build(
                     Space.EMPTY,
                     singletonList(padRight(
