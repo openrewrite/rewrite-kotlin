@@ -2291,4 +2291,18 @@ class TabsAndIndentsTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void annotatedEnumConstants() {
+        rewriteRun(
+          kotlin(
+            """
+              enum class T {
+                  @Suppress
+                  A
+              }
+              """
+          )
+        );
+    }
 }
