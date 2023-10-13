@@ -1465,16 +1465,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
         }
         if (!klass.hasModifier(KtTokens.OPEN_KEYWORD)) {
-            modifiers.add(
-                    new J.Modifier(
-                            randomId(),
-                            Space.EMPTY,
-                            Markers.EMPTY,
-                            null,
-                            J.Modifier.Type.Final,
-                            emptyList()
-                    )
-            );
+            modifiers.add( buildFinalModifier());
         }
 
         J.ClassDeclaration.Kind kind;
@@ -1879,16 +1870,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         boolean isOpen = function.hasModifier(KtTokens.OPEN_KEYWORD);
         if (!isOpen) {
-            modifiers.add(
-                    new J.Modifier(
-                            randomId(),
-                            prefix(function.getFunKeyword()),
-                            Markers.EMPTY,
-                            null,
-                            J.Modifier.Type.Final,
-                            emptyList()
-                    )
-            );
+            modifiers.add(buildFinalModifier().withPrefix(prefix(function.getFunKeyword())));
         }
 
         modifiers.add(
@@ -2056,21 +2038,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         Markers markers = Markers.EMPTY;
         List<J.Modifier> modifiers = new ArrayList<>();
 
-        modifiers.add(new J.Modifier(
-                randomId(),
-                Space.EMPTY,
-                Markers.EMPTY,
-                null,
-                J.Modifier.Type.Final,
-                emptyList()
-        ));
+        if (declaration.getModifierList() != null) {
+            modifiers.addAll(mapModifiers(declaration.getModifierList()));
+        }
+        modifiers.add(buildFinalModifier());
 
         if (!declaration.getAnnotationEntries().isEmpty()) {
             throw new UnsupportedOperationException("TODO");
         }
-        if (declaration.getModifierList() != null) {
-            throw new UnsupportedOperationException("TODO");
-        }
+
         if (declaration.getTypeParameterList() != null) {
             throw new UnsupportedOperationException("TODO");
         }
@@ -2099,9 +2075,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (declaration.getNameIdentifier() != null) {
             name = createIdentifier(declaration.getNameIdentifier(), type(declaration));
         } else {
-            name = createIdentifier("", Space.EMPTY, type(declaration))
+            name = createIdentifier(declaration.isCompanion() ? "<companion>" : "", Space.EMPTY, type(declaration))
                     .withMarkers(Markers.EMPTY.addIfAbsent(new Implicit(randomId())));
-
         }
 
         return new J.ClassDeclaration(
@@ -2894,5 +2869,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Nullable
     private PsiElement next(PsiElement node) {
         return PsiTreeUtil.nextLeaf(node);
+    }
+
+    private J.Modifier buildFinalModifier() {
+        return new J.Modifier(
+                randomId(),
+                Space.EMPTY,
+                Markers.EMPTY,
+                null,
+                J.Modifier.Type.Final,
+                emptyList()
+        );
     }
 }

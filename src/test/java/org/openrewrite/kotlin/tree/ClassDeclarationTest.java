@@ -322,6 +322,19 @@ class ClassDeclarationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void debug() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {
+                  companion object
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/190")
     @Test
     void companionObject() {
