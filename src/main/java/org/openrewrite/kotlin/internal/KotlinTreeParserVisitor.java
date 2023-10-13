@@ -65,6 +65,7 @@ import org.openrewrite.style.NamedStyles;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -318,6 +319,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitCollectionLiteralExpression(KtCollectionLiteralExpression expression, ExecutionContext data) {
+
+
         throw new UnsupportedOperationException("TODO");
     }
 
@@ -727,7 +730,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitPropertyAccessor(KtPropertyAccessor accessor, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
-        List<J.Annotation> leadingAnnotations = new ArrayList<>();
+        List<J.Annotation> leadingAnnotations = mapAnnotations(accessor.getAnnotationEntries(), data);
         List<J.Modifier> modifiers = new ArrayList<>();
         J.TypeParameters typeParameters = null;
         TypeTree returnTypeExpression = null;
@@ -735,10 +738,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         J.Identifier name = null;
         JContainer<Statement> params = null;
         J.Block body = null;
-
-        for (KtAnnotationEntry annotationEntry : accessor.getAnnotationEntries()) {
-            leadingAnnotations.add((J.Annotation) annotationEntry.accept(this, data));
-        }
 
         name = createIdentifier(accessor.getNamePlaceholder().getText(), prefix(accessor.getNamePlaceholder()), type(accessor));
 
@@ -1025,7 +1024,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
             }
             default: {
-                name = (Expression) typeProjection.getTypeReference().accept(this, data);
+                name = typeProjection.getTypeReference().accept(this, data).withPrefix(prefix(typeProjection));
             }
         }
 
@@ -1109,12 +1108,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
      * ====================================================================*/
     @Override
     public J visitKtFile(KtFile file, ExecutionContext data) {
-        Space prefix = Space.EMPTY;
-        List<J.Annotation> annotations = file.getAnnotationEntries().isEmpty() ? emptyList() : new ArrayList<>(file.getAnnotationEntries().size());
-        if (!file.getAnnotationEntries().isEmpty()) {
-            prefix = prefix(file.getFileAnnotationList());
-            annotations = mapFileAnnotations(file.getFileAnnotationList(), data);
-        }
+        List<J.Annotation> annotations = file.getFileAnnotationList() != null ? mapAnnotations(file.getAnnotationEntries(), data) : emptyList();
 
         JRightPadded<J.Package> pkg = null;
         if (!file.getPackageFqName().isRoot()) {
@@ -1168,6 +1162,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitAnnotationEntry(@NotNull KtAnnotationEntry annotationEntry, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
+        JContainer<Expression> args = null;
+
         if (annotationEntry.getUseSiteTarget() != null) {
             markers = markers.addIfAbsent(new AnnotationCallSite(
                     randomId(),
@@ -1176,9 +1172,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             ));
         }
 
-        // List includes Parens.
         if (annotationEntry.getValueArgumentList() != null) {
-            throw new UnsupportedOperationException("TODO");
+            List<JRightPadded<Expression>> expressions = new ArrayList<>(annotationEntry.getValueArguments().size());
+
+            for (ValueArgument valueArgument : annotationEntry.getValueArguments()) {
+                KtValueArgument ktValueArgument = (KtValueArgument) valueArgument;
+                expressions.add(padRight(convertToExpression(ktValueArgument.accept(this, data).withPrefix(prefix(ktValueArgument))), suffix(ktValueArgument)));
+            }
+
+            args = JContainer.build(prefix(annotationEntry.getValueArgumentList()), expressions, Markers.EMPTY);
         }
 
         return new J.Annotation(
@@ -1186,7 +1188,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 prefix(annotationEntry),
                 markers,
                 (NameTree) annotationEntry.getCalleeExpression().accept(this, data),
-                null
+                args
         );
     }
 
@@ -1197,7 +1199,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         } else if (argument.isNamed()) {
             J.Identifier name = createIdentifier(argument.getArgumentName(), type(argument.getArgumentName()));
             Expression expr = convertToExpression(argument.getArgumentExpression().accept(this, data));
-
             return new J.Assignment(
                     randomId(),
                     prefix(argument.getArgumentName()),
@@ -1509,19 +1510,23 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         Markers markers = Markers.EMPTY;
         J.MethodDeclaration primaryConstructor = null;
 
-
         if (klass.getModifierList() != null) {
             PsiElement child = klass.getModifierList().getFirstChild();
             while (child != null) {
-                if (!isSpace(child.getNode())) {
+                if (!isSpace(child.getNode()) && (!(child instanceof KtAnnotationEntry))) {
                     modifiers.add(new J.Modifier(randomId(), prefix(child), Markers.EMPTY, child.getText(), mapModifierType(child), emptyList())
                     );
                 }
                 child = child.getNextSibling();
             }
         }
+
         if (!klass.hasModifier(KtTokens.OPEN_KEYWORD)) {
             modifiers.add(buildFinalModifier());
+        }
+
+        if (!klass.getAnnotationEntries().isEmpty()) {
+            leadingAnnotations = mapAnnotations(klass.getAnnotationEntries(), data);
         }
 
         J.ClassDeclaration.Kind kind;
@@ -1567,7 +1572,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             body = body.withStatements(ListUtils.concat(primaryConstructor, body.getStatements()));
             markers = markers.addIfAbsent(new PrimaryConstructor(randomId()));
         }
-
 
         if (!klass.getSuperTypeListEntries().isEmpty()) {
             List<JRightPadded<TypeTree>> superTypes = new ArrayList<>(klass.getSuperTypeListEntries().size());
@@ -2837,19 +2841,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         return builder.toString();
     }
 
-    private List<J.Annotation> mapFileAnnotations(@Nullable KtFileAnnotationList ktFileAnnotationList, ExecutionContext data) {
-        if (ktFileAnnotationList == null && ktFileAnnotationList.getAnnotationEntries().isEmpty()) {
-            return emptyList();
-        }
 
-        List<J.Annotation> annotations = new ArrayList<>(ktFileAnnotationList.getAnnotationEntries().size());
-        List<KtAnnotationEntry> annotationEntries = ktFileAnnotationList.getAnnotationEntries();
-        for (int i = 0; i < annotationEntries.size(); i++) {
-            KtAnnotationEntry annotation = annotationEntries.get(i);
-            J.Annotation ann = (J.Annotation) annotation.accept(this, data);
-            System.out.println();
-        }
-        return annotations;
+    private List<J.Annotation> mapAnnotations(List<KtAnnotationEntry> ktAnnotationEntries, ExecutionContext data) {
+        return ktAnnotationEntries.stream()
+                .map(annotation -> (J.Annotation) annotation.accept(this, data))
+                .collect(Collectors.toList());
     }
 
     private J.Modifier mapModifier(PsiElement modifier, List<J.Annotation> annotations) {

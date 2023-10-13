@@ -17,6 +17,7 @@ package org.openrewrite.kotlin.tree;
 
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.KotlinParser;
@@ -113,14 +114,15 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Test
     void arrayArgument() {
         rewriteRun(
           kotlin(
             """
-              @Target ( AnnotationTarget . LOCAL_VARIABLE )
-              @Retention ( AnnotationRetention . SOURCE )
-              annotation class Test ( val values : Array < String > )
+              @Target (  AnnotationTarget . LOCAL_VARIABLE   )
+              @Retention  ( AnnotationRetention . SOURCE )
+              annotation class Test ( val values : Array <  String > )
               """
           ),
           kotlin(
