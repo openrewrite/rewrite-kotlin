@@ -45,6 +45,7 @@ import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
 import org.jetbrains.kotlin.psi.*;
 import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes;
+import org.jetbrains.kotlin.types.Variance;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
 import org.openrewrite.Tree;
@@ -692,7 +693,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
             if (ktParameters.isEmpty()) {
                 Statement param = new J.Empty(randomId(), prefix(constructor.getValueParameterList().getRightParenthesis()), Markers.EMPTY);
-                statements.add(padRight(param, Space.EMPTY) );
+                statements.add(padRight(param, Space.EMPTY));
             }
 
             params = JContainer.build(
@@ -949,6 +950,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
+        if (parameter.getVariance() != Variance.INVARIANT) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
         if (parameter.getModifierList() != null && parameter.getModifierList().getNode().findChildByType(KtTokens.REIFIED_KEYWORD) != null) {
             markers = markers.addIfAbsent(new Reified(randomId()));
         }
@@ -981,15 +986,56 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitTypeProjection(KtTypeProjection typeProjection, ExecutionContext data) {
-        if (typeProjection.getTypeReference() != null) {
-            return typeProjection.getTypeReference().accept(this, data).withPrefix(prefix(typeProjection));
+        Markers markers = Markers.EMPTY;
+        JContainer<TypeTree> bounds = null;
+        Expression name = null;
+        switch (typeProjection.getProjectionKind()) {
+            case IN: {
+                markers = markers.addIfAbsent(new GenericType(randomId(), GenericType.Variance.CONTRAVARIANT));
+                bounds = JContainer.build(
+                        prefix(typeProjection.getProjectionToken()),
+                        singletonList(padRight(typeProjection.getTypeReference().accept(this, data)
+                                .withPrefix(prefix(typeProjection.getTypeReference())), Space.EMPTY)),
+                        Markers.EMPTY
+                );
+                break;
+            }
+            case OUT: {
+                markers = markers.addIfAbsent(new GenericType(randomId(), GenericType.Variance.COVARIANT));
+                bounds = JContainer.build(
+                        prefix(typeProjection.getProjectionToken()),
+                        singletonList(padRight(typeProjection.getTypeReference().accept(this, data)
+                                .withPrefix(prefix(typeProjection.getTypeReference())), Space.EMPTY)),
+                        Markers.EMPTY
+                );
+                break;
+            }
+            case STAR: {
+                return new J.Wildcard(randomId(), prefix(typeProjection), Markers.EMPTY, null, null);
+
+            }
+            default: {
+                name = (Expression) typeProjection.getTypeReference().accept(this, data);
+            }
         }
 
-        if (typeProjection.getProjectionKind() == KtProjectionKind.STAR) {
-            return new J.Wildcard(randomId(), prefix(typeProjection), Markers.EMPTY, null, null);
-        }
-
-        throw new UnsupportedOperationException("TODO");
+        return name != null ? name :
+                new K.TypeParameterExpression(randomId(), new J.TypeParameter(
+                        randomId(),
+                        prefix(typeProjection),
+                        markers,
+                        emptyList(),
+                        new J.Identifier(
+                                randomId(),
+                                Space.EMPTY,
+                                Markers.build(singletonList(new Implicit(randomId()))),
+                                emptyList(),
+                                "Any",
+                                null,
+                                null
+                        ),
+                        bounds
+                ));
     }
 
     @Override
@@ -1465,7 +1511,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
         }
         if (!klass.hasModifier(KtTokens.OPEN_KEYWORD)) {
-            modifiers.add( buildFinalModifier());
+            modifiers.add(buildFinalModifier());
         }
 
         J.ClassDeclaration.Kind kind;
@@ -1517,7 +1563,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             List<JRightPadded<TypeTree>> superTypes = new ArrayList<>(klass.getSuperTypeListEntries().size());
 
             for (KtSuperTypeListEntry superTypeListEntry : klass.getSuperTypeListEntries()) {
-                if (superTypeListEntry instanceof KtSuperTypeCallEntry ) {
+                if (superTypeListEntry instanceof KtSuperTypeCallEntry) {
                     KtSuperTypeCallEntry superTypeCallEntry = (KtSuperTypeCallEntry) superTypeListEntry;
                     J.Identifier typeTree = (J.Identifier) superTypeCallEntry.getCalleeExpression().accept(this, data);
                     JContainer<Expression> args;
@@ -2332,7 +2378,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         KtStringTemplateEntry[] entries = expression.getEntries();
         boolean hasStringTemplateEntry = Arrays.stream(entries).anyMatch(x ->
                 x instanceof KtBlockStringTemplateEntry ||
-                x instanceof KtSimpleNameStringTemplateEntry);
+                        x instanceof KtSimpleNameStringTemplateEntry);
 
         if (hasStringTemplateEntry) {
             String delimiter = expression.getFirstChild().getText();
