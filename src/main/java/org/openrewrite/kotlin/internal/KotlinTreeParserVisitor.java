@@ -319,9 +319,24 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitCollectionLiteralExpression(KtCollectionLiteralExpression expression, ExecutionContext data) {
+        JContainer<Expression> elements;
+        if (expression.getInnerExpressions().isEmpty()) {
+            elements = JContainer.build(singletonList(
+                    padRight(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY), prefix(expression.getRightBracket()))));
+        } else {
+            List<JRightPadded<Expression>> rps = expression.getInnerExpressions().stream()
+                    .map(exp -> padRight((Expression) convertToExpression(exp.accept(this, data)), suffix(exp)))
+                    .collect(Collectors.toList());
+            elements = JContainer.build(Space.EMPTY, rps, Markers.EMPTY);
+        }
 
-
-        throw new UnsupportedOperationException("TODO");
+        return new K.ListLiteral(
+                randomId(),
+                prefix(expression),
+                Markers.EMPTY,
+                elements,
+                type(expression)
+        );
     }
 
     @Override

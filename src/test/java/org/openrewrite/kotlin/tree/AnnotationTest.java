@@ -127,7 +127,7 @@ class AnnotationTest implements RewriteTest {
           ),
           kotlin(
             """
-              @Test( values = [ "a" , "b" , "c" ] )
+              @Test( values =  [   "a"    ,     "b" ,  "c"   ]    )
               val a = 42
               """
           )
