@@ -44,6 +44,7 @@ import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
 import org.jetbrains.kotlin.psi.*;
+import org.jetbrains.kotlin.psi.psiUtil.PsiUtilsKt;
 import org.jetbrains.kotlin.psi.stubs.elements.KtStubElementTypes;
 import org.jetbrains.kotlin.types.Variance;
 import org.openrewrite.ExecutionContext;
@@ -2370,8 +2371,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         List<J.Annotation> annotations = new ArrayList<>();
 
-        // don't use iterator of `PsiTreeUtil.firstChild` and `getNextSibling`, since it could skip one layer , example test "paramAnnotation"
-        PsiElement[] children = modifierList.getChildren();
+        // don't use iterator of `PsiTreeUtil.firstChild` and `getNextSibling`, since it could skip one layer, example test "paramAnnotation"
+        // also don't use `modifierList.getChildren()` since it could miss some element
+        List<PsiElement> children = getAllChildren(modifierList);
 
         for (PsiElement child : children) {
             if (child instanceof LeafPsiElement && child.getNode().getElementType() instanceof KtModifierKeywordToken) {
@@ -2387,6 +2389,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         return modifiers;
     }
+
+
 
     @Override
     public J visitPropertyDelegate(KtPropertyDelegate delegate, ExecutionContext data) {
@@ -2966,4 +2970,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 emptyList()
         );
     }
+
+    private List<PsiElement> getAllChildren(PsiElement parent) {
+        List<PsiElement> children = new ArrayList<>();
+        Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(parent).iterator();
+        while (iterator.hasNext()) {
+            PsiElement it = iterator.next();
+            children.add(it);
+        }
+        return children;
+    }
+
 }
