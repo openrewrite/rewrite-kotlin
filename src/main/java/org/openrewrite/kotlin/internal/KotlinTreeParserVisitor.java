@@ -1184,14 +1184,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (annotationEntry.getValueArgumentList() != null) {
-            List<JRightPadded<Expression>> expressions = new ArrayList<>(annotationEntry.getValueArguments().size());
-
-            for (ValueArgument valueArgument : annotationEntry.getValueArguments()) {
-                KtValueArgument ktValueArgument = (KtValueArgument) valueArgument;
-                expressions.add(padRight(convertToExpression(ktValueArgument.accept(this, data).withPrefix(prefix(ktValueArgument))), suffix(ktValueArgument)));
+            if (annotationEntry.getValueArguments().isEmpty()) {
+                args = JContainer.build(prefix(annotationEntry.getValueArgumentList()),
+                        singletonList(padRight(new J.Empty(randomId(), prefix(annotationEntry.getValueArgumentList().getRightParenthesis()), Markers.EMPTY), Space.EMPTY)
+                        ), Markers.EMPTY);
+            } else {
+                List<JRightPadded<Expression>> expressions = new ArrayList<>(annotationEntry.getValueArguments().size());
+                for (ValueArgument valueArgument : annotationEntry.getValueArguments()) {
+                    KtValueArgument ktValueArgument = (KtValueArgument) valueArgument;
+                    expressions.add(padRight(convertToExpression(ktValueArgument.accept(this, data).withPrefix(prefix(ktValueArgument))), suffix(ktValueArgument)));
+                }
+                args = JContainer.build(prefix(annotationEntry.getValueArgumentList()), expressions, Markers.EMPTY);
             }
-
-            args = JContainer.build(prefix(annotationEntry.getValueArgumentList()), expressions, Markers.EMPTY);
         }
 
         return new J.Annotation(

@@ -398,7 +398,7 @@ class AnnotationTest implements RewriteTest {
             """
               annotation class Ann
 
-              @Suppress()
+              @Suppress( )
               @Ann
               class A {
               }
