@@ -277,7 +277,7 @@ class AnnotationTest implements RewriteTest {
           kotlin(ANNOTATION),
           kotlin(
             """
-              class Example ( @param : Ann val quux : String )
+              class Example  (   @param    :     Ann val  quux   :     String )
               """
           )
         );

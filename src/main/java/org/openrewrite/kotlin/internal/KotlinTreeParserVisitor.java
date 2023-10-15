@@ -51,6 +51,7 @@ import org.openrewrite.FileAttributes;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.EncodingDetectingInputStream;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.marker.ImplicitReturn;
 import org.openrewrite.java.marker.OmitParentheses;
@@ -341,7 +342,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitConstructorCalleeExpression(KtConstructorCalleeExpression constructorCalleeExpression, ExecutionContext data) {
-        return constructorCalleeExpression.getConstructorReferenceExpression().accept(this, data);
+        return constructorCalleeExpression.getConstructorReferenceExpression().accept(this, data).withPrefix(prefix(constructorCalleeExpression));
     }
 
     @Override
@@ -572,12 +573,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitModifierList(KtModifierList list, ExecutionContext data) {
-        if (list.getModifier(KtTokens.VARARG_KEYWORD) != null) {
-            return new J.Modifier(randomId(), prefix(list), Markers.EMPTY,
-                    KtTokens.VARARG_KEYWORD.getValue(), J.Modifier.Type.LanguageExtension, emptyList());
-        }
-
-        throw new UnsupportedOperationException("TODO");
+        throw new UnsupportedOperationException("Use mapModifiers instead");
     }
 
     @Override
@@ -595,6 +591,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitParameter(KtParameter parameter, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
+        List<J.Annotation> lastAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = new ArrayList<>();
         TypeTree typeExpression = null;
         List<JRightPadded<J.VariableDeclarations.NamedVariable>> vars = new ArrayList<>(1);
@@ -608,8 +605,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (parameter.getModifierList() != null) {
-            J.Modifier modifier = (J.Modifier) parameter.getModifierList().accept(this, data);
-            modifiers.add(modifier);
+            modifiers.addAll(mapModifiers(parameter.getModifierList(), leadingAnnotations, lastAnnotations, data));
         }
 
         if (parameter.getDestructuringDeclaration() != null) {
@@ -669,7 +665,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         if (constructor.getModifierList() != null) {
             KtModifierList ktModifierList = constructor.getModifierList();
-            modifiers.addAll(mapModifiers(ktModifierList));
+            modifiers.addAll(mapModifiers(ktModifierList, emptyList(), emptyList(), data));
         }
 
         if (constructor.getConstructorKeyword() != null) {
@@ -1917,7 +1913,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     private J.MethodDeclaration visitNamedFunction0(KtNamedFunction function, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
-        List<J.Modifier> modifiers = mapModifiers(function.getModifierList());
+        List<J.Annotation> lastAnnotations = new ArrayList<>();
+        List<J.Modifier> modifiers = mapModifiers(function.getModifierList(), leadingAnnotations, lastAnnotations, data);
         J.TypeParameters typeParameters = null;
         TypeTree returnTypeExpression = null;
 
@@ -2114,8 +2111,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<J.Modifier> modifiers = new ArrayList<>();
 
         if (declaration.getModifierList() != null) {
-            modifiers.addAll(mapModifiers(declaration.getModifierList()));
+            modifiers.addAll(mapModifiers(declaration.getModifierList(), emptyList(), emptyList(), data));
         }
+
         modifiers.add(buildFinalModifier());
 
         if (!declaration.getAnnotationEntries().isEmpty()) {
@@ -2236,7 +2234,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitProperty(KtProperty property, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
-        List<J.Modifier> modifiers = mapModifiers(property.getModifierList());
+        List<J.Annotation> lastAnnotations = new ArrayList<>();
+        List<J.Modifier> modifiers = mapModifiers(property.getModifierList(), leadingAnnotations, lastAnnotations, data);
         TypeTree typeExpression = null;
         List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = new ArrayList<>();
         J.MethodDeclaration getter = null;
@@ -2356,21 +2355,32 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     }
 
-    private List<J.Modifier> mapModifiers(@Nullable KtModifierList modifierList) {
+    private List<J.Modifier> mapModifiers(@Nullable KtModifierList modifierList,
+                                          @NonNull List<J.Annotation> leadingAnnotations,
+                                          @NonNull List<J.Annotation> lastAnnotations,
+                                          ExecutionContext data) {
         ArrayList<J.Modifier> modifiers = new ArrayList<>();
         if (modifierList == null) {
             return modifiers;
         }
 
         List<J.Annotation> annotations = new ArrayList<>();
-        for (PsiElement child = PsiTreeUtil.firstChild(modifierList); child != null; child = child.getNextSibling()) {
+
+        // don't use iterator of `PsiTreeUtil.firstChild` and `getNextSibling`, since it could skip one layer , example test "paramAnnotation"
+        PsiElement[] children = modifierList.getChildren();
+
+        for (PsiElement child : children) {
             if (child instanceof LeafPsiElement && child.getNode().getElementType() instanceof KtModifierKeywordToken) {
                 // TODO: fix leading annotations and modifier annotations.
                 modifiers.add(mapModifier(child, annotations));
             } else if (child instanceof KtAnnotationEntry) {
-                System.out.println();
+                KtAnnotationEntry ktAnnotationEntry = (KtAnnotationEntry) child;
+                leadingAnnotations.add((J.Annotation) ktAnnotationEntry.accept(this, data));
             }
         }
+
+        // TODO. handle lastAnnotations
+
         return modifiers;
     }
 
