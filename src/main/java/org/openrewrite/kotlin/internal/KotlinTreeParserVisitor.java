@@ -64,6 +64,7 @@ import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.style.NamedStyles;
 
+import java.lang.annotation.Annotation;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
@@ -1700,9 +1701,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<KtDestructuringDeclarationEntry> entries = multiDeclaration.getEntries();
         for (int i = 0; i < entries.size(); i++) {
             KtDestructuringDeclarationEntry entry = entries.get(i);
+            Space beforeEntry = prefix(entry);
+            List<J.Annotation> annotations = new ArrayList<>();
 
             if (entry.getModifierList() != null) {
-                throw new UnsupportedOperationException("TODO");
+                mapModifiers(entry.getModifierList(), annotations, emptyList(), data);
+                if (!annotations.isEmpty()) {
+                    annotations= ListUtils.mapFirst(annotations, anno -> anno.withPrefix(beforeEntry));
+                }
             }
 
             JavaType.Variable vt = variableType(entry);
@@ -1711,7 +1717,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 throw new UnsupportedOperationException();
             }
 
-            J.Identifier nameVar = createIdentifier(entry.getName(), prefix(entry), vt != null ? vt.getType() : null, vt);
+            J.Identifier nameVar = createIdentifier(entry.getNameIdentifier(), vt != null ? vt.getType() : null, vt);
+            if (!annotations.isEmpty()) {
+                nameVar = nameVar.withAnnotations(annotations);
+            } else {
+                nameVar = nameVar.withPrefix(beforeEntry);
+            }
+
             J.VariableDeclarations.NamedVariable namedVariable = new J.VariableDeclarations.NamedVariable(
                     randomId(),
                     Space.EMPTY,
@@ -2716,6 +2728,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     /*====================================================================
      * Other helper methods
      * ====================================================================*/
+    private J.Identifier createIdentifier(PsiElement name, @Nullable JavaType type, @Nullable JavaType.Variable fieldType) {
+        return createIdentifier(name.getNode().getText(), prefix(name), type, fieldType);
+    }
+
     private J.Identifier createIdentifier(PsiElement name, @Nullable JavaType type) {
         return createIdentifier(name.getNode().getText(), prefix(name), type);
     }

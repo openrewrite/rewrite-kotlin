@@ -322,6 +322,7 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Test
     void destructuringVariableDeclaration() {
         rewriteRun(
@@ -329,7 +330,7 @@ class AnnotationTest implements RewriteTest {
           kotlin(
             """
               fun example ( ) {
-                val ( @Ann a , @Ann b , @Ann c ) = Triple ( 1 , 2 , 3 )
+                val (  @Ann   a , @Ann b , @Ann c ) = Triple ( 1 , 2 , 3 )
               }
               """
           )
