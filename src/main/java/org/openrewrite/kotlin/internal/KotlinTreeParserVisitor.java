@@ -553,7 +553,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         JContainer<Expression> args;
 
         if (!superTypeCallEntry.getValueArguments().isEmpty()) {
-            throw new UnsupportedOperationException("TODO");
+            List<JRightPadded<Expression>> expressions = new ArrayList<>(superTypeCallEntry.getValueArguments().size());
+
+            for (ValueArgument valueArgument : superTypeCallEntry.getValueArguments()) {
+                if (!(valueArgument instanceof KtValueArgument)) {
+                    throw new UnsupportedOperationException("TODO");
+                }
+
+                KtValueArgument ktValueArgument = (KtValueArgument) valueArgument;
+                expressions.add(padRight(convertToExpression(ktValueArgument.accept(this, data)), suffix(ktValueArgument)));
+            }
+
+            args = JContainer.build(prefix(superTypeCallEntry.getValueArgumentList()), expressions, Markers.EMPTY);
         } else {
             KtValueArgumentList ktArgList = superTypeCallEntry.getValueArgumentList();
             args = JContainer.build(
@@ -1303,7 +1314,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        J j = argument.getArgumentExpression().accept(this, data);
+        J j = argument.getArgumentExpression().accept(this, data).withPrefix(prefix(argument));
         return argument instanceof KtLambdaArgument ? j.withMarkers(j.getMarkers().addIfAbsent(new TrailingLambdaArgument(randomId()))) : j;
     }
 
@@ -1741,23 +1752,24 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             // further, any trailing whitespace is expected to be saved as the `BLOCK_END` location on the block
 
             for (KtEnumEntry ktEnumEntry : classBody.getEnumEntries()) {
-                JRightPadded<J.EnumValue> rp = padRight((J.EnumValue) ktEnumEntry.accept(this, data), suffix(ktEnumEntry.getIdentifyingElement()));
+                JRightPadded<J.EnumValue> rp = padRight((J.EnumValue) ktEnumEntry.accept(this, data), Space.EMPTY);
                 List<PsiElement> children = getAllChildren(ktEnumEntry);
                 IElementType lastElementType = children.get(children.size() - 1).getNode().getElementType();
 
-                if (lastElementType != KtTokens.COMMA) {
-                    if (lastElementType == KtTokens.SEMICOLON) {
-                        terminatedWithSemicolon = true;
-                    }
+                if (lastElementType == KtTokens.SEMICOLON) {
+                    terminatedWithSemicolon = true;
+                    rp = rp.withAfter(prefix(children.get(children.size() - 1)));
+                }
 
-                    PsiElement comma = PsiTreeUtil.findSiblingForward(ktEnumEntry.getIdentifyingElement(), KtTokens.COMMA, null);
-                    if (comma != null) {
+                PsiElement comma = PsiTreeUtil.findSiblingForward(ktEnumEntry.getIdentifyingElement(), KtTokens.COMMA, null);
+                if (comma != null) {
+                    rp = rp.withAfter(prefix(comma));
+                    if (lastElementType != KtTokens.COMMA) {
                         Space afterComma = suffix(comma);
                         rp = rp.withMarkers(rp.getMarkers().addIfAbsent(new TrailingComma(randomId(), afterComma)));
                     }
-                } else {
-                    rp = rp.withAfter(prefix(children.get(children.size() - 1)));
                 }
+
                 enumValues.add(rp);
             }
 

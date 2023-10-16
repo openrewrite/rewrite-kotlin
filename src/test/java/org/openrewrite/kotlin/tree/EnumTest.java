@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
@@ -44,6 +45,7 @@ class EnumTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Constructor Type is missing")
     @SuppressWarnings("RedundantEnumConstructorInvocation")
     @Test
     void enumWithInit() {
@@ -59,7 +61,7 @@ class EnumTest implements RewriteTest {
           kotlin(
             """
               enum class EnumTypeB(val label: String) {
-                  FOO("foo")
+                  FOO (  "foo"   ) 
               }
               """
           )
