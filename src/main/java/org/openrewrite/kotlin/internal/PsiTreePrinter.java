@@ -320,6 +320,7 @@ public class PsiTreePrinter {
                 || tree instanceof K.KString
                 || tree instanceof K.KString.Value
                 || tree instanceof K.ExpressionStatement
+                || tree instanceof K.ListLiteral
                 || tree instanceof J.Package
         ) {
             return "";

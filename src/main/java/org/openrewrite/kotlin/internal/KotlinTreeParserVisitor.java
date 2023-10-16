@@ -327,9 +327,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             elements = JContainer.build(singletonList(
                     padRight(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY), prefix(expression.getRightBracket()))));
         } else {
-            List<JRightPadded<Expression>> rps = expression.getInnerExpressions().stream()
-                    .map(exp -> padRight((Expression) convertToExpression(exp.accept(this, data)), suffix(exp)))
-                    .collect(Collectors.toList());
+            List<JRightPadded<Expression>> rps = new ArrayList<>(expression.getInnerExpressions().size());
+            for (KtExpression ktExpression : expression.getInnerExpressions()) {
+                rps.add(padRight(convertToExpression(ktExpression.accept(this, data)), suffix(ktExpression)));
+            }
+
+            if (expression.getTrailingComma() != null) {
+                rps = ListUtils.mapLast(rps, rp -> rp.withMarkers(rp.getMarkers()
+                        .addIfAbsent(new TrailingComma(randomId(), suffix(expression.getTrailingComma())))));
+            }
+
             elements = JContainer.build(Space.EMPTY, rps, Markers.EMPTY);
         }
 

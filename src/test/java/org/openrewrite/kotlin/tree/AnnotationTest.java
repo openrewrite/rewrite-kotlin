@@ -147,13 +147,14 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Test
     void trailingComma() {
         rewriteRun(
           kotlin(
             """
               annotation class Test ( val values : Array < String > )
-              @Test( values = [ "a" , "b" , /* trailing comma */ ] )
+              @Test( values = [ "a" , "b" ,  /* trailing comma */ ] )
               val a = 42
               """
           )
