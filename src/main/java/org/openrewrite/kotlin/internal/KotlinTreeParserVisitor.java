@@ -2334,13 +2334,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             isSetterFirst = property.getSetter().getTextRange().getStartOffset() < property.getGetter().getTextRange().getStartOffset();
         }
 
-        if (!property.getAnnotationEntries().isEmpty()) {
-            for (KtAnnotationEntry ktAnnotationEntry : property.getAnnotationEntries()) {
-                J.Annotation annotation = (J.Annotation) ktAnnotationEntry.accept(this, data);
-                leadingAnnotations.add(annotation);
-            }
-        }
-
         J.VariableDeclarations variableDeclarations = new J.VariableDeclarations(
                 Tree.randomId(),
                 prefix(property), // overlaps with right-padding of previous statement

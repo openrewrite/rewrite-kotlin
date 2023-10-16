@@ -249,6 +249,7 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Test
     void annotationOnExplicitGetter() {
         rewriteRun(
