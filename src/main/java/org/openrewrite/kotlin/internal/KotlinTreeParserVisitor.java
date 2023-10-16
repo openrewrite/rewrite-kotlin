@@ -444,6 +444,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         J.Identifier name = createIdentifier(enumEntry.getNameIdentifier(), type(enumEntry));
         J.NewClass initializer = null;
 
+        if (enumEntry.getInitializerList() != null) {
+            initializer = (J.NewClass) enumEntry.getInitializerList().accept(this, data);
+        }
+
         return new J.EnumValue(
                 randomId(),
                 prefix(enumEntry),
@@ -532,7 +536,45 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitInitializerList(KtInitializerList list, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        List<KtSuperTypeListEntry> entries = list.getInitializers();
+        if (entries.size() > 1) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        if (!(entries.get(0) instanceof KtSuperTypeCallEntry)) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        TypeTree clazz = null;
+        Markers markers = Markers.EMPTY.addIfAbsent(new Implicit(randomId()));
+
+        KtSuperTypeCallEntry superTypeCallEntry = (KtSuperTypeCallEntry) entries.get(0);
+        J.Identifier typeTree = (J.Identifier) superTypeCallEntry.getCalleeExpression().accept(this, data);
+        JContainer<Expression> args;
+
+        if (!superTypeCallEntry.getValueArguments().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
+        } else {
+            KtValueArgumentList ktArgList = superTypeCallEntry.getValueArgumentList();
+            args = JContainer.build(
+                    prefix(ktArgList),
+                    singletonList(padRight(new J.Empty(randomId(), prefix(ktArgList.getRightParenthesis()), Markers.EMPTY), Space.EMPTY)
+                    ),
+                    markers
+            );
+        }
+
+        return new J.NewClass(
+                randomId(),
+                prefix(list),
+                markers,
+                null,
+                Space.EMPTY,
+                clazz,
+                args,
+                null,
+                null
+        );
     }
 
     @Override
@@ -1713,6 +1755,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         Space afterComma = suffix(comma);
                         rp = rp.withMarkers(rp.getMarkers().addIfAbsent(new TrailingComma(randomId(), afterComma)));
                     }
+                } else {
+                    rp = rp.withAfter(prefix(children.get(children.size() - 1)));
                 }
                 enumValues.add(rp);
             }
