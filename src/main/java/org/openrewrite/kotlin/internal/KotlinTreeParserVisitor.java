@@ -1699,7 +1699,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             // further, any trailing whitespace is expected to be saved as the `BLOCK_END` location on the block
 
             for (KtEnumEntry ktEnumEntry : classBody.getEnumEntries()) {
-                enumValues.add(padRight((J.EnumValue) ktEnumEntry.accept(this, data), suffix(ktEnumEntry.getIdentifyingElement())));
+                JRightPadded<J.EnumValue> rp = padRight((J.EnumValue) ktEnumEntry.accept(this, data), suffix(ktEnumEntry.getIdentifyingElement()));
+                List<PsiElement> children = getAllChildren(ktEnumEntry);
+
+                if (children.get(children.size() - 1).getNode().getElementType() != KtTokens.COMMA) {
+                    PsiElement comma = PsiTreeUtil.findSiblingForward(ktEnumEntry.getIdentifyingElement(), KtTokens.COMMA, null);
+                    Space afterComma = suffix(comma);
+                    rp = rp.withMarkers(rp.getMarkers().addIfAbsent(new TrailingComma(randomId(), afterComma)));
+                }
+                enumValues.add(rp);
             }
 
             JRightPadded<Statement> enumSet = padRight(
@@ -3022,12 +3030,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Nullable
     private PsiElement prev(PsiElement node) {
-        return PsiTreeUtil.prevLeaf(node);
+        return node.getPrevSibling();
     }
 
     @Nullable
     private PsiElement next(PsiElement node) {
-        return PsiTreeUtil.nextLeaf(node);
+        return node.getNextSibling();
     }
 
     private J.Modifier buildFinalModifier() {

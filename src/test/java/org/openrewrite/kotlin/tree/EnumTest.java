@@ -102,8 +102,8 @@ class EnumTest implements RewriteTest {
             """
               enum class A {
                   B , C ,
-                  D , // trailing comma
-              }
+                  D ,  // trailing comma 
+                 }
               """
           )
         );
