@@ -1701,11 +1701,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             for (KtEnumEntry ktEnumEntry : classBody.getEnumEntries()) {
                 JRightPadded<J.EnumValue> rp = padRight((J.EnumValue) ktEnumEntry.accept(this, data), suffix(ktEnumEntry.getIdentifyingElement()));
                 List<PsiElement> children = getAllChildren(ktEnumEntry);
+                IElementType lastElementType = children.get(children.size() - 1).getNode().getElementType();
 
-                if (children.get(children.size() - 1).getNode().getElementType() != KtTokens.COMMA) {
+                if (lastElementType != KtTokens.COMMA) {
+                    if (lastElementType == KtTokens.SEMICOLON) {
+                        terminatedWithSemicolon = true;
+                    }
+
                     PsiElement comma = PsiTreeUtil.findSiblingForward(ktEnumEntry.getIdentifyingElement(), KtTokens.COMMA, null);
-                    Space afterComma = suffix(comma);
-                    rp = rp.withMarkers(rp.getMarkers().addIfAbsent(new TrailingComma(randomId(), afterComma)));
+                    if (comma != null) {
+                        Space afterComma = suffix(comma);
+                        rp = rp.withMarkers(rp.getMarkers().addIfAbsent(new TrailingComma(randomId(), afterComma)));
+                    }
                 }
                 enumValues.add(rp);
             }
