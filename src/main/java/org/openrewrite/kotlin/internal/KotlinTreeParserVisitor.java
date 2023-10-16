@@ -448,6 +448,25 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             initializer = (J.NewClass) enumEntry.getInitializerList().accept(this, data);
         }
 
+        if (enumEntry.getBody() != null) {
+            Markers markers = Markers.EMPTY.addIfAbsent(new Implicit(randomId()));
+            JContainer<Expression> args = JContainer.empty();
+            args = args.withMarkers(Markers.build(singletonList(new OmitParentheses(randomId()))));
+            J.Block body = (J.Block) enumEntry.getBody().accept(this, data).withPrefix(Space.EMPTY);
+
+            initializer = new J.NewClass(
+                    randomId(),
+                    prefix(enumEntry.getBody()),
+                    markers,
+                    null,
+                    Space.EMPTY,
+                    null,
+                    args,
+                    body,
+                    null
+            );
+        }
+
         return new J.EnumValue(
                 randomId(),
                 prefix(enumEntry),
@@ -996,7 +1015,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitSuperTypeEntry(KtSuperTypeEntry specifier, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        return specifier.getTypeReference().accept(this, data).withPrefix(prefix(specifier));
     }
 
     @Override
@@ -1679,7 +1698,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (!klass.getSuperTypeListEntries().isEmpty()) {
             List<JRightPadded<TypeTree>> superTypes = new ArrayList<>(klass.getSuperTypeListEntries().size());
 
-            for (KtSuperTypeListEntry superTypeListEntry : klass.getSuperTypeListEntries()) {
+            for (int i = 0 ; i < klass.getSuperTypeListEntries().size(); i++) {
+                KtSuperTypeListEntry superTypeListEntry = klass.getSuperTypeListEntries().get(i);
+
                 if (superTypeListEntry instanceof KtSuperTypeCallEntry) {
                     KtSuperTypeCallEntry superTypeCallEntry = (KtSuperTypeCallEntry) superTypeListEntry;
                     J.Identifier typeTree = (J.Identifier) superTypeCallEntry.getCalleeExpression().accept(this, data);
@@ -1705,6 +1726,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                             args
                     );
                     superTypes.add(padRight(delegationCall, Space.EMPTY));
+                } else if (superTypeListEntry instanceof KtSuperTypeEntry) {
+                    TypeTree typeTree = (TypeTree) superTypeListEntry.accept(this, data);
+
+                    if (i == 0) {
+                        typeTree = typeTree.withPrefix(prefix(klass.getSuperTypeList()));
+                    }
+
+                    superTypes.add(padRight(typeTree, suffix(superTypeListEntry)));
                 } else {
                     throw new UnsupportedOperationException("TODO");
                 }

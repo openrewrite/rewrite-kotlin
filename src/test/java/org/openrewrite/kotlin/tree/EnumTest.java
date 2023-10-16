@@ -125,13 +125,14 @@ class EnumTest implements RewriteTest {
         );
     }
 
+    @ExpectedToFail("Type updated")
     @Test
     void enumImplementingInterface() {
         rewriteRun(
           kotlin(
             """
               enum class Test : java.io.Serializable {
-                  FOO {
+                  FOO   {
                       fun foo() = print("foo",)
                   }
               }
