@@ -142,7 +142,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitAnnotatedExpression(KtAnnotatedExpression expression, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        List<KtAnnotationEntry> ktAnnotations = expression.getAnnotationEntries();
+        List<J.Annotation> annotations = new ArrayList<>(ktAnnotations.size());
+        for (KtAnnotationEntry ktAnnotation : ktAnnotations) {
+            annotations.add((J.Annotation) ktAnnotation.accept(this, data));
+        }
+
+        return new K.AnnotatedExpression(
+                randomId(),
+                Markers.EMPTY,
+                annotations,
+                convertToExpression(expression.getBaseExpression().accept(this, data))
+        );
     }
 
     @Override
@@ -641,7 +652,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 name.getFieldType()
         );
 
-        vars.add(padRight(namedVariable, suffix(parameter)));
+        vars.add(padRight(namedVariable, Space.EMPTY));
 
         return new J.VariableDeclarations(
                 randomId(),
