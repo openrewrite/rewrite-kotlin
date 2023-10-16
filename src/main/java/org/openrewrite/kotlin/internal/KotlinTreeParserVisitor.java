@@ -1773,6 +1773,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitClassBody(KtClassBody classBody, ExecutionContext data) {
         List<JRightPadded<Statement>> list = new ArrayList<>();
 
+        Space after = prefix(classBody.getRBrace());
+
         if (!classBody.getEnumEntries().isEmpty()) {
             List<JRightPadded<J.EnumValue>> enumValues = new ArrayList(classBody.getEnumEntries().size());
             boolean terminatedWithSemicolon = false;
@@ -1785,11 +1787,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 List<PsiElement> children = getAllChildren(ktEnumEntry);
                 IElementType lastElementType = children.get(children.size() - 1).getNode().getElementType();
 
-                if (lastElementType == KtTokens.SEMICOLON) {
-                    terminatedWithSemicolon = true;
-                    rp = rp.withAfter(prefix(children.get(children.size() - 1)));
-                }
-
                 PsiElement comma = PsiTreeUtil.findSiblingForward(ktEnumEntry.getIdentifyingElement(), KtTokens.COMMA, null);
                 if (comma != null) {
                     rp = rp.withAfter(prefix(comma));
@@ -1797,6 +1794,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         Space afterComma = suffix(comma);
                         rp = rp.withMarkers(rp.getMarkers().addIfAbsent(new TrailingComma(randomId(), afterComma)));
                     }
+                } else {
+                    rp = rp.withAfter(suffix(ktEnumEntry.getIdentifyingElement()));
+                }
+
+                PsiElement semicolon = PsiTreeUtil.findSiblingForward(ktEnumEntry.getIdentifyingElement(), KtTokens.SEMICOLON, null);
+                if (semicolon != null) {
+                    terminatedWithSemicolon = true;
+                    after = merge(suffix(semicolon), after);
                 }
 
                 enumValues.add(rp);
@@ -1832,7 +1837,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 Markers.EMPTY,
                 padRight(false, Space.EMPTY),
                 list,
-                prefix(classBody.getRBrace())
+                after
         );
     }
 
@@ -3132,6 +3137,22 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Nullable
     private PsiElement next(PsiElement node) {
         return node.getNextSibling();
+    }
+
+    private Space merge(Space s1, Space s2) {
+        if (s1.isEmpty()) {
+            return s2;
+        } else if (s2.isEmpty()) {
+            return s1;
+        }
+
+        if (s1.getComments().isEmpty()) {
+            return Space.build(s1.getWhitespace() + s2.getWhitespace(), s2.getComments());
+        } else {
+            List<Comment> newComments = ListUtils.mapLast(s1.getComments(), c -> c.withSuffix(c.getSuffix() + s2.getWhitespace()));
+            newComments.addAll(s2.getComments());
+            return Space.build(s1.getWhitespace(), newComments);
+        }
     }
 
     private J.Modifier buildFinalModifier() {
