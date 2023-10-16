@@ -436,7 +436,22 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitEnumEntry(KtEnumEntry enumEntry, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        List<J.Annotation> annotations = new ArrayList<>();
+        if (!enumEntry.getAnnotationEntries().isEmpty()) {
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        J.Identifier name = createIdentifier(enumEntry.getNameIdentifier(), type(enumEntry));
+        J.NewClass initializer = null;
+
+        return new J.EnumValue(
+                randomId(),
+                prefix(enumEntry),
+                Markers.EMPTY,
+                annotations,
+                name,
+                initializer
+        );
     }
 
     @Override
@@ -1675,12 +1690,38 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitClassBody(KtClassBody classBody, ExecutionContext data) {
         List<JRightPadded<Statement>> list = new ArrayList<>();
-        for (KtDeclaration d : classBody.getDeclarations()) {
-            J j = d.accept(this, data).withPrefix(prefix(d));
-            Statement statement = convertToStatement(j);
-            JRightPadded<Statement> build = maybeSemicolon(statement, d);
-            list.add(build);
+
+        if (!classBody.getEnumEntries().isEmpty()) {
+            List<JRightPadded<J.EnumValue>> enumValues = new ArrayList(classBody.getEnumEntries().size());
+            boolean terminatedWithSemicolon = false;
+
+            // TODO: special whitespace handling for last enum constant, as it can have a trailing comma, semicolon, both, or neither...
+            // further, any trailing whitespace is expected to be saved as the `BLOCK_END` location on the block
+
+            for (KtEnumEntry ktEnumEntry : classBody.getEnumEntries()) {
+                enumValues.add(padRight((J.EnumValue) ktEnumEntry.accept(this, data), suffix(ktEnumEntry.getIdentifyingElement())));
+            }
+
+            JRightPadded<Statement> enumSet = padRight(
+                    new J.EnumValueSet(
+                            randomId(),
+                            Space.EMPTY,
+                            Markers.EMPTY,
+                            enumValues,
+                            terminatedWithSemicolon
+                    ),
+                    Space.EMPTY
+            );
+            list.add(enumSet);
+        } else {
+            for (KtDeclaration d : classBody.getDeclarations()) {
+                J j = d.accept(this, data).withPrefix(prefix(d));
+                Statement statement = convertToStatement(j);
+                JRightPadded<Statement> build = maybeSemicolon(statement, d);
+                list.add(build);
+            }
         }
+
         return new J.Block(
                 randomId(),
                 prefix(classBody),
