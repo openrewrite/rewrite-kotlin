@@ -1813,13 +1813,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     Space.EMPTY
             );
             list.add(enumSet);
-        } else {
-            for (KtDeclaration d : classBody.getDeclarations()) {
-                J j = d.accept(this, data).withPrefix(prefix(d));
-                Statement statement = convertToStatement(j);
-                JRightPadded<Statement> build = maybeSemicolon(statement, d);
-                list.add(build);
+        }
+
+        for (KtDeclaration d : classBody.getDeclarations()) {
+            if (d instanceof KtEnumEntry) {
+                continue;
             }
+
+            J j = d.accept(this, data).withPrefix(prefix(d));
+            Statement statement = convertToStatement(j);
+            JRightPadded<Statement> build = maybeSemicolon(statement, d);
+            list.add(build);
         }
 
         return new J.Block(
