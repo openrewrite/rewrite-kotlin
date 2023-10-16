@@ -22,6 +22,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.marker.OmitBraces;
+import org.openrewrite.kotlin.marker.PrimaryConstructor;
 import org.openrewrite.kotlin.marker.SingleExpressionBlock;
 import org.openrewrite.kotlin.style.BlankLinesStyle;
 import org.openrewrite.kotlin.tree.K;
@@ -283,6 +284,7 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
         J.Block b = super.visitBlock(block, p);
         b = b.withEnd(keepMaximumLines(b.getEnd(), style.getKeepMaximum().getBeforeEndOfBlock()));
 
+        J parent = getCursor().getParentTreeCursor().getValue();
         AtomicBoolean previousWithBody = new AtomicBoolean();
         List<JRightPadded<Statement>> blockStatements = b.getPadding().getStatements();
         blockStatements = ListUtils.map(blockStatements, (index, padded) -> {
@@ -302,14 +304,14 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
                     m = minimumLines(m, style.getMinimum().getBeforeDeclarationWithCommentOrAnnotation());
                 }
 
-                if (!m.getLeadingAnnotations().isEmpty()) {
+                if (!m.getLeadingAnnotations().isEmpty() && !m.getMarkers().findFirst(PrimaryConstructor.class).isPresent()) {
                     m = minimumLines(m, style.getMinimum().getBeforeDeclarationWithCommentOrAnnotation());
                 }
                 statement = statement instanceof J.MethodDeclaration ? m : ((K.MethodDeclaration) statement).withMethodDeclaration(m);
             } else if (statement instanceof J.VariableDeclarations) {
                 J.VariableDeclarations v = (J.VariableDeclarations) statement;
 
-                if (!v.getLeadingAnnotations().isEmpty()) {
+                if (!v.getLeadingAnnotations().isEmpty() && (parent instanceof J.ClassDeclaration || parent instanceof J.NewClass && index > 0)) {
                     statement = minimumLines(v, style.getMinimum().getBeforeDeclarationWithCommentOrAnnotation());
                 }
             }

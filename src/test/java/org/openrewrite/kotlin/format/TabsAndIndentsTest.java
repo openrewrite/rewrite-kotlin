@@ -309,8 +309,8 @@ class TabsAndIndentsTest implements RewriteTest {
             """
               class Test {
                   @Suppress(
-                          "unchecked",
-                          "ALL"
+                      "unchecked",
+                      "ALL"
                   )
                   val id: String = "1"
               }
@@ -1075,7 +1075,7 @@ class TabsAndIndentsTest implements RewriteTest {
                             
               class Test {
                   @Suppress(
-                          "unchecked"
+                      "unchecked"
                   )
                   @Anno
                   var id: Int = 0
@@ -1520,8 +1520,8 @@ class TabsAndIndentsTest implements RewriteTest {
 
               class Test {
                   @Throws(
-                          IOException::class,
-                          Exception::class)
+                      IOException::class,
+                      Exception::class)
                   fun method() {
                   }
 
@@ -2232,6 +2232,19 @@ class TabsAndIndentsTest implements RewriteTest {
               """
           )
         );
+        rewriteRun(
+          wrappingAndBraces(style -> style.withElvisExpressions(style.getElvisExpressions().withUseContinuationIndent(true))),
+          kotlin(
+            """
+              fun f(): String? {
+                  val values = (listOf("") as List<String>?)
+                      ?.map { it }
+                          ?: return null
+                  return values.joinToString("")
+              }
+              """
+          )
+        );
     }
 
     @Test
@@ -2300,6 +2313,37 @@ class TabsAndIndentsTest implements RewriteTest {
               enum class T {
                   @Suppress
                   A
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.io.Closeable
+              
+              data class PrinterInput(
+                  val buildDuration: Long,
+                  val taskDurations: Collection<Pair<String, Long>>,
+                  val maxWidth: Int,
+                  val showBars: Boolean,
+              )
+              
+              interface Printer : Closeable {
+              
+                  fun print(input: PrinterInput) {
+                      // find the maxes needed for formatting
+                      val (maxLabelLen, maxDuration, maxFormattedDurationLen) = input.taskDurations.fold(
+                          Triple(-1, -1L, -1)
+                      ) { acc, elem ->
+                          val maxDuration = maxOf(acc.second, elem.second)
+                          Triple(maxOf(acc.first, elem.first.length), maxDuration, maxOf(acc.third, maxDuration.toInt()))
+                      }
+                  }
               }
               """
           )
