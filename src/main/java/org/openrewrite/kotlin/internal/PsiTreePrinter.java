@@ -53,6 +53,9 @@ public class PsiTreePrinter {
     private static final String CONTINUE_PREFIX = "----";
     private static final String UNVISITED_PREFIX = "#";
 
+    // Set to true to print types and verify, otherwise just verify the parse to print idempotent.
+    private final static boolean printTypes = false;
+
     private final List<StringBuilder> outputLines;
 
     protected PsiTreePrinter() {
@@ -239,7 +242,7 @@ public class PsiTreePrinter {
             }
 
             String type = printType(tree);
-            if (!type.isEmpty()) {
+            if (printTypes && !type.isEmpty()) {
                 line.append(" | TYPE = ").append(type);
             }
 
