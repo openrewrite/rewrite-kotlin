@@ -17,7 +17,6 @@ package org.openrewrite.kotlin.tree;
 
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.KotlinParser;
@@ -114,7 +113,6 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Test
     void arrayArgument() {
         rewriteRun(
@@ -147,7 +145,6 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Test
     void trailingComma() {
         rewriteRun(
@@ -250,7 +247,6 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Test
     void annotationOnExplicitGetter() {
         rewriteRun(
@@ -324,7 +320,6 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Test
     void destructuringVariableDeclaration() {
         rewriteRun(

@@ -18,7 +18,6 @@ package org.openrewrite.kotlin.format;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
@@ -622,7 +621,6 @@ class SpacesTest implements RewriteTest {
             );
         }
 
-        @ExpectedToFail("Revisit after PSI-based parser is ready")
         @Test
         void aroundOperatorsAdditiveFalse() {
             rewriteRun(
@@ -644,7 +642,6 @@ class SpacesTest implements RewriteTest {
             );
         }
 
-        @ExpectedToFail("Revisit after PSI-based parser is ready")
         @Test
         void aroundOperatorsAdditiveTrue() {
             rewriteRun(

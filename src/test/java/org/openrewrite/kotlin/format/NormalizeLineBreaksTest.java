@@ -93,7 +93,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Issue("https://github.com/openrewrite/rewrite/issues/980")
     @Test
     void doNotChangeWindowsJavadoc() {
@@ -103,7 +102,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Issue("https://github.com/openrewrite/rewrite/issues/980")
     @Test
     void doNotChangeLinuxJavadoc() {
@@ -113,7 +111,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Issue("https://github.com/openrewrite/rewrite/issues/980")
     @Test
     void windowsToLinuxJavadoc() {
@@ -123,7 +120,6 @@ class NormalizeLineBreaksTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Issue("https://github.com/openrewrite/rewrite/issues/980")
     @Test
     void linuxToWindowsJavadoc() {

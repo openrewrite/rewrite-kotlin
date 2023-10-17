@@ -45,7 +45,6 @@ class EnumTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Constructor Type is missing")
     @SuppressWarnings("RedundantEnumConstructorInvocation")
     @Test
     void enumWithInit() {
@@ -125,7 +124,6 @@ class EnumTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Test
     void enumImplementingInterface() {
         rewriteRun(

@@ -969,7 +969,6 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Test
     void noIndexOutOfBoundsUsingSpaces() {
         rewriteRun(
@@ -2002,7 +2001,6 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Issue("https://github.com/openrewrite/rewrite/issues/1076")
     @Test
     void javaDocsWithMultipleLeadingAsterisks() {

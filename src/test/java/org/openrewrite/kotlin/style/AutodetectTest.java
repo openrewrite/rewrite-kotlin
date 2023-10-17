@@ -273,7 +273,6 @@ class AutodetectTest implements RewriteTest {
         assertThat(tabsAndIndents.getContinuationIndent()).isEqualTo(8);
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Test
     void defaultTabIndentSizeToOne() {
         var cus = kp().parse(

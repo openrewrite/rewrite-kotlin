@@ -16,7 +16,6 @@
 package org.openrewrite.kotlin.format;
 
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.Tree;
 import org.openrewrite.kotlin.KotlinParser;
@@ -94,7 +93,6 @@ class NormalizeTabsOrSpacesTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Test
     void tabsReplacedWithSpaces() {
         rewriteRun(
@@ -152,7 +150,6 @@ class NormalizeTabsOrSpacesTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Issue("https://github.com/openrewrite/rewrite/issues/929")
     @Test
     void doNotReplaceSpacesBeforeAsterisks() {
@@ -176,7 +173,6 @@ class NormalizeTabsOrSpacesTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Issue("https://github.com/openrewrite/rewrite/issues/928")
     @Test
     void normalizeJavaDocSuffix() {

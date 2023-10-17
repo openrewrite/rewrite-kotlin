@@ -15,9 +15,7 @@
  */
 package org.openrewrite.kotlin.format;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -94,7 +92,6 @@ class MinimumViableSpacingTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Test
     void method() {
         rewriteRun(
@@ -365,7 +362,6 @@ class MinimumViableSpacingTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Revisit after PSI-based parser is ready")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/322")
     void statementWithCommentInPrefix() {

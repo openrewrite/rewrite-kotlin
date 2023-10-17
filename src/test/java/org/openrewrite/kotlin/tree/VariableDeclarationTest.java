@@ -51,7 +51,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Improved to present !in to a KBinary")
     @Test
     void deSugar() {
         rewriteRun(
@@ -62,7 +61,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Improved to present !in to a KBinary")
     @Test
     void yikes() {
         rewriteRun(
@@ -259,7 +257,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Improved type, condition has a owner now")
     @Test
     void ifElseExpression() {
         rewriteRun(
@@ -271,7 +268,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Owner type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/58")
     @Test
     void destructuringVariableDeclaration() {
@@ -286,7 +282,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("optimized space location to be outer")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/76")
     @Test
     void delegationByLazy() {
@@ -301,7 +296,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("optimized space location to be outer")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/264")
     @Test
     void delegationByLazyWithType() {
@@ -316,7 +310,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Test
     void delegatedProperty() {
         rewriteRun(
@@ -346,7 +339,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
     @Test
     void provideDelegateBinaryType() {
@@ -367,7 +359,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
     @Test
     void provideDelegateExtension() {
@@ -413,7 +404,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Improved type, See undefined owner from Fir basesd")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/84")
     @Test
     void varargArgumentExpression() {
@@ -460,7 +450,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type improved, field has a String type now")
     @SuppressWarnings("RedundantSetter")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
@@ -477,7 +466,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
     void getterBeforeSetter() {
@@ -496,7 +484,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/93")
     @Test
     void setterBeforeGetter() {
@@ -515,7 +502,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/135")
     @Test
     void checkNonNull() {
@@ -561,7 +547,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Space after `object` moved to be a prefix of JBlock")
     @Test
     void anonymousObjectWithoutSupertype() {
         rewriteRun(
@@ -573,7 +558,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type updated")
     @Test
     void spaceBetweenEqualsInDestructuringDeclaration() {
         rewriteRun(
@@ -591,7 +575,6 @@ class VariableDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Type and LST updated")
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/286")
     @Test
     void unusedUnderScoreVariableInDestructuringDeclaration() {
