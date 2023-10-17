@@ -2164,11 +2164,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         } else {
             List<JRightPadded<Statement>> rps = new ArrayList<>();
             for (KtParameter param : ktParameters) {
-                rps.add(padRight(convertToStatement(param.accept(this, data)), Space.EMPTY));
+                rps.add(padRight(convertToStatement(param.accept(this, data)), suffix(param)));
             }
             params = JContainer.build(prefix(function.getValueParameterList()), rps, Markers.EMPTY);
         }
-
 
         if (function.getReceiverTypeReference() != null) {
             markers = markers.addIfAbsent(new Extension(randomId()));
