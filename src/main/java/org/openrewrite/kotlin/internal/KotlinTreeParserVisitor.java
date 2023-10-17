@@ -1779,31 +1779,34 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             List<JRightPadded<J.EnumValue>> enumValues = new ArrayList(classBody.getEnumEntries().size());
             boolean terminatedWithSemicolon = false;
 
-            // TODO: special whitespace handling for last enum constant, as it can have a trailing comma, semicolon, both, or neither...
-            // further, any trailing whitespace is expected to be saved as the `BLOCK_END` location on the block
-
-            for (KtEnumEntry ktEnumEntry : classBody.getEnumEntries()) {
-                JRightPadded<J.EnumValue> rp = padRight((J.EnumValue) ktEnumEntry.accept(this, data), Space.EMPTY);
-                List<PsiElement> children = getAllChildren(ktEnumEntry);
-                IElementType lastElementType = children.get(children.size() - 1).getNode().getElementType();
-
+            for (int i = 0 ; i < classBody.getEnumEntries().size(); i++) {
+                KtEnumEntry ktEnumEntry = classBody.getEnumEntries().get(i);
                 PsiElement comma = PsiTreeUtil.findSiblingForward(ktEnumEntry.getIdentifyingElement(), KtTokens.COMMA, null);
-                if (comma != null) {
-                    rp = rp.withAfter(prefix(comma));
-                    if (lastElementType != KtTokens.COMMA) {
+                PsiElement semicolon = PsiTreeUtil.findSiblingForward(ktEnumEntry.getIdentifyingElement(), KtTokens.SEMICOLON, null);
+                JRightPadded<J.EnumValue> rp = padRight((J.EnumValue) ktEnumEntry.accept(this, data), Space.EMPTY);
+
+                if (i == classBody.getEnumEntries().size() - 1) {
+                    List<PsiElement> allChildren = getAllChildren(ktEnumEntry);
+                    IElementType lastElementType = allChildren.get(allChildren.size() - 1).getNode().getElementType();
+
+                    if (comma != null) {
+                        rp = rp.withAfter(prefix(comma));
                         Space afterComma = suffix(comma);
                         rp = rp.withMarkers(rp.getMarkers().addIfAbsent(new TrailingComma(randomId(), afterComma)));
+                    } else {
+                        if (semicolon != null) {
+                            rp = rp.withAfter(prefix(semicolon));
+                        }
+                    }
+
+                    if (semicolon != null) {
+                        // rp = rp.withAfter(prefix(semicolon));
+                        terminatedWithSemicolon = true;
+                        after = merge(suffix(semicolon), after);
                     }
                 } else {
-                    rp = rp.withAfter(suffix(ktEnumEntry.getIdentifyingElement()));
+                    rp = rp.withAfter(prefix(comma));
                 }
-
-                PsiElement semicolon = PsiTreeUtil.findSiblingForward(ktEnumEntry.getIdentifyingElement(), KtTokens.SEMICOLON, null);
-                if (semicolon != null) {
-                    terminatedWithSemicolon = true;
-                    after = merge(suffix(semicolon), after);
-                }
-
                 enumValues.add(rp);
             }
 
