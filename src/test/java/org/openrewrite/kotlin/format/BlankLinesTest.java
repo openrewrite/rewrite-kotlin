@@ -17,7 +17,6 @@ package org.openrewrite.kotlin.format;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
 import org.openrewrite.kotlin.KotlinParser;

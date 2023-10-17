@@ -16,7 +16,6 @@
 package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.J;
