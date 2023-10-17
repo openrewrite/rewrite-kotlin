@@ -505,10 +505,6 @@ public interface K extends J {
         }
 
         public enum Type {
-            Plus,
-            Minus,
-            Div,
-            Mul,
             Contains,
             NotContains,
             @Deprecated // kept for backwards compatibility
