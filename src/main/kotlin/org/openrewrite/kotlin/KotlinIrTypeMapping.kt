@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.descriptors.DescriptorVisibility
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.lazy.Fir2IrLazyClass
 import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
@@ -12,14 +13,15 @@ import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.ir.util.properties
+import org.jetbrains.kotlin.types.Variance
 import org.openrewrite.java.JavaTypeMapping
 import org.openrewrite.java.internal.JavaTypeCache
 import org.openrewrite.java.tree.JavaType
-import org.openrewrite.java.tree.JavaType.GenericTypeVariable.Variance.COVARIANT
-import org.openrewrite.java.tree.JavaType.GenericTypeVariable.Variance.INVARIANT
+import org.openrewrite.java.tree.JavaType.GenericTypeVariable
+import org.openrewrite.java.tree.JavaType.GenericTypeVariable.Variance.*
 import org.openrewrite.java.tree.TypeUtils
 
-class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
+class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
     private val signatureBuilder: KotlinTypeIrSignatureBuilder = KotlinTypeIrSignatureBuilder()
     private val typeCache: JavaTypeCache
 
@@ -27,23 +29,27 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
         this.typeCache = typeCache
     }
 
-    // TODO: temp to map types without parser visitor.
+    // TEMP: method to map types in an IrFile.
+    // visits should be used in PSI-based visitor.
+    // add irTypeMapping.type(irFile) to visitFile in KotlinParserVisitor.
     fun type(irFile: IrFile) {
         for (ann in irFile.annotations) {
             type(ann)
         }
         for (dec in irFile.declarations) {
-            type(dec)
+            if (dec is IrScript) {
+                for (irDec in dec.statements) {
+                    type(irDec)
+                }
+            } else {
+                type(dec)
+            }
         }
     }
 
     override fun type(type: Any?): JavaType {
         if (type == null || type is IrErrorType) {
             return JavaType.Unknown.getInstance()
-        }
-
-        if (type is IrSimpleType) {
-            return type(type.classifier)
         }
 
         if (type is IrClassifierSymbol) {
@@ -56,36 +62,71 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
             return existing
         }
 
-        when (type) {
+        val baseType = if (type is IrSimpleType) type.classifier.owner else type
+        when (baseType) {
             is IrFile -> {
                 return fileType(signature)
             }
+
             is IrClass -> {
-               return classType(type, signature)
+                val useSimpleType = (type is IrSimpleType && (type.arguments.isNotEmpty()))
+                return classType(if (useSimpleType) type else baseType, signature)
             }
 
-            is IrFunction -> {
-                return methodDeclarationType(type)
+            is IrCall -> {
+                return methodDeclarationType(baseType.symbol.owner, signature)
             }
 
-            is IrProperty -> {
-                return variableType(type)
+            is IrConstructorCall -> {
+                return type(baseType.symbol.owner)
             }
 
-            is IrVariable -> {
-                TODO("IrVariable not implemented")
+            is IrExternalPackageFragment -> {
+                return externalPackageFragment(signature)
             }
 
             is IrField -> {
                 TODO("IrField not implemented")
             }
 
+            is IrFunction -> {
+                return methodDeclarationType(baseType, signature)
+            }
+
+            is IrProperty -> {
+                return variableType(baseType, signature)
+            }
+
+            is IrTypeAlias -> {
+                return alias(baseType, signature)
+            }
+
             is IrTypeParameter -> {
-               return generic(type, signature)
+                return generic(baseType, signature)
+            }
+
+            is IrTypeProjection, is IrStarProjection -> {
+                return typeProjection(baseType, signature)
+            }
+
+            is IrVariable -> {
+                TODO("IrVariable not implemented")
             }
         }
 
         throw UnsupportedOperationException("Unsupported type: ${type.javaClass}")
+    }
+
+    private fun externalPackageFragment(signature: String): JavaType {
+        val packageFragment = JavaType.ShallowClass.build(signature)
+        typeCache.put(signature, packageFragment)
+        return packageFragment
+    }
+
+    private fun alias(type: IrTypeAlias, signature: String): JavaType {
+        val aliased = type(type.expandedType)
+        typeCache.put(signature, aliased)
+        return aliased
     }
 
     private fun fileType(signature: String): JavaType {
@@ -98,7 +139,11 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
         return fileType
     }
 
-    private fun classType(irClass: IrClass, signature: String): JavaType {
+    private fun classType(type: Any, signature: String): JavaType {
+        if (type !is IrSimpleType && type !is IrClass) {
+            throw UnsupportedOperationException("Unexpected classType: " + type.javaClass)
+        }
+        val irClass = if (type is IrClass) type else (type as IrSimpleType).classifier.owner as IrClass
         val fqn: String = signatureBuilder.classSignature(irClass)
         val fq: JavaType.FullyQualified? = typeCache.get(fqn)
         var clazz: JavaType.Class? = (if (fq is JavaType.Parameterized) fq.type else fq) as JavaType.Class?
@@ -122,25 +167,30 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
                             ClassKind.CLASS -> {
                                 supertype = TypeUtils.asFullyQualified(type(classifier.owner))
                             }
+
                             ClassKind.INTERFACE -> {
                                 if (interfaceSymbols == null) {
                                     interfaceSymbols = ArrayList()
                                 }
                                 interfaceSymbols.add(classifier.owner)
                             }
+
                             else -> {
-                                TODO()
                             }
                         }
                     }
+
                     else -> {
-                        TODO()
+                        throw UnsupportedOperationException("Unexpected classifier symbol: " + classifier?.javaClass)
                     }
                 }
             }
             var owner: JavaType.FullyQualified? = null
             if (irClass.parent is IrClass) {
                 owner = TypeUtils.asFullyQualified(type(irClass.parent))
+                if (owner is JavaType.Parameterized) {
+                    owner = owner.type
+                }
             }
             var fields: MutableList<JavaType.Variable>? = null
             for (property: IrProperty in irClass.properties) {
@@ -164,7 +214,8 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
             if (!interfaceSymbols.isNullOrEmpty()) {
                 interfaces = ArrayList(interfaceSymbols.size)
                 for (interfaceSymbol: IrSymbolOwner in interfaceSymbols) {
-                    val sym: Any = if (interfaceSymbol is Fir2IrLazyClass) interfaceSymbol.symbol.owner.symbol else interfaceSymbol
+                    val sym: Any =
+                        if (interfaceSymbol is Fir2IrLazyClass) interfaceSymbol.symbol.owner.symbol else interfaceSymbol
                     val javaType = TypeUtils.asFullyQualified(type(sym))
                     if (javaType != null) {
                         interfaces.add(javaType)
@@ -177,10 +228,12 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
         if (irClass.typeParameters.isNotEmpty()) {
             var pt = typeCache.get<JavaType.Parameterized>(signature)
             if (pt == null) {
-                pt = JavaType.Parameterized(null, null, null)
                 val typeParameters: MutableList<JavaType> = ArrayList(irClass.typeParameters.size)
-                for (typeParam: IrTypeParameter in irClass.typeParameters) {
-                    typeParameters.add(type(typeParam))
+                pt = JavaType.Parameterized(null, null, null)
+
+                val params = if (type is IrSimpleType) type.arguments else (type as IrClass).typeParameters
+                for (tp in params) {
+                    typeParameters.add(type(tp))
                 }
                 pt.unsafeSet(clazz, typeParameters)
             }
@@ -191,12 +244,12 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
 
     private fun generic(type: IrTypeParameter, signature: String): JavaType {
         val name = type.name.asString()
-        val gtv: JavaType.GenericTypeVariable = JavaType.GenericTypeVariable(null, name, INVARIANT, null)
+        val gtv = GenericTypeVariable(null, name, INVARIANT, null)
         typeCache.put(signature, gtv)
 
         var bounds: MutableList<JavaType>? = null
         if (type.isReified) {
-            TODO()
+            throw UnsupportedOperationException("Add support for reified generic types.")
         }
         for (bound: IrType in type.superTypes) {
             if (isNotAny(bound)) {
@@ -210,14 +263,18 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
         return gtv
     }
 
-    private fun methodDeclarationType(function: IrFunction): JavaType.Method {
+    fun methodDeclarationType(function: IrFunction): JavaType.Method {
         val signature = signatureBuilder.methodDeclarationSignature(function)
         val existing = typeCache.get<JavaType.Method>(signature)
         if (existing != null) {
             return existing
         }
+        return methodDeclarationType(function, signature)
+    }
 
-        val paramNames: MutableList<String>? = if (function.valueParameters.isEmpty()) null else ArrayList(function.valueParameters.size)
+    private fun methodDeclarationType(function: IrFunction, signature: String): JavaType.Method {
+        val paramNames: MutableList<String>? =
+            if (function.valueParameters.isEmpty()) null else ArrayList(function.valueParameters.size)
         for (param: IrValueParameter in function.valueParameters) {
             paramNames!!.add(param.name.asString())
         }
@@ -231,12 +288,13 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
             null, null, null, null
         )
         typeCache.put(signature, method)
-        val declaringType = TypeUtils.asFullyQualified(type(function.parent))
-        if (declaringType == null) {
-            TODO()
+        var declaringType = TypeUtils.asFullyQualified(type(function.parent)) ?: TODO()
+        if (declaringType is JavaType.Parameterized) {
+            declaringType = declaringType.type
         }
         val returnType = type(function.returnType)
-        val paramTypes: MutableList<JavaType>? = if (function.valueParameters.isEmpty()) null else ArrayList(function.valueParameters.size)
+        val paramTypes: MutableList<JavaType>? =
+            if (function.valueParameters.isEmpty()) null else ArrayList(function.valueParameters.size)
         for (param: IrValueParameter in function.valueParameters) {
             paramTypes!!.add(type(param.type))
         }
@@ -248,14 +306,32 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
         return method
     }
 
-    fun variableType(
-        property: IrProperty
-    ): JavaType.Variable {
+    private fun typeProjection(type: Any, signature: String): JavaType {
+        val gtv = when (type) {
+            is IrTypeProjection -> {
+                GenericTypeVariable(null, "?", if (type.variance == Variance.OUT_VARIANCE) COVARIANT else CONTRAVARIANT, listOf(type(type.type)))
+            }
+            is IrStarProjection -> {
+                GenericTypeVariable(null, "*", INVARIANT, null)
+            }
+            else -> {
+                throw UnsupportedOperationException("Unexpected type projection: " + type.javaClass)
+            }
+        }
+        typeCache.put(signature, gtv)
+        return gtv
+    }
+
+    fun variableType(property: IrProperty): JavaType.Variable {
         val signature = signatureBuilder.variableSignature(property)
         val existing = typeCache.get<JavaType.Variable>(signature)
         if (existing != null) {
             return existing
         }
+        return variableType(property, signature)
+    }
+
+    private fun variableType(property: IrProperty, signature: String): JavaType.Variable {
         val variable = JavaType.Variable(
             null,
             0,
@@ -264,13 +340,16 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache): JavaTypeMapping<Any> {
         )
         typeCache.put(signature, variable)
         val annotations = listAnnotations(property.annotations)
-        val owner = type(property.parent)
+        var owner = type(property.parent)
+        if (owner is JavaType.Parameterized) {
+            owner = owner.type
+        }
         val typeRef = if (property.getter != null) {
             type(property.getter!!.returnType)
         } else if (property.backingField != null) {
             type(property.backingField!!.type)
         } else {
-            TODO()
+            throw UnsupportedOperationException("Unsupported typeRef for property: $signature")
         }
         variable.unsafeSet(owner, typeRef, annotations)
         return variable

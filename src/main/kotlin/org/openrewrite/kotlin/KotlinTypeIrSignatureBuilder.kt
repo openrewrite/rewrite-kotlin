@@ -1,6 +1,7 @@
 package org.openrewrite.kotlin
 
 import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
 import org.jetbrains.kotlin.ir.types.*
@@ -10,7 +11,7 @@ import org.jetbrains.kotlin.types.Variance
 import org.openrewrite.java.JavaTypeSignatureBuilder
 import java.util.*
 
-class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
+class KotlinTypeIrSignatureBuilder: JavaTypeSignatureBuilder {
     private var typeVariableNameStack: MutableSet<String>? = null
 
     override fun signature(type: Any?): String {
@@ -31,8 +32,24 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
 
             is IrClass -> {
                 // The IrSimpleType may contain bounded type arguments
-                val useSimpleType = (type is IrSimpleType && (type.arguments.isNotEmpty() || type.annotations.isNotEmpty()))
+                val useSimpleType = (type is IrSimpleType && (type.arguments.isNotEmpty()))
                 return if (baseType.typeParameters.isEmpty()) classSignature(baseType) else parameterizedSignature(if (useSimpleType) type else baseType)
+            }
+
+            is IrCall -> {
+                return signature(baseType.symbol.owner)
+            }
+
+            is IrConstructorCall -> {
+                return signature(baseType.symbol.owner)
+            }
+
+            is IrExternalPackageFragment -> {
+                return externalPackageFragmentSignature(baseType)
+            }
+
+            is IrField -> {
+                TODO("IrField not yet implemented.")
             }
 
             is IrFunction -> {
@@ -43,44 +60,51 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
                 return variableSignature(baseType)
             }
 
-            is IrVariable -> {
-                TODO("IrVariable not yet implemented.")
-            }
-
-            is IrField -> {
-                TODO("IrField not yet implemented.")
-            }
-
             is IrTypeAlias -> {
-                TODO("IrTypeAlias not yet implemented.")
+                return aliasSignature(baseType)
             }
 
-            is IrScript -> {
-                TODO("IrScript not yet implemented.")
-            }
-
-            is IrConstructorCall -> {
-                TODO("IrConstructorCall not yet implemented.")
+            is IrTypeParameter -> {
+                return genericSignature(baseType)
             }
 
             is IrTypeProjection, is IrStarProjection -> {
                 return typeProjection(baseType)
             }
 
-            is IrTypeParameter -> {
-                return genericSignature(baseType)
+            is IrVariable -> {
+                TODO("IrVariable not yet implemented.")
             }
         }
 
         throw IllegalStateException("Unexpected type " + baseType.javaClass.getName())
     }
 
-    private fun fileSignature(type: Any): String {
-        if (type !is IrFile) {
+    private fun aliasSignature(type: IrTypeAlias): String {
+        if (type.parent !is IrFile) {
             TODO()
         }
+        val s = StringBuilder()
+        if ((type.parent as IrFile).fqName.asString().isNotEmpty()) {
+            s.append((type.parent as IrFile).fqName.asString()).append(".")
+        }
+        s.append(type.name.asString())
+        val joiner = StringJoiner(", ", "<", ">")
+        for (tp in type.typeParameters) {
+            joiner.add(signature(tp))
+        }
+        s.append(joiner)
+        return s.toString()
+    }
 
-        return (if (type.fqName.asString().isNotEmpty()) type.fqName.asString() + "." else "") + type.name.replace(".kt", "Kt")
+    private fun externalPackageFragmentSignature(baseType: IrExternalPackageFragment): String {
+        return baseType.fqName.asString()
+    }
+
+    private fun fileSignature(type: IrFile): String {
+        return (if (type.fqName.asString()
+                .isNotEmpty()
+        ) type.fqName.asString() + "." else "") + type.name.replace(".kt", "Kt")
     }
 
     /**
@@ -92,13 +116,14 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
 
     override fun classSignature(type: Any): String {
         if (type !is IrClass) {
-            TODO("Not yet implemented")
+            throw UnsupportedOperationException("Unexpected classType: " + type.javaClass)
         }
         val sb = StringBuilder()
-        // TODO: review how Method parents should be represented.
         if (type.parent is IrClass) {
             sb.append(classSignature(type.parent)).append("$")
-        } else if (type.packageFqName != null) {
+        } else if (type.parent is IrFunction) {
+            // TODO: review how Method parents should be represented.
+        } else if (type.packageFqName != null && type.packageFqName!!.asString().isNotEmpty()) {
             sb.append(type.packageFqName).append(".")
         }
         sb.append(type.name)
@@ -140,11 +165,13 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
                 sig.append(if (type.variance == Variance.OUT_VARIANCE) " extends " else " super ")
                 sig.append(signature(type.type))
             }
+
             is IrStarProjection -> {
                 sig.append("*")
             }
+
             else -> {
-                TODO()
+                throw UnsupportedOperationException("Unsupported type projection: " + type.javaClass)
             }
         }
         return sig.append("}").toString()
@@ -152,7 +179,7 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
 
     override fun parameterizedSignature(type: Any): String {
         if (type !is IrSimpleType && type !is IrClass) {
-            TODO("Not yet implemented")
+            throw UnsupportedOperationException("Unexpected parameterizedType: " + type.javaClass)
         }
 
         val s = StringBuilder(classSignature(if (type is IrSimpleType) type.classifier.owner else type))
@@ -178,7 +205,8 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
         } else if (property.backingField != null) {
             signature(property.backingField!!.type)
         } else {
-            TODO()
+            // FIXME
+            "{undefined}"
         }
         return "$owner{name=${property.name.asString()},type=$typeSig}"
     }
