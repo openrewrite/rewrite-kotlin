@@ -45,6 +45,7 @@ import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.impl.FirImplicitNullableAnyTypeRef
 import org.jetbrains.kotlin.fir.types.impl.FirImplicitUnitTypeRef
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor
+import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
@@ -69,6 +70,7 @@ import org.openrewrite.java.marker.OmitParentheses
 import org.openrewrite.java.marker.TrailingComma
 import org.openrewrite.java.tree.*
 import org.openrewrite.java.tree.TypeTree.build
+import org.openrewrite.kotlin.KotlinIrTypeMapping
 import org.openrewrite.kotlin.KotlinParser
 import org.openrewrite.kotlin.KotlinTypeMapping
 import org.openrewrite.kotlin.marker.*
@@ -103,6 +105,7 @@ class KotlinParserVisitor(
     private val charsetBomMarked: Boolean
     private val styles: List<NamedStyles>
     private val typeMapping: KotlinTypeMapping
+    private val irTypeMapping: KotlinIrTypeMapping
     private val data: ExecutionContext
     private val firSession: FirSession
     private var cursor = 0
@@ -113,6 +116,8 @@ class KotlinParserVisitor(
     private val ownerStack: ArrayDeque<FirDeclaration> = ArrayDeque()
     private var aliasImportMap: MutableMap<String, String>
 
+    private var irFile: IrFile
+
     init {
         sourcePath = kotlinSource.input.getRelativePath(relativeTo)
         fileAttributes = kotlinSource.input.fileAttributes
@@ -122,6 +127,8 @@ class KotlinParserVisitor(
         charsetBomMarked = `is`.isCharsetBomMarked
         this.styles = styles
         typeMapping = KotlinTypeMapping(typeCache, firSession, kotlinSource.firFile!!.symbol)
+        irTypeMapping = KotlinIrTypeMapping(typeCache)
+        irFile = kotlinSource.irFile!!
         this.data = data
         this.firSession = firSession
         this.nodes = kotlinSource.nodes
@@ -132,6 +139,7 @@ class KotlinParserVisitor(
     private fun type(obj: Any?, ownerFallBack: FirBasedSymbol<*>? = null) = typeMapping.type(obj, ownerFallBack)
 
     override fun visitFile(file: FirFile, data: ExecutionContext): J {
+        irTypeMapping.type(irFile)
         ownerStack.push(file)
         generatedFirProperties.clear()
         var annotations: List<J.Annotation>? = null

@@ -22,6 +22,7 @@ import kotlin.jvm.functions.Function1;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.intellij.lang.annotations.Language;
+import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension;
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments;
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector;
 import org.jetbrains.kotlin.cli.common.messages.PrintingMessageCollector;
@@ -32,16 +33,22 @@ import org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt;
 import org.jetbrains.kotlin.com.intellij.openapi.Disposable;
 import org.jetbrains.kotlin.com.intellij.openapi.util.Disposer;
 import org.jetbrains.kotlin.com.intellij.openapi.util.text.StringUtilRt;
+import org.jetbrains.kotlin.com.intellij.openapi.vfs.StandardFileSystems;
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFile;
+import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager;
 import org.jetbrains.kotlin.com.intellij.psi.FileViewProvider;
 import org.jetbrains.kotlin.com.intellij.psi.PsiManager;
 import org.jetbrains.kotlin.com.intellij.psi.SingleRootFileViewProvider;
+import org.jetbrains.kotlin.com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.kotlin.com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.kotlin.config.*;
+import org.jetbrains.kotlin.constant.EvaluatedConstTracker;
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory;
 import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector;
 import org.jetbrains.kotlin.fir.DependencyListForCliModule;
 import org.jetbrains.kotlin.fir.FirSession;
+import org.jetbrains.kotlin.fir.backend.Fir2IrConfiguration;
+import org.jetbrains.kotlin.fir.backend.Fir2IrExtensions;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.fir.java.FirProjectSessionProvider;
 import org.jetbrains.kotlin.fir.pipeline.*;
@@ -51,6 +58,10 @@ import org.jetbrains.kotlin.fir.session.FirSessionFactoryHelper;
 import org.jetbrains.kotlin.fir.session.environment.AbstractProjectFileSearchScope;
 import org.jetbrains.kotlin.idea.KotlinFileType;
 import org.jetbrains.kotlin.idea.KotlinLanguage;
+import org.jetbrains.kotlin.ir.declarations.IrClass;
+import org.jetbrains.kotlin.ir.declarations.IrFile;
+import org.jetbrains.kotlin.load.kotlin.PackagePartProvider;
+import org.jetbrains.kotlin.modules.Module;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms;
 import org.jetbrains.kotlin.psi.KtFile;
@@ -81,14 +92,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.jetbrains.kotlin.cli.common.CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY;
 import static org.jetbrains.kotlin.cli.common.messages.MessageRenderer.PLAIN_FULL_PATHS;
 import static org.jetbrains.kotlin.cli.jvm.JvmArgumentsKt.*;
-import static org.jetbrains.kotlin.cli.jvm.compiler.pipeline.CompilerPipelineKt.createProjectEnvironment;
+import static org.jetbrains.kotlin.cli.jvm.K2JVMCompilerKt.configureModuleChunk;
 import static org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt.*;
 import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
+import static org.jetbrains.kotlin.fir.pipeline.ConvertToIrKt.convertToIrAndActualizeForJvm;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -368,7 +381,6 @@ public class KotlinParser implements Parser {
 
     public CompiledSource parse(List<Parser.Input> sources, Disposable disposable, ExecutionContext ctx) {
         CompilerConfiguration compilerConfiguration = compilerConfiguration();
-
         if (classpath != null) {
             for (Path path : classpath) {
                 File file;
@@ -390,6 +402,8 @@ public class KotlinParser implements Parser {
         configureContentRootsFromClassPath(compilerConfiguration, arguments);
         configureJdkClasspathRoots(compilerConfiguration);
         configureBaseRoots(compilerConfiguration, arguments);
+
+        Module module = configureModuleChunk(compilerConfiguration, arguments, null).getModules().get(0);
 
         KotlinCoreEnvironment environment = KotlinCoreEnvironment.createForProduction(
                 disposable,
@@ -423,8 +437,12 @@ public class KotlinParser implements Parser {
         }
 
         BaseDiagnosticsCollector diagnosticsReporter = DiagnosticReporterFactory.INSTANCE.createReporter(false);
-        VfsBasedProjectEnvironment projectEnvironment = createProjectEnvironment(compilerConfiguration, disposable,
-                EnvironmentConfigFiles.JVM_CONFIG_FILES, compilerConfiguration.getNotNull(MESSAGE_COLLECTOR_KEY));
+        Function1<? super GlobalSearchScope, PackagePartProvider> providerFunction1 = environment::createPackagePartProvider;
+        VfsBasedProjectEnvironment projectEnvironment = new VfsBasedProjectEnvironment(
+                environment.getProject(),
+                VirtualFileManager.getInstance().getFileSystem(StandardFileSystems.FILE_PROTOCOL),
+                providerFunction1);
+
         AbstractProjectFileSearchScope sourceScope = projectEnvironment.getSearchScopeByPsiFiles(ktFiles, false);
         sourceScope.plus(projectEnvironment.getSearchScopeForProjectJavaSources());
 
@@ -453,7 +471,7 @@ public class KotlinParser implements Parser {
         Function1<FirSessionConfigurator, Unit> sessionConfigurator = session -> Unit.INSTANCE;
 
         FirSession firSession = FirSessionFactoryHelper.INSTANCE.createSessionWithDependencies(
-                Name.identifier(moduleName),
+                Name.identifier(module.getModuleName()),
                 JvmPlatforms.INSTANCE.getUnspecifiedJvmPlatform(),
                 JvmPlatformAnalyzerServices.INSTANCE,
                 sessionProvider,
@@ -473,23 +491,35 @@ public class KotlinParser implements Parser {
         List<FirFile> rawFir = FirUtilsKt.buildFirFromKtFiles(firSession, ktFiles);
         Pair<ScopeSession, List<FirFile>> result = AnalyseKt.runResolution(firSession, rawFir);
         AnalyseKt.runCheckers(firSession, result.getFirst(), result.getSecond(), diagnosticsReporter);
-//        ModuleCompilerAnalyzedOutput analyzedOutput = new ModuleCompilerAnalyzedOutput(firSession, result.getFirst(), result.getSecond());
-//        FirResult firResult = new FirResult(singletonList(analyzedOutput));
-//
-//        Fir2IrExtensions extensions = Fir2IrExtensions.Default.INSTANCE;
-//        Fir2IrConfiguration irConfiguration = new Fir2IrConfiguration(
-//                languageVersionSettings,
-//                compilerConfiguration.getBoolean(JVMConfigurationKeys.LINK_VIA_SIGNATURES),
-//                compilerConfiguration.putIfAbsent(EVALUATED_CONST_TRACKER, EvaluatedConstTracker.Companion.create())
-//        );
-//        // TODO: add generation extensions
-//        List<IrGenerationExtension> irGenerationExtensions = new ArrayList<>();
-//        Fir2IrActualizedResult actualizedResult = convertToIrAndActualizeForJvm(firResult, extensions, irConfiguration, irGenerationExtensions, diagnosticsReporter);
+        ModuleCompilerAnalyzedOutput analyzedOutput = new ModuleCompilerAnalyzedOutput(firSession, result.getFirst(), result.getSecond());
+        FirResult firResult = new FirResult(singletonList(analyzedOutput));
 
-        assert kotlinSources.size() == result.getSecond().size();
+        Fir2IrExtensions extensions = Fir2IrExtensions.Default.INSTANCE;
+        Fir2IrConfiguration irConfiguration = new Fir2IrConfiguration(
+                languageVersionSettings,
+                compilerConfiguration.getBoolean(JVMConfigurationKeys.LINK_VIA_SIGNATURES),
+                compilerConfiguration.putIfAbsent(EVALUATED_CONST_TRACKER, EvaluatedConstTracker.Companion.create())
+        );
+
+        List<IrGenerationExtension> irGenerationExtensions = IrGenerationExtension.Companion.getInstances(projectEnvironment.getProject());
+        Fir2IrActualizedResult actualizedResult;
+        try {
+            actualizedResult = convertToIrAndActualizeForJvm(firResult, extensions, irConfiguration, irGenerationExtensions, diagnosticsReporter);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         List<FirFile> second = result.getSecond();
         for (int i = 0; i < second.size(); i++) {
             kotlinSources.get(i).setFirFile(second.get(i));
+        }
+
+        assert kotlinSources.size() == result.getSecond().size();
+        assert kotlinSources.size() == actualizedResult.getIrModuleFragment().getFiles().size();
+        List<IrFile> files = actualizedResult.getIrModuleFragment().getFiles();
+        for (int i = 0; i < files.size(); i++) {
+            kotlinSources.get(i).setFirFile(second.get(i));
+            kotlinSources.get(i).setIrFile(files.get(i));
         }
 
         return new CompiledSource(firSession, kotlinSources);
