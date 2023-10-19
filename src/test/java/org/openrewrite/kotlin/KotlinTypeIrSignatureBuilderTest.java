@@ -327,4 +327,12 @@ public class KotlinTypeIrSignatureBuilderTest {
         assertThat(methodSignature("javaType"))
           .isEqualTo("org.openrewrite.kotlin.KotlinTypeGoat{name=javaType,return=kotlin.Unit,parameters=[java.lang.Object]}");
     }
+
+    @Test
+    void receiver() {
+        assertThat(firstMethodParameterSignature("receiver"))
+                .isEqualTo("org.openrewrite.kotlin.C");
+        assertThat(methodSignature("receiver"))
+                .isEqualTo("org.openrewrite.kotlin.KotlinTypeGoat{name=receiver,return=kotlin.Unit,parameters=[org.openrewrite.kotlin.KotlinTypeGoat$TypeA,org.openrewrite.kotlin.C]}");
+    }
 }
