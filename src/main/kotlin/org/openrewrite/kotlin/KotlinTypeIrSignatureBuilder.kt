@@ -1,3 +1,18 @@
+/*
+ * Copyright 2023 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.kotlin
 
 import org.jetbrains.kotlin.ir.declarations.*
@@ -72,6 +87,9 @@ class KotlinTypeIrSignatureBuilder: JavaTypeSignatureBuilder {
                 return typeProjection(baseType)
             }
 
+            is IrValueParameter -> {
+                return variableSignature(baseType)
+            }
             is IrVariable -> {
                 TODO("IrVariable not yet implemented.")
             }
@@ -211,6 +229,14 @@ class KotlinTypeIrSignatureBuilder: JavaTypeSignatureBuilder {
         return "$owner{name=${property.name.asString()},type=$typeSig}"
     }
 
+    fun variableSignature(
+        valueParameter: IrValueParameter
+    ): String {
+        val owner = if (valueParameter.parent is IrClass) classSignature(valueParameter.parent) else signature(valueParameter.parent)
+        val typeSig = signature(valueParameter.type)
+        return "$owner{name=${valueParameter.name.asString()},type=$typeSig}"
+    }
+
     fun methodDeclarationSignature(function: IrFunction): String {
         val parent = when (function.parent) {
             is IrClass -> classSignature(function.parent)
@@ -229,6 +255,9 @@ class KotlinTypeIrSignatureBuilder: JavaTypeSignatureBuilder {
 
     private fun methodArgumentSignature(function: IrFunction): String {
         val genericArgumentTypes = StringJoiner(",", "[", "]")
+        if (function.extensionReceiverParameter != null) {
+            genericArgumentTypes.add(signature(function.extensionReceiverParameter!!.type))
+        }
         for (param: IrValueParameter in function.valueParameters) {
             genericArgumentTypes.add(signature(param.type))
         }

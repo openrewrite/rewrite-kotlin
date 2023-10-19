@@ -1,3 +1,18 @@
+/*
+ * Copyright 2023 the original author or authors.
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * https://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.kotlin
 
 import org.jetbrains.kotlin.descriptors.ClassKind
@@ -30,8 +45,6 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
     }
 
     // TEMP: method to map types in an IrFile.
-    // visits should be used in PSI-based visitor.
-    // add irTypeMapping.type(irFile) to visitFile in KotlinParserVisitor.
     fun type(irFile: IrFile) {
         for (ann in irFile.annotations) {
             type(ann)
@@ -107,6 +120,10 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
 
             is IrTypeProjection, is IrStarProjection -> {
                 return typeProjection(baseType, signature)
+            }
+
+            is IrValueParameter -> {
+                return variableType(baseType)
             }
 
             is IrVariable -> {
@@ -294,7 +311,12 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         }
         val returnType = type(function.returnType)
         val paramTypes: MutableList<JavaType>? =
-            if (function.valueParameters.isEmpty()) null else ArrayList(function.valueParameters.size)
+            if (function.valueParameters.isNotEmpty() || function.extensionReceiverParameter != null)
+                ArrayList(function.valueParameters.size + (if (function.extensionReceiverParameter != null) 1 else 0))
+            else null
+        if (function.extensionReceiverParameter != null) {
+            paramTypes!!.add(type(function.extensionReceiverParameter!!.type))
+        }
         for (param: IrValueParameter in function.valueParameters) {
             paramTypes!!.add(type(param.type))
         }
@@ -351,6 +373,33 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         } else {
             throw UnsupportedOperationException("Unsupported typeRef for property: $signature")
         }
+        variable.unsafeSet(owner, typeRef, annotations)
+        return variable
+    }
+
+    fun variableType(valueParameter: IrValueParameter): JavaType.Variable {
+        val signature = signatureBuilder.variableSignature(valueParameter)
+        val existing = typeCache.get<JavaType.Variable>(signature)
+        if (existing != null) {
+            return existing
+        }
+        return variableType(valueParameter, signature)
+    }
+
+    private fun variableType(valueParameter: IrValueParameter, signature: String): JavaType.Variable {
+        val variable = JavaType.Variable(
+            null,
+            0,
+            valueParameter.name.asString(),
+            null, null, null
+        )
+        typeCache.put(signature, variable)
+        val annotations = listAnnotations(valueParameter.annotations)
+        var owner = type(valueParameter.parent)
+        if (owner is JavaType.Parameterized) {
+            owner = owner.type
+        }
+        val typeRef = type(valueParameter.type)
         variable.unsafeSet(owner, typeRef, annotations)
         return variable
     }

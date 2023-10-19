@@ -518,7 +518,8 @@ public class KotlinParser implements Parser {
         List<IrFile> files = actualizedResult.getIrModuleFragment().getFiles();
         for (int i = 0; i < files.size(); i++) {
             kotlinSources.get(i).setFirFile(second.get(i));
-            kotlinSources.get(i).setIrFile(files.get(i));
+//            kotlinSources.get(i).setIrFile(files.get(i));
+//            new KotlinIrTypeMapping(new JavaTypeCache()).type(files.get(i));
         }
 
         return new CompiledSource(firSession, kotlinSources);
