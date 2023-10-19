@@ -100,6 +100,7 @@ import static org.jetbrains.kotlin.cli.jvm.K2JVMCompilerKt.configureModuleChunk;
 import static org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt.*;
 import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
+import static org.jetbrains.kotlin.config.JVMConfigurationKeys.LINK_VIA_SIGNATURES;
 import static org.jetbrains.kotlin.fir.pipeline.ConvertToIrKt.convertToIrAndActualizeForJvm;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -165,9 +166,7 @@ public class KotlinParser implements Parser {
         try {
             compilerCus = parse(acceptedInputs(sources).collect(Collectors.toList()), disposable, pctx);
         } catch (Exception e) {
-            // TODO: associate the compiler exception to a specific source file.
-            // https://github.com/openrewrite/rewrite-kotlin/issues/24
-            return Stream.empty();
+            return acceptedInputs(sources).map(input -> ParseError.build(this, input, relativeTo, ctx, e));
         }
 
         FirSession firSession = compilerCus.getFirSession();
@@ -489,6 +488,10 @@ public class KotlinParser implements Parser {
 
         List<FirFile> rawFir = FirUtilsKt.buildFirFromKtFiles(firSession, ktFiles);
         Pair<ScopeSession, List<FirFile>> result = AnalyseKt.runResolution(firSession, rawFir);
+
+        // TODO: replace FIR results with IR.
+        assert kotlinSources.size() == result.getSecond().size();
+
         AnalyseKt.runCheckers(firSession, result.getFirst(), result.getSecond(), diagnosticsReporter);
         ModuleCompilerAnalyzedOutput analyzedOutput = new ModuleCompilerAnalyzedOutput(firSession, result.getFirst(), result.getSecond());
         FirResult firResult = new FirResult(singletonList(analyzedOutput));
@@ -501,21 +504,18 @@ public class KotlinParser implements Parser {
         );
 
         List<IrGenerationExtension> irGenerationExtensions = IrGenerationExtension.Companion.getInstances(projectEnvironment.getProject());
-        Fir2IrActualizedResult actualizedResult;
+        Fir2IrActualizedResult actualizedResult = null;
         try {
             actualizedResult = convertToIrAndActualizeForJvm(firResult, extensions, irConfiguration, irGenerationExtensions, diagnosticsReporter);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            assert kotlinSources.size() == actualizedResult.getIrModuleFragment().getFiles().size();
+        } catch (Exception ignored) {
         }
 
-        List<FirFile> second = result.getSecond();
-
-        assert kotlinSources.size() == result.getSecond().size();
-        assert kotlinSources.size() == actualizedResult.getIrModuleFragment().getFiles().size();
-        List<IrFile> files = actualizedResult.getIrModuleFragment().getFiles();
-        for (int i = 0; i < files.size(); i++) {
-            kotlinSources.get(i).setFirFile(second.get(i));
-            kotlinSources.get(i).setIrFile(files.get(i));
+        for (int i = 0; i < kotlinSources.size(); i++) {
+            kotlinSources.get(i).setFirFile(result.getSecond().get(i));
+            if (actualizedResult != null) {
+                kotlinSources.get(i).setIrFile(actualizedResult.getIrModuleFragment().getFiles().get(i));
+            }
 //            new KotlinIrTypeMapping(new JavaTypeCache()).type(files.get(i));
         }
 
@@ -549,6 +549,7 @@ public class KotlinParser implements Parser {
         compilerConfiguration.put(DO_NOT_CLEAR_BINDING_CONTEXT, true);
         compilerConfiguration.put(ALLOW_ANY_SCRIPTS_IN_SOURCE_ROOTS, true);
         compilerConfiguration.put(INCREMENTAL_COMPILATION, true);
+        compilerConfiguration.put(LINK_VIA_SIGNATURES, true);
 
         addJvmSdkRoots(compilerConfiguration, PathUtil.getJdkClassesRootsFromCurrentJre());
 
