@@ -476,6 +476,7 @@ public class KotlinTypeMappingTest {
             );
         }
 
+        @SuppressWarnings({"KotlinConstantConditions", "UnusedUnaryOperator", "RedundantExplicitType"})
         @Test
         void whenExpression() {
             //noinspection RemoveRedundantQualifierName

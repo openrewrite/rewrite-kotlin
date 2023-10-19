@@ -331,11 +331,18 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
     private fun typeProjection(type: Any, signature: String): JavaType {
         val gtv = when (type) {
             is IrTypeProjection -> {
-                GenericTypeVariable(null, "?", if (type.variance == Variance.OUT_VARIANCE) COVARIANT else CONTRAVARIANT, listOf(type(type.type)))
+                GenericTypeVariable(
+                    null,
+                    "?",
+                    if (type.variance == Variance.OUT_VARIANCE) COVARIANT else CONTRAVARIANT,
+                    listOf(type(type.type))
+                )
             }
+
             is IrStarProjection -> {
                 GenericTypeVariable(null, "*", INVARIANT, null)
             }
+
             else -> {
                 throw UnsupportedOperationException("Unexpected type projection: " + type.javaClass)
             }

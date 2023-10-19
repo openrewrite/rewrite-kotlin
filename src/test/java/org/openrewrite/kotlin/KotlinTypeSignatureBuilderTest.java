@@ -31,6 +31,7 @@ import org.openrewrite.tree.ParsingExecutionContextView;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,7 +53,7 @@ public class KotlinTypeSignatureBuilderTest {
     }
 
     public KotlinTypeSignatureBuilder signatureBuilder() {
-        return new KotlinTypeSignatureBuilder(compiledSource.getFirSession(), compiledSource.getSources().iterator().next().getFirFile().getSymbol());
+        return new KotlinTypeSignatureBuilder(compiledSource.getFirSession(), Objects.requireNonNull(compiledSource.getSources().iterator().next().getFirFile()).getSymbol());
     }
 
     private FirFile getCompiledSource() {
