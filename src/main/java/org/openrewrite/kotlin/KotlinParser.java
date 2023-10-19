@@ -509,9 +509,6 @@ public class KotlinParser implements Parser {
         }
 
         List<FirFile> second = result.getSecond();
-        for (int i = 0; i < second.size(); i++) {
-            kotlinSources.get(i).setFirFile(second.get(i));
-        }
 
         assert kotlinSources.size() == result.getSecond().size();
         assert kotlinSources.size() == actualizedResult.getIrModuleFragment().getFiles().size();
