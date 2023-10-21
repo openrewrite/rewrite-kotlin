@@ -23,23 +23,14 @@ import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.LeafPsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.PsiErrorElementImpl;
 import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
-import org.jetbrains.kotlin.fir.ClassMembersKt;
 import org.jetbrains.kotlin.fir.FirElement;
-import org.jetbrains.kotlin.fir.FirSession;
-import org.jetbrains.kotlin.fir.declarations.FirFile;
-import org.jetbrains.kotlin.fir.declarations.FirFunction;
 import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
-import org.jetbrains.kotlin.fir.declarations.FirVariable;
-import org.jetbrains.kotlin.fir.expressions.FirConstExpression;
-import org.jetbrains.kotlin.fir.expressions.FirFunctionCall;
-import org.jetbrains.kotlin.fir.expressions.FirStringConcatenationCall;
 import org.jetbrains.kotlin.fir.references.FirResolvedCallableReference;
-import org.jetbrains.kotlin.fir.resolve.LookupTagUtilsKt;
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag;
-import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.*;
-import org.jetbrains.kotlin.fir.types.ConeClassLikeType;
-import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef;
+import org.jetbrains.kotlin.ir.IrElement;
+import org.jetbrains.kotlin.ir.declarations.IrFunction;
+import org.jetbrains.kotlin.ir.declarations.IrProperty;
+import org.jetbrains.kotlin.ir.declarations.IrValueParameter;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
@@ -58,7 +49,6 @@ import org.openrewrite.java.marker.ImplicitReturn;
 import org.openrewrite.java.marker.OmitParentheses;
 import org.openrewrite.java.marker.TrailingComma;
 import org.openrewrite.java.tree.*;
-import org.openrewrite.kotlin.KotlinTypeMapping;
 import org.openrewrite.kotlin.marker.*;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
@@ -78,10 +68,7 @@ import static org.openrewrite.Tree.randomId;
  */
 public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     private final KotlinSource kotlinSource;
-    private final FirSession firSession;
-    private final KotlinTypeMapping typeMapping;
     private final PsiElementAssociations psiElementAssociations;
-    private final PsiElementAssociations2 psiElementAssociations2;
     private final List<NamedStyles> styles;
     private final Path sourcePath;
 
@@ -90,29 +77,21 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     private final Charset charset;
     private final Boolean charsetBomMarked;
-    private final Stack<KtElement> ownerStack = new Stack<>();
     private final ExecutionContext executionContext;
 
     public KotlinTreeParserVisitor(KotlinSource kotlinSource,
-                                   FirSession firSession,
-                                   KotlinTypeMapping typeMapping,
                                    PsiElementAssociations psiElementAssociations,
-                                   PsiElementAssociations2 psiElementAssociations2,
                                    List<NamedStyles> styles,
                                    @Nullable Path relativeTo,
                                    ExecutionContext ctx) {
         this.kotlinSource = kotlinSource;
-        this.firSession = firSession;
-        this.typeMapping = typeMapping;
         this.psiElementAssociations = psiElementAssociations;
-        this.psiElementAssociations2 = psiElementAssociations2;
         this.styles = styles;
         sourcePath = kotlinSource.getInput().getRelativePath(relativeTo);
         fileAttributes = kotlinSource.getInput().getFileAttributes();
         EncodingDetectingInputStream stream = kotlinSource.getInput().getSource(ctx);
         charset = stream.getCharset();
         charsetBomMarked = stream.isCharsetBomMarked();
-        ownerStack.push(kotlinSource.getKtFile());
         executionContext = ctx;
     }
 
@@ -283,19 +262,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         FirResolvedCallableReference reference = (FirResolvedCallableReference) psiElementAssociations.primary(expression.getCallableReference());
         JavaType.Method methodReferenceType = null;
         if (reference.getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
-            methodReferenceType = typeMapping.methodDeclarationType(
-                    ((FirNamedFunctionSymbol) reference.getResolvedSymbol()).getFir(),
-                    TypeUtils.asFullyQualified(type(expression.getReceiverExpression())),
-                    owner(expression)
-            );
+            System.out.println();
+//            methodReferenceType = psiElementAssociations.getTypeMapping().methodDeclarationType(expression);
         }
         JavaType.Variable fieldReferenceType = null;
         if (reference.getResolvedSymbol() instanceof FirPropertySymbol) {
-            fieldReferenceType = typeMapping.variableType(
-                    (FirVariableSymbol<FirVariable>) reference.getResolvedSymbol(),
-                    TypeUtils.asFullyQualified(type(expression.getReceiverExpression())),
-                    owner(expression)
-            );
+            System.out.println();
+//            fieldReferenceType = psiElementAssociations.getTypeMapping().variableType(expression);
         }
 
         JRightPadded<Expression> receiver;
@@ -320,16 +293,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         );
     }
 
-    private FirBasedSymbol<?> owner(PsiElement element) {
-        KtElement owner = ownerStack.peek() == element ? ownerStack.get(ownerStack.size() - 2) : ownerStack.peek();
-        if (owner instanceof KtDeclaration) {
-            return psiElementAssociations.symbol(((KtDeclaration) owner));
-        } else if (owner instanceof KtFile) {
-            return ((FirFile) psiElementAssociations.primary(owner)).getSymbol();
-        }
-        return null;
-    }
-
     @Override
     public J visitCatchSection(KtCatchClause catchClause, ExecutionContext data) {
         J.VariableDeclarations paramDecl = (J.VariableDeclarations) catchClause.getCatchParameter().accept(this, data);
@@ -352,7 +315,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClassInitializer(KtClassInitializer initializer, ExecutionContext data) {
-        J.Block staticInit = (J.Block) initializer.getBody().accept(this, data).withPrefix(prefix(initializer));
+        J.Block staticInit = initializer.getBody().accept(this, data).withPrefix(prefix(initializer));
         staticInit = staticInit.getPadding().withStatic(padRight(true, prefix(initializer.getBody())));
         return staticInit;
     }
@@ -503,7 +466,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             Markers markers = Markers.EMPTY.addIfAbsent(new Implicit(randomId()));
             JContainer<Expression> args = JContainer.empty();
             args = args.withMarkers(Markers.build(singletonList(new OmitParentheses(randomId()))));
-            J.Block body = (J.Block) enumEntry.getBody().accept(this, data).withPrefix(Space.EMPTY);
+            J.Block body = enumEntry.getBody().accept(this, data).withPrefix(Space.EMPTY);
 
             initializer = new J.NewClass(
                     randomId(),
@@ -1920,12 +1883,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitClass(KtClass klass, ExecutionContext data) {
-        ownerStack.push(klass);
-        try {
-            return visitClass0(klass, data);
-        } finally {
-            ownerStack.pop();
-        }
+        return visitClass0(klass, data);
     }
 
     @NotNull
@@ -2060,7 +2018,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 implementings,
                 null,
                 body,
-                (JavaType.FullyQualified) type2(klass)
+                (JavaType.FullyQualified) type(klass)
         );
 
         return (typeConstraints != null)? new K.ClassDeclaration(randomId(), Markers.EMPTY, classDeclaration, typeConstraints) : classDeclaration;
@@ -2350,7 +2308,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitImportDirective(KtImportDirective importDirective, ExecutionContext data) {
-        FirElement firElement = psiElementAssociations.primary(importDirective);
+        FirElement firElement = null;
         boolean hasParentClassId = firElement instanceof FirResolvedImport && ((FirResolvedImport) firElement).getResolvedParentClassId() != null;
         JLeftPadded<Boolean> statik = padLeft(Space.EMPTY, hasParentClassId);
         KtImportAlias alias = importDirective.getAlias();
@@ -2398,12 +2356,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitNamedFunction(KtNamedFunction function, ExecutionContext data) {
-        ownerStack.push(function);
-        try {
-            return visitNamedFunction0(function, data);
-        } finally {
-            ownerStack.pop();
-        }
+        return visitNamedFunction0(function, data);
     }
 
     @NotNull
@@ -2896,22 +2849,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitSimpleNameExpression(KtSimpleNameExpression expression, ExecutionContext data) {
-        FirBasedSymbol<?> symbol = psiElementAssociations.symbol(expression);
-        if (symbol instanceof FirVariableSymbol<?>) {
-            JavaType.FullyQualified owner = null;
-            ConeClassLikeLookupTag lookupTag = ClassMembersKt.containingClassLookupTag((FirCallableSymbol<?>) symbol);
-            if (lookupTag != null && !(LookupTagUtilsKt.toSymbol(lookupTag, firSession) instanceof FirAnonymousObjectSymbol)) {
-                // TODO check type attribution for `FirAnonymousObjectSymbol` case
-                owner =
-                        // TODO: fix NPE.
-                        (JavaType.FullyQualified) typeMapping.type(LookupTagUtilsKt.toFirRegularClassSymbol(lookupTag, firSession).getFir());
-            }
-            return createIdentifier(
-                    expression,
-                    // TODO: fix NPE.
-                    typeMapping.variableType((FirVariableSymbol<?>) symbol, owner, psiElementAssociations.getFile().getSymbol())
-            );
-        }
         return createIdentifier(expression, type(expression));
     }
 
@@ -3255,79 +3192,35 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (psi == null) {
             return JavaType.Unknown.getInstance();
         }
-        return psiElementAssociations.type(psi, owner(psi));
+        return psiElementAssociations.type(psi);
     }
 
-    // rename
-    @Nullable
-    private JavaType type2(@Nullable KtElement psi) {
-        if (psi == null) {
-            return JavaType.Unknown.getInstance();
-        }
-        return psiElementAssociations2.type(psi);
-    }
-
-    private JavaType.Primitive primitiveType(PsiElement expression) {
-        // TODO: fix NPE.
-        FirElement firElement = psiElementAssociations.primary(expression);
-        if (firElement instanceof FirConstExpression) {
-            return typeMapping.primitive((ConeClassLikeType) ((FirResolvedTypeRef) ((FirConstExpression<?>) firElement).getTypeRef()).getType());
-        }
-
-        if (firElement instanceof FirStringConcatenationCall) {
-            return JavaType.Primitive.String;
-        }
-
-        return null;
+    private JavaType.Primitive primitiveType(PsiElement psi) {
+        IrElement element = psiElementAssociations.primary(psi);
+        return psiElementAssociations.getTypeMapping().primitive(element);
     }
 
     @Nullable
     private JavaType.Variable variableType(PsiElement psi) {
-        if (psi instanceof KtDeclaration) {
-            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
-            if (basedSymbol instanceof FirVariableSymbol) {
-                return (JavaType.Variable) typeMapping.type(basedSymbol.getFir(), owner(psi));
-            }
+        IrElement element = psiElementAssociations.primary(psi);
+        if (element instanceof IrProperty) {
+            return psiElementAssociations.getTypeMapping().variableType((IrProperty) element);
+        } else if (element instanceof IrValueParameter) {
+            return psiElementAssociations.getTypeMapping().variableType((IrValueParameter) element);
         }
         return null;
     }
 
     @Nullable
     private JavaType.Method methodDeclarationType(PsiElement psi) {
-        if (psi instanceof KtDeclaration) {
-            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
-            if (basedSymbol != null && basedSymbol.getFir() instanceof FirFunction) {
-                return psiElementAssociations.getTypeMapping().methodDeclarationType((FirFunction) basedSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
-            }
-        }
-//        if (psi instanceof KtNamedFunction) {
-//            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtNamedFunction) psi);
-//            if (basedSymbol instanceof FirNamedFunctionSymbol) {
-//                FirNamedFunctionSymbol functionSymbol = (FirNamedFunctionSymbol) basedSymbol;
-//                return psiElementAssociations.getTypeMapping().methodDeclarationType(functionSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
-//            }
-//        } else if (psi instanceof KtPropertyAccessor) {
-//            // todo, more generic logic
-//            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
-//            if (basedSymbol instanceof FirPropertyAccessorSymbol) {
-//                FirPropertyAccessorSymbol propertyAccessorSymbol = (FirPropertyAccessorSymbol) basedSymbol;
-//                return psiElementAssociations.getTypeMapping().methodDeclarationType(propertyAccessorSymbol.getFir(), null, psiElementAssociations.getFile().getSymbol());
-//            }
-//        }
-        return null;
+        IrFunction element = psiElementAssociations.methodDeclarationType(psi);
+        return psiElementAssociations.getTypeMapping().methodDeclarationType(element);
     }
 
     @Nullable
     private JavaType.Method methodInvocationType(PsiElement psi) {
-        FirElement firElement = psiElementAssociations.component(psi);
-        if (firElement == null) {
-            // TODO analyze why this is required (example `MethodReferenceTest#noReceiver()`)
-            firElement = psiElementAssociations.component(psi.getParent());
-        }
-        if (firElement instanceof FirFunctionCall) {
-            return typeMapping.methodInvocationType((FirFunctionCall) firElement, psiElementAssociations.getFile().getSymbol());
-        }
-        return null;
+        IrElement ir = psiElementAssociations.methodInvocationType(psi);
+        return psiElementAssociations.getTypeMapping().methodInvocationType(ir);
     }
 
     /*====================================================================

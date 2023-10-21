@@ -253,6 +253,10 @@ class KotlinTypeIrSignatureBuilder: JavaTypeSignatureBuilder {
         return signature.toString()
     }
 
+    fun methodSignature(type: Any): String {
+        return ""
+    }
+
     private fun methodArgumentSignature(function: IrFunction): String {
         val genericArgumentTypes = StringJoiner(",", "[", "]")
         if (function.extensionReceiverParameter != null) {
