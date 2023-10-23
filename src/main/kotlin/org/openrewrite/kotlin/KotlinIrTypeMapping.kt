@@ -91,6 +91,14 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
                 return methodDeclarationType(baseType.symbol.owner, signature)
             }
 
+            is IrClassReference -> {
+                return type(baseType.symbol.owner)
+            }
+
+            is IrConst<*> -> {
+                return primitive(baseType)
+            }
+
             is IrConstructorCall -> {
                 return type(baseType.symbol.owner)
             }
@@ -100,11 +108,15 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
             }
 
             is IrField -> {
-                TODO("IrField not implemented")
+                return variableType(baseType, signature)
             }
 
             is IrFunction -> {
                 return methodDeclarationType(baseType, signature)
+            }
+
+            is IrGetValue -> {
+                return type(baseType.type)
             }
 
             is IrProperty -> {
@@ -113,6 +125,10 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
 
             is IrTypeAlias -> {
                 return alias(baseType, signature)
+            }
+
+            is IrTypeOperatorCall -> {
+                return methodInvocationType(baseType, signature)
             }
 
             is IrTypeParameter -> {
@@ -128,7 +144,7 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
             }
 
             is IrVariable -> {
-                TODO("IrVariable not implemented")
+                return variableType(baseType)
             }
         }
 
@@ -324,13 +340,15 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
             null,
             mapToFlagsBitmap(function.visibility),
             null,
-            function.name.asString(),
+            if (function is IrConstructor) "<constructor>" else function.name.asString(),
             null,
             paramNames,
             null, null, null, null
         )
         typeCache.put(signature, method)
-        var declaringType = TypeUtils.asFullyQualified(type(function.parent)) ?: TODO()
+        var declaringType = TypeUtils.asFullyQualified(type(function.parent)) ?: null
+        ?: throw UnsupportedOperationException("Unsupported function parent: " + function.parent.javaClass)
+
         if (declaringType is JavaType.Parameterized) {
             declaringType = declaringType.type
         }
@@ -347,7 +365,7 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         }
         method.unsafeSet(
             declaringType,
-            returnType,
+            if (function is IrConstructor) declaringType else returnType,
             paramTypes, null, listAnnotations(function.annotations)
         )
         return method
@@ -364,8 +382,47 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         }
         return when (type) {
             is IrConstructorCall -> methodInvocationType(type, signature)
-            else -> TODO()
+            is IrCall -> methodInvocationType(type, signature)
+            else -> throw UnsupportedOperationException("Unsupported methodInvocationType: " + type.javaClass)
         }
+    }
+
+    fun methodInvocationType(type: IrCall, signature: String): JavaType.Method {
+        val paramNames: MutableList<String> = ArrayList(type.valueArguments.size)
+
+        for (v in type.symbol.owner.valueParameters) {
+            paramNames.add(v.name.asString())
+        }
+        val method = JavaType.Method(
+            null,
+            mapToFlagsBitmap(type.symbol.owner.visibility),
+            null,
+            type.symbol.owner.name.asString(),
+            null,
+            paramNames, null, null, null)
+        typeCache.put(signature, method)
+        var declaringType = TypeUtils.asFullyQualified(type(type.symbol.owner.parent))
+        if (declaringType is JavaType.Parameterized) {
+            declaringType = declaringType.type
+        }
+        val returnType = type(type.symbol.owner.returnType)
+        val paramTypes: MutableList<JavaType>? =
+            if (type.valueArguments.isNotEmpty() || type.extensionReceiver != null) ArrayList(type.valueArguments.size + (if (type.extensionReceiver != null) 1 else 0))
+            else null
+        if (type.extensionReceiver != null) {
+            paramTypes!!.add(type(type.extensionReceiver!!.type))
+        }
+        for (param: IrExpression? in type.valueArguments) {
+            if (param != null) {
+                paramTypes!!.add(type(param.type))
+            }
+        }
+        method.unsafeSet(
+            declaringType,
+            returnType,
+            paramTypes, null, listAnnotations(type.symbol.owner.annotations)
+        )
+        return method
     }
 
     fun methodInvocationType(type: IrConstructorCall, signature: String): JavaType.Method {
@@ -394,16 +451,31 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
             paramTypes!!.add(type(type.extensionReceiver!!.type))
         }
         for (param: IrExpression? in type.valueArguments) {
-            if (param == null) {
-                TODO()
+            if (param != null) {
+                paramTypes!!.add(type(param.type))
             }
-            paramTypes!!.add(type(param.type))
         }
         method.unsafeSet(
             declaringType,
             returnType,
             paramTypes, null, listAnnotations(type.symbol.owner.annotations)
         )
+        return method
+    }
+
+    private fun methodInvocationType(type: IrTypeOperatorCall, signature: String): JavaType {
+        val paramNames: MutableList<String> = ArrayList(0) // FIXME init cap
+
+//        for (v in type.symbol.owner.valueParameters) {
+//            paramNames.add(v.name.asString())
+//        }
+        val method = JavaType.Method(
+            null,
+            0, // FIXME
+            null,
+            "<constructor>",
+            null,
+            paramNames, null, null, null)
         return method
     }
 
@@ -424,7 +496,8 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
                 }
             }
             else -> {
-                TODO()
+                // TODO: make sure this isn't visited after StringTemplateExpressions are fixed.
+                JavaType.Primitive.None
             }
         }
     }
@@ -483,6 +556,33 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         }
         variable.unsafeSet(owner, typeRef, annotations)
         return variable
+    }
+
+    fun variableType(variable: IrField): JavaType.Variable {
+        val signature = signatureBuilder.variableSignature(variable)
+        val existing = typeCache.get<JavaType.Variable>(signature)
+        if (existing != null) {
+            return existing
+        }
+        return variableType(variable, signature)
+    }
+
+    private fun variableType(variable: IrField, signature: String): JavaType.Variable {
+        val vt = JavaType.Variable(
+            null,
+            0,
+            variable.name.asString(),
+            null, null, null
+        )
+        typeCache.put(signature, vt)
+        val annotations = listAnnotations(variable.annotations)
+        var owner = type(variable.parent)
+        if (owner is JavaType.Parameterized) {
+            owner = owner.type
+        }
+        val typeRef = type(variable.type)
+        vt.unsafeSet(owner, typeRef, annotations)
+        return vt
     }
 
     fun variableType(variable: IrVariable): JavaType.Variable {
@@ -554,7 +654,7 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         return when (kind) {
             ClassKind.INTERFACE -> JavaType.FullyQualified.Kind.Interface
             ClassKind.ENUM_CLASS -> JavaType.FullyQualified.Kind.Enum
-            ClassKind.ENUM_ENTRY -> TODO()
+            ClassKind.ENUM_ENTRY -> throw UnsupportedOperationException("Unsupported ClassKind.ENUM_ENTRY for class declaration.")
             ClassKind.ANNOTATION_CLASS -> JavaType.FullyQualified.Kind.Annotation
             else -> JavaType.FullyQualified.Kind.Class
         }

@@ -34,55 +34,56 @@ import org.openrewrite.kotlin.KotlinIrTypeMapping
 
 class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val psiFile: PsiFile, val file: IrFile) {
 
-    private val psiMap: MutableMap<TextRange, MutableSet<PsiElement>> = HashMap()
-    private val elementMap: MutableMap<PsiElement, MutableSet<IrInfo>> = HashMap()
+    private val notMapped: MutableList<IrElement> = ArrayList()
+    private val psiMap: MutableMap<TextRange, MutableList<PsiElement>> = HashMap()
+    private val elementMap: MutableMap<PsiElement, MutableList<IrInfo>> = HashMap()
 
     fun initialize() {
         var depth = 0
         object : PsiElementVisitor() {
             override fun visitElement(element: PsiElement) {
-                psiMap.computeIfAbsent(element.textRange) { HashSet() } += element
+                psiMap.computeIfAbsent(element.textRange) { ArrayList() } += element
                 element.acceptChildren(this)
             }
         }.visitFile(psiFile)
 
-        object : IrElementVisitor<Unit, MutableMap<PsiElement, MutableSet<IrInfo>>> {
-            override fun visitElement(element: IrElement, data: MutableMap<PsiElement, MutableSet<IrInfo>>) {
+        object : IrElementVisitor<Unit, MutableMap<PsiElement, MutableList<IrInfo>>> {
+            override fun visitElement(element: IrElement, data: MutableMap<PsiElement, MutableList<IrInfo>>) {
                 if (element is IrMetadataSourceOwner) {
                     if (element.metadata is FirMetadataSource) {
                         when (element.metadata) {
                             is FirMetadataSource.File -> {
                                 val source = (element.metadata!! as FirMetadataSource.File).files[0].source
                                 if (source is KtRealPsiSourceElement) {
-                                    elementMap.computeIfAbsent(source.psi) { HashSet() } += IrInfo(element, depth)
+                                    elementMap.computeIfAbsent(source.psi) { ArrayList() } += IrInfo(element, depth)
                                 }
                             }
 
                             is FirMetadataSource.Class -> {
                                 val source = (element.metadata!! as FirMetadataSource.Class).fir.source
                                 if (source is KtRealPsiSourceElement) {
-                                    elementMap.computeIfAbsent(source.psi) { HashSet() } += IrInfo(element, depth)
+                                    elementMap.computeIfAbsent(source.psi) { ArrayList() } += IrInfo(element, depth)
                                 }
                             }
 
                             is FirMetadataSource.Function -> {
                                 val source = (element.metadata!! as FirMetadataSource.Function).fir.source
                                 if (source is KtRealPsiSourceElement) {
-                                    elementMap.computeIfAbsent(source.psi) { HashSet() } += IrInfo(element, depth)
+                                    elementMap.computeIfAbsent(source.psi) { ArrayList() } += IrInfo(element, depth)
                                 }
                             }
 
                             is FirMetadataSource.Property -> {
                                 val source = (element.metadata!! as FirMetadataSource.Property).fir.source
                                 if (source is KtRealPsiSourceElement) {
-                                    elementMap.computeIfAbsent(source.psi) { HashSet() } += IrInfo(element, depth)
+                                    elementMap.computeIfAbsent(source.psi) { ArrayList() } += IrInfo(element, depth)
                                 }
                             }
 
                             is FirMetadataSource.Script -> {
                                 val source = (element.metadata!! as FirMetadataSource.Script).fir.source
                                 if (source is KtRealPsiSourceElement) {
-                                    elementMap.computeIfAbsent(source.psi) { HashSet() } += IrInfo(element, depth)
+                                    elementMap.computeIfAbsent(source.psi) { ArrayList() } += IrInfo(element, depth)
                                 }
                             }
                         }
@@ -93,16 +94,16 @@ class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val p
                         val psi = psiMap[textRange]
                         if (psi != null) {
                             if (psi.size == 1) {
-                                elementMap.computeIfAbsent(psi.toList()[0]) { HashSet() } += IrInfo(element, depth)
+                                elementMap.computeIfAbsent(psi.toList()[0]) { ArrayList() } += IrInfo(element, depth)
                             } else {
                                 for (p in psi) {
-                                    elementMap.computeIfAbsent(p) { HashSet() } += IrInfo(element, depth)
+                                    elementMap.computeIfAbsent(p) { ArrayList() } += IrInfo(element, depth)
                                 }
                             }
                         }
                     }
                 } else {
-                    throw UnsupportedOperationException("FIXME")
+                    notMapped.add(element)
                 }
 
                 depth++
@@ -130,34 +131,96 @@ class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val p
         return emptyList()
     }
 
-    fun primary(psiElement: PsiElement) =
-        ir(psiElement) {
-            when (psiElement) {
-                is KtFile -> {
-                    it is IrFile
-                }
+    fun primary(psiElement: PsiElement): IrElement? {
+        val temp = all(psiElement)
+        val f: ((IrElement) -> Boolean)? = when (psiElement) {
+            is KtFile -> {
+                { it is IrFile }
+            }
 
-                is KtClass -> {
-                    it is IrClass
-                }
+            is KtCallExpression -> {
+                { it is IrConstructorCall || it is IrCall || it is IrTypeOperatorCall }
+            }
 
-                is KtConstantExpression, is KtStringTemplateExpression -> {
-                    it is IrConst<*>
-                }
+            is KtClass, is KtObjectDeclaration -> {
+                { it is IrClass }
+            }
 
-                is KtFunction -> {
-                    it is IrFunction
-                }
+            is KtConstantExpression, is KtStringTemplateExpression -> {
+                { it is IrConst<*> }
+            }
 
-                is KtProperty -> {
-                    it is IrProperty
-                }
+            is KtClassLiteralExpression -> {
+                { it is IrClassReference }
+            }
 
-                else -> {
-                    throw UnsupportedOperationException("PSI element is not mapped: " + psiElement.javaClass)
+            is KtEnumEntry -> {
+                { it is IrEnumEntry }
+            }
+
+            is KtFunction -> {
+                { it is IrFunction }
+            }
+
+            is KtParameter -> {
+                {
+                    it is IrValueParameter && (it.name.asString() == psiElement.name.toString() || (it.name.asString() == "<unused var>" && psiElement.name.toString() == "_")) ||
+                            it is IrVariable && (it.name.asString() == psiElement.name.toString() || (it.name.asString() == "<unused var>" && psiElement.name.toString() == "_"))
                 }
             }
+
+            is KtPostfixExpression -> {
+                { it is IrVariable }
+            }
+
+            is KtPrefixExpression -> {
+                { it is IrVariable }
+            }
+            is KtProperty -> {
+                { it is IrProperty || it is IrVariable }
+            }
+
+            is KtThisExpression -> {
+                { it is IrGetValue }
+            }
+
+            is KtTypeParameter -> {
+                { it is IrTypeParameter }
+            }
+
+            is KtVariableDeclaration -> {
+                { it is IrVariable }
+            }
+
+            is KtNameReferenceExpression, is KtLiteralStringTemplateEntry -> {
+                // TODO: FIX in KotlinTreeParserVisitor.
+                null
+            }
+
+            else -> {
+                null
+            }
         }
+
+        if (f == null) {
+            // TEMP: fix KotlinTreeParserVisitor.
+            if (!(psiElement is KtNameReferenceExpression ||
+                        psiElement is KtLiteralStringTemplateEntry ||
+                        psiElement is KtUserType ||
+                        psiElement is KtBinaryExpression ||
+                        psiElement is KtDotQualifiedExpression)
+            ) {
+                // FIXME
+            }
+            return null
+        } else {
+            val m = elementMap[psiElement]
+            if (m != null && m.stream().map { it.ir }.noneMatch(f)) {
+                // function is missing a condition
+            }
+        }
+        return ir(psiElement, f)
+    }
 
     fun ir(psi: PsiElement?, filter: (IrElement) -> Boolean): IrElement? {
         if (psi == null) {

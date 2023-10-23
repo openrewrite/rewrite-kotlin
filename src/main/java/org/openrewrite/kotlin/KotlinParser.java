@@ -191,9 +191,9 @@ public class KotlinParser implements Parser {
                                         boolean switchToPsiParser = false;
                                         if (switchToPsiParser) {
                                             // debug purpose only, to be removed
-                                            System.out.println(PsiTreePrinter.print(kotlinSource.getInput()));
-                                            System.out.println(PsiTreePrinter.print(kotlinSource.getKtFile()));
-                                            System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
+//                                            System.out.println(PsiTreePrinter.print(kotlinSource.getInput()));
+//                                            System.out.println(PsiTreePrinter.print(kotlinSource.getKtFile()));
+//                                            System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
 
                                             // PSI based parser
                                             SourceFile kcuPsi;
