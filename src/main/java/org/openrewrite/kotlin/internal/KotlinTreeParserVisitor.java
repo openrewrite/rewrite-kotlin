@@ -31,6 +31,8 @@ import org.jetbrains.kotlin.ir.IrElement;
 import org.jetbrains.kotlin.ir.declarations.IrFunction;
 import org.jetbrains.kotlin.ir.declarations.IrProperty;
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter;
+import org.jetbrains.kotlin.ir.declarations.IrVariable;
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
@@ -840,6 +842,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
+        IrFunction functionType = psiElementAssociations.functionType(constructor);
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = new ArrayList<>();
 
@@ -1781,7 +1784,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        PsiElementAssociations.ExpressionType type = psiElementAssociations.getFunctionType(expression);
+        PsiElementAssociations.ExpressionType type = psiElementAssociations.getFunctionCallType(expression);
         if (type == PsiElementAssociations.ExpressionType.CONSTRUCTOR) {
             TypeTree name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
             if (!expression.getTypeArguments().isEmpty()) {
@@ -2121,6 +2124,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<KtDestructuringDeclarationEntry> entries = multiDeclaration.getEntries();
         for (int i = 0; i < entries.size(); i++) {
             KtDestructuringDeclarationEntry entry = entries.get(i);
+            List<IrElement> ir = psiElementAssociations.all(entry);
             Space beforeEntry = prefix(entry);
             List<J.Annotation> annotations = new ArrayList<>();
 
@@ -2154,13 +2158,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     vt
             );
 
-            JavaType.Method methodType = null;
-            if (paddedInitializer != null && paddedInitializer.getElement() instanceof J.NewClass) {
-                // TODO: fix what is NC for?
-                J.NewClass nc = (J.NewClass) paddedInitializer.getElement();
-                methodType = methodInvocationType(entry);
-            }
-
+            JavaType.Method methodType = methodInvocationType(entry);
             J.MethodInvocation initializer = buildSyntheticDestructInitializer(i + 1)
                     .withMethodType(methodType);
             namedVariable = namedVariable.getPadding().withInitializer(padLeft(Space.SINGLE_SPACE, initializer));
@@ -2177,7 +2175,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         Markers.EMPTY,
                         emptyList(),
                         "<destruct>",
-                        null,
+                        variableType(multiDeclaration),
                         null
                 ),
                 emptyList(),
@@ -2194,8 +2192,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 null,
                 null,
                 emptyList(),
-                singletonList(padRight(emptyWithInitializer, Space.EMPTY)
-                )
+                singletonList(padRight(emptyWithInitializer, Space.EMPTY))
         );
 
         return new K.DestructuringDeclaration(
@@ -2361,6 +2358,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @NotNull
     private J visitNamedFunction0(KtNamedFunction function, ExecutionContext data) {
+        IrFunction functionType = psiElementAssociations.functionType(function);
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Annotation> lastAnnotations = new ArrayList<>();
@@ -2603,7 +2601,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     .withMarkers(Markers.EMPTY.addIfAbsent(new Implicit(randomId())));
         }
 
-
         return new J.ClassDeclaration(
                 randomId(),
                 prefix(declaration),
@@ -2679,6 +2676,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitProperty(KtProperty property, ExecutionContext data) {
+        IrProperty propertyType = psiElementAssociations.propertyType(property);
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Annotation> lastAnnotations = new ArrayList<>();
@@ -3202,25 +3200,32 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Nullable
     private JavaType.Variable variableType(PsiElement psi) {
-        IrElement element = psiElementAssociations.primary(psi);
-        if (element instanceof IrProperty) {
-            return psiElementAssociations.getTypeMapping().variableType((IrProperty) element);
-        } else if (element instanceof IrValueParameter) {
-            return psiElementAssociations.getTypeMapping().variableType((IrValueParameter) element);
+        for (IrElement ir : psiElementAssociations.all(psi)) {
+            if (ir instanceof IrProperty) {
+                return psiElementAssociations.getTypeMapping().variableType((IrProperty) ir);
+            } else if (ir instanceof IrVariable) {
+                return psiElementAssociations.getTypeMapping().variableType((IrVariable) ir);
+            } else if (ir instanceof IrValueParameter) {
+                return psiElementAssociations.getTypeMapping().variableType((IrValueParameter) ir);
+            }
         }
         return null;
     }
 
     @Nullable
     private JavaType.Method methodDeclarationType(PsiElement psi) {
-        IrFunction element = psiElementAssociations.methodDeclarationType(psi);
+        IrFunction element = psiElementAssociations.functionType(psi);
         return psiElementAssociations.getTypeMapping().methodDeclarationType(element);
     }
 
     @Nullable
     private JavaType.Method methodInvocationType(PsiElement psi) {
-        IrElement ir = psiElementAssociations.methodInvocationType(psi);
-        return psiElementAssociations.getTypeMapping().methodInvocationType(ir);
+        for (IrElement ir : psiElementAssociations.all(psi)) {
+            if (ir instanceof IrFunctionAccessExpression) {
+                return psiElementAssociations.getTypeMapping().methodInvocationType((IrFunctionAccessExpression) ir);
+            }
+        }
+        return null;
     }
 
     /*====================================================================

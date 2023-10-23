@@ -28,11 +28,7 @@ import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
-import org.jetbrains.kotlin.psi.KtClass
-import org.jetbrains.kotlin.psi.KtConstantExpression
-import org.jetbrains.kotlin.psi.KtExpression
-import org.jetbrains.kotlin.psi.KtProperty
-import org.jetbrains.kotlin.psi.KtStringTemplateExpression
+import org.jetbrains.kotlin.psi.*
 import org.openrewrite.java.tree.JavaType
 import org.openrewrite.kotlin.KotlinIrTypeMapping
 
@@ -95,23 +91,18 @@ class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val p
                     val textRange = TextRange.create(element.startOffset, element.endOffset)
                     if (psiMap.containsKey(textRange)) {
                         val psi = psiMap[textRange]
-                        when (element) {
-                            is IrConst<*> -> {
-                                for (p in psi!!.toList()) {
-                                    if (p is KtConstantExpression || p is KtStringTemplateExpression) {
-                                        elementMap.computeIfAbsent(p) { HashSet() } += IrInfo(element, depth)
-                                        break
-                                    }
+                        if (psi != null) {
+                            if (psi.size == 1) {
+                                elementMap.computeIfAbsent(psi.toList()[0]) { HashSet() } += IrInfo(element, depth)
+                            } else {
+                                for (p in psi) {
+                                    elementMap.computeIfAbsent(p) { HashSet() } += IrInfo(element, depth)
                                 }
-                            }
-                            is IrBlockBody, is IrExpressionBody, is IrWhen, is IrBranch -> {
-                                // Skip
-                            }
-                            else -> {
-                                // TODO: map if necessary
                             }
                         }
                     }
+                } else {
+                    throw UnsupportedOperationException("FIXME")
                 }
 
                 depth++
@@ -131,9 +122,21 @@ class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val p
         return if (ir != null) typeMapping.type(ir) else null
     }
 
+    fun all(psiElement: PsiElement): List<IrElement> {
+        val elements = elementMap[psiElement]
+        if (elements != null) {
+            return elements.map { it.ir }.toList()
+        }
+        return emptyList()
+    }
+
     fun primary(psiElement: PsiElement) =
         ir(psiElement) {
             when (psiElement) {
+                is KtFile -> {
+                    it is IrFile
+                }
+
                 is KtClass -> {
                     it is IrClass
                 }
@@ -142,44 +145,42 @@ class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val p
                     it is IrConst<*>
                 }
 
+                is KtFunction -> {
+                    it is IrFunction
+                }
+
                 is KtProperty -> {
                     it is IrProperty
                 }
 
                 else -> {
-                    it is IrElement
+                    throw UnsupportedOperationException("PSI element is not mapped: " + psiElement.javaClass)
                 }
             }
         }
 
     fun ir(psi: PsiElement?, filter: (IrElement) -> Boolean): IrElement? {
-        var p = psi
-        while (p != null && !elementMap.containsKey(p)) {
-            p = p.parent
-        }
-
-        if (p == null) {
+        if (psi == null) {
             return null
         }
-
-        val allIrInfos = elementMap[p]!!
-        val directIrInfos = allIrInfos.filter { filter.invoke(it.ir) }
-        return if (directIrInfos.isNotEmpty())
-            directIrInfos[0].ir
-        else if (directIrInfos.isNotEmpty())
-            directIrInfos[0].ir
-        else
-            null
+        val directIrInfos = all(psi).filter { filter.invoke(it) }
+        return if (directIrInfos.isNotEmpty()) directIrInfos[0] else null
     }
 
-    fun methodDeclarationType(psiElement: PsiElement): IrFunction? {
-        val ir = primary(psiElement)
-        return if (ir is IrFunction) ir else null
+    fun functionType(psiElement: PsiElement): IrFunction? {
+        return ir(psiElement) { it is IrFunction } as? IrFunction ?: return null
     }
 
-    fun methodInvocationType(psiElement: PsiElement): IrElement? {
-        val ir = primary(psiElement)
-        return if (ir is IrFunction) ir else null
+    fun functionCallType(psiElement: PsiElement): IrFunctionAccessExpression? {
+        return ir(psiElement) { it is IrFunctionAccessExpression } as? IrFunctionAccessExpression ?: return null
+    }
+
+    fun propertyType(psiElement: PsiElement): IrProperty? {
+        return ir(psiElement) { it is IrProperty } as? IrProperty ?: return null
+    }
+
+    fun variableType(psiElement: PsiElement): IrVariable? {
+        return ir(psiElement) { it is IrVariable } as? IrVariable ?: return null
     }
 
     enum class ExpressionType {
@@ -188,14 +189,9 @@ class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val p
         RETURN_EXPRESSION
     }
 
-    fun getFunctionType(psi: KtExpression): ExpressionType? {
-        val ir = ir(psi) { it is IrCall } as? IrCall
-
-        if (ir == null) {
-            return null
-        }
-
-        return null
+    fun getFunctionCallType(psi: KtExpression): ExpressionType? {
+        val ir = ir(psi) { it is IrFunctionAccessExpression } as? IrFunctionAccessExpression ?: return null
+        return if (ir is IrConstructorCall) ExpressionType.CONSTRUCTOR else ExpressionType.METHOD_INVOCATION
     }
 
     private fun PsiElement.customToString(): String {

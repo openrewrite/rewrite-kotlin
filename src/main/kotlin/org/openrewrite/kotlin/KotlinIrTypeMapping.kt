@@ -15,15 +15,13 @@
  */
 package org.openrewrite.kotlin
 
-import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DescriptorVisibility
 import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.fir.symbols.Fir2IrConstructorSymbol
+import org.jetbrains.kotlin.ir.backend.js.utils.valueArguments
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.jetbrains.kotlin.ir.expressions.IrConst
-import org.jetbrains.kotlin.ir.expressions.IrConstKind
-import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
+import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
 import org.jetbrains.kotlin.ir.types.*
@@ -308,7 +306,7 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         if (function == null) {
             return null
         }
-        val signature = signatureBuilder.methodDeclarationSignature(function)
+        val signature = signatureBuilder.methodSignature(function)
         val existing = typeCache.get<JavaType.Method>(signature)
         if (existing != null) {
             return existing
@@ -326,7 +324,7 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
             null,
             mapToFlagsBitmap(function.visibility),
             null,
-            if (function is IrConstructor) "<constructor>" else function.name.asString(),
+            function.name.asString(),
             null,
             paramNames,
             null, null, null, null
@@ -349,13 +347,13 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         }
         method.unsafeSet(
             declaringType,
-            if (function is IrConstructor) declaringType else returnType,
+            returnType,
             paramTypes, null, listAnnotations(function.annotations)
         )
         return method
     }
 
-    fun methodInvocationType(type: Any?): JavaType.Method? {
+    fun methodInvocationType(type: IrFunctionAccessExpression?): JavaType.Method? {
         if (type == null) {
             return null
         }
@@ -364,20 +362,49 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         if (existing != null) {
             return existing
         }
-        return methodInvocationType(type, signature)
+        return when (type) {
+            is IrConstructorCall -> methodInvocationType(type, signature)
+            else -> TODO()
+        }
     }
 
-    fun methodInvocationType(type: Any, signature: String): JavaType.Method {
-        return JavaType.Method(
+    fun methodInvocationType(type: IrConstructorCall, signature: String): JavaType.Method {
+        val paramNames: MutableList<String> = ArrayList(type.valueArguments.size)
+
+        for (v in type.symbol.owner.valueParameters) {
+            paramNames.add(v.name.asString())
+        }
+        val method = JavaType.Method(
             null,
-            0,
+            mapToFlagsBitmap(type.symbol.owner.visibility),
             null,
-            "",
+            "<constructor>",
             null,
-            null,
-            null,
-            null,
-            null)
+            paramNames, null, null, null)
+        typeCache.put(signature, method)
+        var declaringType = TypeUtils.asFullyQualified(type(type.symbol.owner.parent))
+        if (declaringType is JavaType.Parameterized) {
+            declaringType = declaringType.type
+        }
+        val returnType = declaringType
+        val paramTypes: MutableList<JavaType>? =
+            if (type.valueArguments.isNotEmpty() || type.extensionReceiver != null) ArrayList(type.valueArguments.size + (if (type.extensionReceiver != null) 1 else 0))
+            else null
+        if (type.extensionReceiver != null) {
+            paramTypes!!.add(type(type.extensionReceiver!!.type))
+        }
+        for (param: IrExpression? in type.valueArguments) {
+            if (param == null) {
+                TODO()
+            }
+            paramTypes!!.add(type(param.type))
+        }
+        method.unsafeSet(
+            declaringType,
+            returnType,
+            paramTypes, null, listAnnotations(type.symbol.owner.annotations)
+        )
+        return method
     }
 
     fun primitive(type: Any?): JavaType.Primitive {
@@ -456,6 +483,33 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         }
         variable.unsafeSet(owner, typeRef, annotations)
         return variable
+    }
+
+    fun variableType(variable: IrVariable): JavaType.Variable {
+        val signature = signatureBuilder.variableSignature(variable)
+        val existing = typeCache.get<JavaType.Variable>(signature)
+        if (existing != null) {
+            return existing
+        }
+        return variableType(variable, signature)
+    }
+
+    private fun variableType(variable: IrVariable, signature: String): JavaType.Variable {
+        val vt = JavaType.Variable(
+            null,
+            0,
+            variable.name.asString(),
+            null, null, null
+        )
+        typeCache.put(signature, vt)
+        val annotations = listAnnotations(variable.annotations)
+        var owner = type(variable.parent)
+        if (owner is JavaType.Parameterized) {
+            owner = owner.type
+        }
+        val typeRef = type(variable.type)
+        vt.unsafeSet(owner, typeRef, annotations)
+        return vt
     }
 
     fun variableType(valueParameter: IrValueParameter): JavaType.Variable {
