@@ -346,8 +346,10 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
             null, null, null, null
         )
         typeCache.put(signature, method)
-        var declaringType = TypeUtils.asFullyQualified(type(function.parent)) ?: null
-        ?: throw UnsupportedOperationException("Unsupported function parent: " + function.parent.javaClass)
+        var declaringType = when (val irParent = function.parent) {
+            is IrField -> TypeUtils.asFullyQualified(type(irParent.parent))
+            else -> TypeUtils.asFullyQualified(type(irParent))
+        }
 
         if (declaringType is JavaType.Parameterized) {
             declaringType = declaringType.type

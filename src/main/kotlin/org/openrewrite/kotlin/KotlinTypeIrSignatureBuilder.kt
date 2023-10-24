@@ -305,10 +305,10 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
     }
 
     fun methodSignature(function: IrFunction): String {
-        val parent = when (function.parent) {
-            is IrClass -> classSignature(function.parent)
-            is IrField -> TODO("Fix method signature support of parent IrFields.")
-            else -> signature(function.parent)
+        val parent = when (val irParent = function.parent) {
+            is IrClass -> classSignature(irParent)
+            is IrField -> signature(irParent.parent)
+            else -> signature(irParent)
         }
         val signature = StringBuilder(parent)
         if (function is IrConstructor) {
