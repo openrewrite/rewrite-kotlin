@@ -154,12 +154,12 @@ class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val p
                 { it is IrClassReference }
             }
 
-            is KtEnumEntry -> {
-                { it is IrEnumEntry }
-            }
-
             is KtFunction -> {
                 { it is IrFunction }
+            }
+
+            is KtNameReferenceExpression -> {
+                { it is IrPropertyReference || it is IrFunctionReference || it is IrGetValue || it is IrCall }
             }
 
             is KtParameter -> {
@@ -176,6 +176,7 @@ class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val p
             is KtPrefixExpression -> {
                 { it is IrVariable }
             }
+
             is KtProperty -> {
                 { it is IrProperty || it is IrVariable }
             }
@@ -210,13 +211,13 @@ class PsiElementAssociations(val typeMapping: KotlinIrTypeMapping, private val p
                         psiElement is KtBinaryExpression ||
                         psiElement is KtDotQualifiedExpression)
             ) {
-                // FIXME
+                // println()
             }
             return null
         } else {
             val m = elementMap[psiElement]
             if (m != null && m.stream().map { it.ir }.noneMatch(f)) {
-                // function is missing a condition
+                // println()
             }
         }
         return ir(psiElement, f)

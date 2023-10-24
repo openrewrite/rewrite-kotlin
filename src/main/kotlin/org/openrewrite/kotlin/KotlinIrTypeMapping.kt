@@ -18,7 +18,6 @@ package org.openrewrite.kotlin
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DescriptorVisibility
 import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.fir.symbols.Fir2IrConstructorSymbol
 import org.jetbrains.kotlin.ir.backend.js.utils.valueArguments
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
@@ -92,7 +91,7 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
             }
 
             is IrClassReference -> {
-                return type(baseType.symbol.owner)
+                return type(baseType.type)
             }
 
             is IrConst<*> -> {
@@ -115,12 +114,20 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
                 return methodDeclarationType(baseType, signature)
             }
 
+            is IrFunctionReference -> {
+                return type(baseType.symbol.owner)
+            }
+
             is IrGetValue -> {
                 return type(baseType.type)
             }
 
             is IrProperty -> {
                 return variableType(baseType, signature)
+            }
+
+            is IrPropertyReference -> {
+                return variableType(baseType.symbol.owner)
             }
 
             is IrTypeAlias -> {

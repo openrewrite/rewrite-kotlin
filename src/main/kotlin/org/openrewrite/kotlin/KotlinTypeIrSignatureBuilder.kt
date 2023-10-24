@@ -60,7 +60,7 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
             }
 
             is IrClassReference -> {
-                return signature(baseType.symbol.owner)
+                return signature(baseType.type)
             }
 
             is IrConst<*> -> {
@@ -83,12 +83,20 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
                 return methodSignature(baseType)
             }
 
+            is IrFunctionReference -> {
+                return signature(baseType.symbol.owner)
+            }
+
             is IrGetValue -> {
                 return signature(baseType.type)
             }
 
             is IrProperty -> {
                 return variableSignature(baseType)
+            }
+
+            is IrPropertyReference -> {
+                return variableSignature(baseType.symbol.owner)
             }
 
             is IrTypeAlias -> {
@@ -364,6 +372,7 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
         return ""
     }
 
+    // TODO: ensure method and variable signatures from various IR with the same types generate the same signature.
     private fun isNotAny(type: IrType): Boolean {
         return !(type.classifierOrNull != null && type.classifierOrNull!!.owner is IrClass && "kotlin.Any" == (type.classifierOrNull!!.owner as IrClass).kotlinFqName.asString())
     }

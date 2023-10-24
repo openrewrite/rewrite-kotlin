@@ -31,6 +31,9 @@ import org.jetbrains.kotlin.ir.declarations.IrProperty;
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter;
 import org.jetbrains.kotlin.ir.declarations.IrVariable;
 import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression;
+import org.jetbrains.kotlin.ir.expressions.IrFunctionReference;
+import org.jetbrains.kotlin.ir.expressions.IrPropertyReference;
+import org.jetbrains.kotlin.ir.types.IrType;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
@@ -261,16 +264,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitCallableReferenceExpression(KtCallableReferenceExpression expression, ExecutionContext data) {
         IrElement ir = psiElementAssociations.primary(expression.getCallableReference());
         JavaType.Method methodReferenceType = null;
-//        if (reference.getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
-//            System.out.println();
-//            methodReferenceType = psiElementAssociations.getTypeMapping().methodDeclarationType(expression);
-//        }
+        if (ir instanceof IrFunctionReference) {
+            methodReferenceType = psiElementAssociations.getTypeMapping().methodDeclarationType(((IrFunctionReference) ir).getSymbol().getOwner());
+        }
         JavaType.Variable fieldReferenceType = null;
-//        if (reference.getResolvedSymbol() instanceof FirPropertySymbol) {
-//            System.out.println();
-//            fieldReferenceType = psiElementAssociations.getTypeMapping().variableType(expression);
-//        }
-
+        if (ir instanceof IrPropertyReference) {
+            fieldReferenceType = psiElementAssociations.getTypeMapping().variableType(((IrPropertyReference) ir).getSymbol().getOwner());
+        }
         JRightPadded<Expression> receiver;
         if (expression.getReceiverExpression() == null) {
             receiver = padRight(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY),
@@ -729,7 +729,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 leaf.getText(),
                 valueSource, // todo, support text block
                 null,
-                primitiveType(entry) // TODO: type is not accessible from the KtLiteralStringTemplateEntry.
+                JavaType.Primitive.String
         );
     }
 
@@ -756,6 +756,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitParameter(KtParameter parameter, ExecutionContext data) {
+        IrElement ir = psiElementAssociations.primary(parameter);
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Annotation> lastAnnotations = new ArrayList<>();
@@ -854,8 +855,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             modifiers.add(mapModifier(constructor.getConstructorKeyword(), Collections.emptyList()));
         }
 
-        JavaType type = type(constructor);
-
+        JavaType.Method type = methodDeclarationType(constructor);
         J.Identifier name = new J.Identifier(
                 randomId(),
                 Space.EMPTY,
@@ -992,8 +992,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             J.MethodInvocation methodInvocation = (J.MethodInvocation) selector;
             return methodInvocation.getPadding()
                     .withSelect(padRight(receiver, suffix(expression.getReceiverExpression())))
-                    .withName(methodInvocation.getName().withPrefix(prefix(expression.getSelectorExpression())))
-                    ;
+                    .withName(methodInvocation.getName().withPrefix(prefix(expression.getSelectorExpression())));
         } else {
             J.Identifier identifier = (J.Identifier) selector;
             return new J.FieldAccess(
@@ -2285,7 +2284,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     Markers.EMPTY,
                     expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY),
                     padLeft(suffix(expression.getReceiverExpression()), (J.Identifier) expression.getSelectorExpression().accept(this, data)),
-                    type(expression) // FIXME: this will not result in a type.
+                    type(expression.getSelectorExpression()) // FIXME: this will not result in a type.
             );
         }
     }
