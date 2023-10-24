@@ -656,7 +656,8 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         return when (kind) {
             ClassKind.INTERFACE -> JavaType.FullyQualified.Kind.Interface
             ClassKind.ENUM_CLASS -> JavaType.FullyQualified.Kind.Enum
-            ClassKind.ENUM_ENTRY -> throw UnsupportedOperationException("Unsupported ClassKind.ENUM_ENTRY for class declaration.")
+            // ClassKind.ENUM_ENTRY is compiled to a class.
+            ClassKind.ENUM_ENTRY -> JavaType.FullyQualified.Kind.Class
             ClassKind.ANNOTATION_CLASS -> JavaType.FullyQualified.Kind.Annotation
             else -> JavaType.FullyQualified.Kind.Class
         }
