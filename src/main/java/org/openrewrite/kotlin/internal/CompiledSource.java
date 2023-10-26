@@ -17,11 +17,15 @@ package org.openrewrite.kotlin.internal;
 
 import lombok.Value;
 import org.jetbrains.kotlin.fir.FirSession;
+import org.jetbrains.kotlin.fir.backend.Fir2IrCommonMemberStorage;
+import org.jetbrains.kotlin.fir.backend.Fir2IrComponents;
 
 import java.util.Collection;
 
 @Value
 public class CompiledSource {
     FirSession firSession;
+    Fir2IrComponents fir2IrComponents;
+    Fir2IrCommonMemberStorage commonMemberStorage;
     Collection<KotlinSource> sources;
 }

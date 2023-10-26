@@ -24,16 +24,12 @@ import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.PsiErrorElementImp
 import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.FirElement;
+import org.jetbrains.kotlin.fir.declarations.FirProperty;
 import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
-import org.jetbrains.kotlin.ir.IrElement;
-import org.jetbrains.kotlin.ir.declarations.IrFunction;
-import org.jetbrains.kotlin.ir.declarations.IrProperty;
-import org.jetbrains.kotlin.ir.declarations.IrValueParameter;
-import org.jetbrains.kotlin.ir.declarations.IrVariable;
-import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression;
-import org.jetbrains.kotlin.ir.expressions.IrFunctionReference;
-import org.jetbrains.kotlin.ir.expressions.IrPropertyReference;
-import org.jetbrains.kotlin.ir.types.IrType;
+import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction;
+import org.jetbrains.kotlin.fir.references.FirResolvedCallableReference;
+import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol;
+import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
@@ -71,7 +67,7 @@ import static org.openrewrite.Tree.randomId;
  */
 public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     private final KotlinSource kotlinSource;
-    private final PsiElementAssociations psiElementAssociations;
+    private final PsiElementAssociations associations;
     private final List<NamedStyles> styles;
     private final Path sourcePath;
 
@@ -83,12 +79,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     private final ExecutionContext executionContext;
 
     public KotlinTreeParserVisitor(KotlinSource kotlinSource,
-                                   PsiElementAssociations psiElementAssociations,
+                                   PsiElementAssociations associations,
                                    List<NamedStyles> styles,
                                    @Nullable Path relativeTo,
                                    ExecutionContext ctx) {
         this.kotlinSource = kotlinSource;
-        this.psiElementAssociations = psiElementAssociations;
+        this.associations = associations;
         this.styles = styles;
         sourcePath = kotlinSource.getInput().getRelativePath(relativeTo);
         fileAttributes = kotlinSource.getInput().getFileAttributes();
@@ -262,14 +258,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitCallableReferenceExpression(KtCallableReferenceExpression expression, ExecutionContext data) {
-        IrElement ir = psiElementAssociations.primary(expression.getCallableReference());
+        FirResolvedCallableReference reference = (FirResolvedCallableReference) associations.primary(expression.getCallableReference());
         JavaType.Method methodReferenceType = null;
-        if (ir instanceof IrFunctionReference) {
-            methodReferenceType = psiElementAssociations.getTypeMapping().methodDeclarationType(((IrFunctionReference) ir).getSymbol().getOwner());
+        if (reference != null && reference.getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
+            methodReferenceType = methodDeclarationType(((FirNamedFunctionSymbol) reference.getResolvedSymbol()).getFir());
         }
         JavaType.Variable fieldReferenceType = null;
-        if (ir instanceof IrPropertyReference) {
-            fieldReferenceType = psiElementAssociations.getTypeMapping().variableType(((IrPropertyReference) ir).getSymbol().getOwner());
+        if (reference != null && reference.getResolvedSymbol() instanceof FirPropertySymbol) {
+            fieldReferenceType = variableType(((FirPropertySymbol) reference.getResolvedSymbol()).getFir());
         }
         JRightPadded<Expression> receiver;
         if (expression.getReceiverExpression() == null) {
@@ -756,7 +752,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitParameter(KtParameter parameter, ExecutionContext data) {
-        IrElement ir = psiElementAssociations.primary(parameter);
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Annotation> lastAnnotations = new ArrayList<>();
@@ -842,7 +837,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("TODO");
         }
 
-        IrFunction functionType = psiElementAssociations.functionType(constructor);
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = new ArrayList<>();
 
@@ -1816,8 +1810,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (expression.getCalleeExpression() == null) {
             throw new UnsupportedOperationException("TODO");
         }
-        IrElement ir = psiElementAssociations.primary(expression); // TODO: use ir to map types
-        PsiElementAssociations.ExpressionType type = psiElementAssociations.getFunctionCallType(expression);
+        PsiElementAssociations.ExpressionType type = associations.getFunctionCallType(expression);
         if (type == PsiElementAssociations.ExpressionType.CONSTRUCTOR) {
             TypeTree name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
             if (!expression.getTypeArguments().isEmpty()) {
@@ -2155,7 +2148,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<KtDestructuringDeclarationEntry> entries = multiDeclaration.getEntries();
         for (int i = 0; i < entries.size(); i++) {
             KtDestructuringDeclarationEntry entry = entries.get(i);
-            List<IrElement> ir = psiElementAssociations.all(entry);
             Space beforeEntry = prefix(entry);
             List<J.Annotation> annotations = new ArrayList<>();
 
@@ -2389,7 +2381,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @NotNull
     private J visitNamedFunction0(KtNamedFunction function, ExecutionContext data) {
-        IrFunction functionType = psiElementAssociations.functionType(function);
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Annotation> lastAnnotations = new ArrayList<>();
@@ -2716,7 +2707,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitProperty(KtProperty property, ExecutionContext data) {
-        IrProperty propertyType = psiElementAssociations.propertyType(property);
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Annotation> lastAnnotations = new ArrayList<>();
@@ -2887,15 +2877,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitSimpleNameExpression(KtSimpleNameExpression expression, ExecutionContext data) {
-        // TODO: The FIR does not have a PSI element associated to names, similarly name references from the PSI are not linked to the IR.
-        //       The type must be added in context to the parent element.
-        //       I.E. IrConstructor assocaited to the KtPrimaryConstructor.
         return createIdentifier(expression, type(expression));
     }
 
     @Override
     public J visitStringTemplateExpression(KtStringTemplateExpression expression, ExecutionContext data) {
-        List<IrElement> irs = psiElementAssociations.all(expression); // TODO: types must be generated from the template expression.
         KtStringTemplateEntry[] entries = expression.getEntries();
         boolean hasStringTemplateEntry = Arrays.stream(entries).anyMatch(x ->
                 x instanceof KtBlockStringTemplateEntry ||
@@ -3235,42 +3221,36 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (psi == null) {
             return JavaType.Unknown.getInstance();
         }
-        return psiElementAssociations.type(psi);
+        return associations.type(psi);
     }
 
     private JavaType.Primitive primitiveType(PsiElement psi) {
-        IrElement element = psiElementAssociations.primary(psi);
-        return psiElementAssociations.getTypeMapping().primitive(element);
+        return associations.primitive(psi);
     }
 
     @Nullable
     private JavaType.Variable variableType(PsiElement psi) {
-        for (IrElement ir : psiElementAssociations.all(psi)) {
-            if (ir instanceof IrProperty) {
-                return psiElementAssociations.getTypeMapping().variableType((IrProperty) ir);
-            } else if (ir instanceof IrVariable) {
-                return psiElementAssociations.getTypeMapping().variableType((IrVariable) ir);
-            } else if (ir instanceof IrValueParameter) {
-                return psiElementAssociations.getTypeMapping().variableType((IrValueParameter) ir);
-            }
-        }
-        return null;
+        return associations.variableType(psi);
+    }
+
+    @Nullable
+    private JavaType.Variable variableType(FirProperty property) {
+        return associations.variableType(property);
     }
 
     @Nullable
     private JavaType.Method methodDeclarationType(PsiElement psi) {
-        IrFunction element = psiElementAssociations.functionType(psi);
-        return psiElementAssociations.getTypeMapping().methodDeclarationType(element);
+        return associations.methodDeclarationType(psi);
+    }
+
+    @Nullable
+    private JavaType.Method methodDeclarationType(FirSimpleFunction fir) {
+        return associations.methodDeclarationType(fir);
     }
 
     @Nullable
     private JavaType.Method methodInvocationType(PsiElement psi) {
-        for (IrElement ir : psiElementAssociations.all(psi)) {
-            if (ir instanceof IrFunctionAccessExpression) {
-                return psiElementAssociations.getTypeMapping().methodInvocationType((IrFunctionAccessExpression) ir);
-            }
-        }
-        return null;
+        return associations.methodInvocationType(psi);
     }
 
     /*====================================================================

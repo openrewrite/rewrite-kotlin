@@ -71,6 +71,11 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
                 return signature(baseType.symbol.owner)
             }
 
+            is IrEnumEntry -> {
+                // TODO()
+                return "{undefined}"
+            }
+
             is IrExternalPackageFragment -> {
                 return externalPackageFragmentSignature(baseType)
             }

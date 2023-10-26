@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DescriptorVisibility
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.fir.lazy.Fir2IrLazyConstructor
+import org.jetbrains.kotlin.fir.lazy.Fir2IrLazyPropertyAccessor
 import org.jetbrains.kotlin.fir.lazy.Fir2IrLazySimpleFunction
 import org.jetbrains.kotlin.ir.backend.js.utils.valueArguments
 import org.jetbrains.kotlin.ir.declarations.*
@@ -47,22 +48,6 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
 
     init {
         this.typeCache = typeCache
-    }
-
-    // TEMP: method to map types in an IrFile.
-    fun type(irFile: IrFile) {
-        for (ann in irFile.annotations) {
-            type(ann)
-        }
-        for (dec in irFile.declarations) {
-            if (dec is IrScript) {
-                for (irDec in dec.statements) {
-                    type(irDec)
-                }
-            } else {
-                type(dec)
-            }
-        }
     }
 
     override fun type(type: Any?): JavaType {
@@ -105,6 +90,11 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
 
             is IrConstructorCall -> {
                 return methodInvocationType(baseType, signature)
+            }
+
+            is IrEnumEntry -> {
+                // TODO()
+                return JavaType.Unknown.getInstance()
             }
 
             is IrExternalPackageFragment -> {
@@ -260,7 +250,9 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
                     fields = ArrayList(irClass.properties.toList().size)
                 }
                 val vt = variableType(property)
-                fields.add(vt)
+                if (vt != null) {
+                    fields.add(vt)
+                }
             }
 
             var methods: MutableList<JavaType.Method>? = null
@@ -367,7 +359,7 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
                     is IrFunctionImpl -> function.modality
                     is IrFunctionWithLateBindingImpl -> function.modality
                     is Fir2IrLazySimpleFunction -> function.modality
-                    is IrConstructorImpl, is Fir2IrLazyConstructor -> null
+                    is IrConstructorImpl, is Fir2IrLazyConstructor, is Fir2IrLazyPropertyAccessor -> null
                     else -> throw UnsupportedOperationException("Unsupported IrFunction type: " + function.javaClass)
                 }
             ),
@@ -517,16 +509,33 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         return when (type) {
             is IrConst<*> -> {
                 when (type.kind) {
-                    IrConstKind.Int -> JavaType.Primitive.Int
                     IrConstKind.Boolean -> JavaType.Primitive.Boolean
                     IrConstKind.Byte -> JavaType.Primitive.Byte
                     IrConstKind.Char -> JavaType.Primitive.Char
                     IrConstKind.Double -> JavaType.Primitive.Double
                     IrConstKind.Float -> JavaType.Primitive.Float
+                    IrConstKind.Int -> JavaType.Primitive.Int
                     IrConstKind.Long -> JavaType.Primitive.Long
                     IrConstKind.Null -> JavaType.Primitive.Null
                     IrConstKind.Short -> JavaType.Primitive.Short
                     IrConstKind.String -> JavaType.Primitive.String
+                }
+            }
+            is IrSimpleType -> {
+                return when (type.classFqName?.asString()) {
+                    "kotlin.Boolean" -> JavaType.Primitive.Boolean
+                    "kotlin.Byte" -> JavaType.Primitive.Byte
+                    "kotlin.Char" -> JavaType.Primitive.Char
+                    "kotlin.Double" -> JavaType.Primitive.Double
+                    "kotlin.Float" -> JavaType.Primitive.Float
+                    "kotlin.Int" -> JavaType.Primitive.Int
+                    "kotlin.Long" -> JavaType.Primitive.Long
+                    "kotlin.Nothing" -> JavaType.Primitive.Null
+                    "kotlin.Short" -> JavaType.Primitive.Short
+                    "kotlin.String" -> JavaType.Primitive.String
+                    else -> {
+                        JavaType.Primitive.None
+                    }
                 }
             }
             else -> {
@@ -559,7 +568,10 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         return gtv
     }
 
-    fun variableType(property: IrProperty): JavaType.Variable {
+    fun variableType(property: IrProperty?): JavaType.Variable? {
+        if (property == null) {
+            return null
+        }
         val signature = signatureBuilder.variableSignature(property)
         val existing = typeCache.get<JavaType.Variable>(signature)
         if (existing != null) {
