@@ -16,6 +16,8 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -89,6 +91,44 @@ class AssignmentOperationTest implements RewriteTest {
                 n /= if (true) 42 else 21
               }
               """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/268")
+    void augmentedAssign() {
+        rewriteRun(
+          kotlin(
+            """
+              operator fun <T> MutableCollection<T>.divAssign(elements: Collection<T>) {
+                  this.retainAll(elements)
+              }
+
+              fun names(): Set<String> {
+                  val result = HashSet<String>()
+                  result += "x"
+                  result -= "x"
+                  result /= setOf("x")
+                  return result
+              }
+              """
+          )
+        );
+    }
+
+    @ExpectedToFail("Fixed by psi-based-parser")
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/305")
+    void augmentedAssignmentAnnotation() {
+        rewriteRun(
+          kotlin(
+            """
+             fun foo(l: MutableList<String>) {
+                 @Suppress
+                 l += "x"
+             }
+             """
           )
         );
     }

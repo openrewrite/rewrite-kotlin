@@ -15,41 +15,62 @@
  */
 package org.openrewrite.kotlin.tree;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.openrewrite.internal.RecipeRunException;
+import org.openrewrite.kotlin.internal.KotlinParsingException;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class JUnknownTest implements RewriteTest {
 
+    @Disabled("No J.Unknown generated anymore")
     @Test
     void fileDeclaration() {
-        rewriteRun(
-          kotlin(
-            """
-              val s = ""
-              // comment
-              
-              // comment
-              val n: WrongType = WrongType()
-              """
-          )
-        );
+        try {
+            rewriteRun(
+              kotlin(
+                """
+                  val s = ""
+                  // comment
+                  
+                  // comment
+                  val n: WrongType = WrongType()
+                  """
+              )
+            );
+            fail("Should have thrown an exception");
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(RecipeRunException.class);
+            assertThat(e).cause().isInstanceOf(KotlinParsingException.class);
+            assertThat(e).cause().hasMessage("Parsing error, J.Unknown detected");
+        }
     }
 
+    @Disabled("No J.Unknown generated anymore")
     @Test
     void expression() {
-        rewriteRun(
-          kotlin(
-            """
-              fun method(s: String,
-                         // comment
-                         
-                         // comment
-                         n: WrongType) {
-              }
-              """
-          )
-        );
+        try {
+            rewriteRun(
+              kotlin(
+                """
+                  fun method(s: String,
+                             // comment
+                             
+                             // comment
+                             n: WrongType) {
+                  }
+                  """
+              )
+            );
+            fail("Should have thrown an exception");
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(RecipeRunException.class);
+            assertThat(e).cause().isInstanceOf(KotlinParsingException.class);
+            assertThat(e).cause().hasMessage("Parsing error, J.Unknown detected");
+        }
     }
 }

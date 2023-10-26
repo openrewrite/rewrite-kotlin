@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
@@ -33,6 +32,29 @@ class ClassDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             "package some.other.name\r\n" + "class A { }\r\n" + "class B { }"
+          )
+        );
+    }
+
+    @Test
+    void whitespaceInPackage() {
+        rewriteRun(
+          kotlin(
+            "package foo . bar"
+          )
+        );
+    }
+
+    @Test
+    void whitespaceInImport() {
+        rewriteRun(
+          kotlin(
+            """
+              import java . util . Collections as cs
+              import java . io . *
+              
+              class A
+              """
           )
         );
     }
@@ -108,7 +130,7 @@ class ClassDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              interface C {
+              interface  C   {
                   class Inner {
                   }
               }
@@ -134,7 +156,7 @@ class ClassDeclarationTest implements RewriteTest {
     @Test
     void enumClass() {
         rewriteRun(
-          kotlin("enum class A")
+          kotlin("enum  class A")
         );
     }
 
@@ -143,7 +165,7 @@ class ClassDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              public @Deprecated ( "message 0" ) abstract @Suppress("") class Test
+              public  @Deprecated ( "message 0" )   abstract    @Suppress("") class Test
               
               @Deprecated ( "message 1" )
               @Suppress ( "" )
@@ -188,7 +210,21 @@ class ClassDeclarationTest implements RewriteTest {
     @Test
     void primaryConstructor() {
         rewriteRun(
-          kotlin("class Test ( val answer : Int )")
+          kotlin("class Test  (   val    answer : Int )")
+        );
+    }
+
+    @Test
+    void primaryConstructorWithAnySupertype() {
+        rewriteRun(
+          kotlin("class Test  :   Any    (     )")
+        );
+    }
+
+    @Test
+    void primaryConstructorWithParameterizedSupertype() {
+        rewriteRun(
+          kotlin("class Test : java.util.ArrayList<String>()")
         );
     }
 
@@ -199,7 +235,7 @@ class ClassDeclarationTest implements RewriteTest {
           kotlin(
             """
               class Test ( val answer : Int ) {
-                  constructor ( ) : this ( 42 )
+                  constructor  (   )    : this  (   42    )
               }
               """
           )
@@ -210,15 +246,19 @@ class ClassDeclarationTest implements RewriteTest {
     @Test
     void explicitInlineConstructor() {
         rewriteRun(
-          kotlin("class Test internal constructor ( )")
+          kotlin("class Test  internal   constructor    ( )")
         );
     }
 
     @Test
     void implicitConstructorWithSuperType() {
         rewriteRun(
-          kotlin("class Other"),
-          kotlin("class Test ( val answer : Int ) : Other ( ) { }")
+          kotlin(
+            """
+              open class Other
+              class Test constructor ( val answer : Int ) : Other ( ) { }
+              """
+          )
         );
     }
 
@@ -235,9 +275,8 @@ class ClassDeclarationTest implements RewriteTest {
         );
     }
 
-    // TODO: check why this test now succeeds
-    @Disabled
     @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/160")
     void multipleBounds() {
         rewriteRun(
           kotlin(
@@ -247,7 +286,7 @@ class ClassDeclarationTest implements RewriteTest {
               interface C
               interface D
               
-              class KotlinTypeGoat < T , S > where S : A , T : D , S : B , T : C
+              class KotlinTypeGoat<T, S>  where   S : A, T : D, S : B, T : C
               """
           )
         );
@@ -260,6 +299,28 @@ class ClassDeclarationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void suspendFunctionTypeAsSuperType() {
+        rewriteRun(
+          kotlin(
+            """
+              abstract class  Test   :    suspend (  )   ->    String
+              """
+          )
+        );
+    }
+
+    @Test
+    void explicitDelegation() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test(c : Collection<String>): Collection<String> by c
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/190")
     @Test
     void companionObject() {
@@ -267,21 +328,21 @@ class ClassDeclarationTest implements RewriteTest {
           kotlin("object Companion"),
           kotlin(
             """
-              class Test {
+              class TestA {
                   companion object
               }
               """
           ),
           kotlin(
             """
-              class Test {
+              class TestB {
                   companion object Foo
               }
               """
           ),
           kotlin(
             """
-              class Test {
+              class TestC {
                   companion object Companion
               }
               """
@@ -292,7 +353,7 @@ class ClassDeclarationTest implements RewriteTest {
     @Test
     void variance() {
         rewriteRun(
-          kotlin("interface A < in R >"),
+          kotlin("interface A  <   in    R     >"),
           kotlin("interface B < out R >")
         );
     }
@@ -339,7 +400,7 @@ class ClassDeclarationTest implements RewriteTest {
               sealed interface InvalidField {
                   val field : String
               }
-              object InvalidEmail : InvalidField {
+              object InvalidEmail  :   InvalidField    {
                   override val field : String = "email"
               }
               """
@@ -353,7 +414,7 @@ class ClassDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin("""
             class Test {
-                init {
+                init   {
                     println ( "Hello, world!" )
                 }
             }
@@ -379,7 +440,7 @@ class ClassDeclarationTest implements RewriteTest {
                   val root : R
               ) {
                   
-                  constructor ( parent : T , root : R ) : this ( parent , root )
+                  constructor ( parent : T , root : R , id : Int ) : this ( parent , root )
                   
                   fun parent ( ) : T {
                       return parent
@@ -400,7 +461,7 @@ class ClassDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              abstract class Test ( arg : Test . ( ) -> Unit = { } ) {
+              abstract class Test ( arg : Test  .   ( )  ->   Unit    =  { } ) {
                   init {
                       arg ( )
                   }
@@ -417,12 +478,20 @@ class ClassDeclarationTest implements RewriteTest {
             """
               @Repeatable
               annotation class A ( val s : String )
-              """
-          ),
-          kotlin(
-            """
+              
               open @A ( "1" ) public @A ( "2" ) class TestA
               @A ( "1" ) open @A ( "2" ) public class TestB
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingComma() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test(val attr: String,)
               """
           )
         );
@@ -440,6 +509,107 @@ class ClassDeclarationTest implements RewriteTest {
                     }
                 }
             }))
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
+    void onlySecondaryConstructors() {
+        rewriteRun(
+          kotlin(
+            """
+              class SerializationException : IllegalArgumentException {
+                  constructor(message: String?, cause: Throwable?) : super(message, cause)
+              }
+              """,
+              spec -> spec.afterRecipe(cu -> {
+                  assertThat(cu.getStatements()).satisfiesExactly(stmt -> {
+                      J.ClassDeclaration clazz = (J.ClassDeclaration) stmt;
+                      assertThat(clazz.getBody().getStatements()).satisfiesExactly(decl -> {
+                          K.Constructor constructor = (K.Constructor) decl;
+                          assertThat(constructor.getMethodDeclaration().getParameters()).satisfiesExactly(
+                              message -> assertThat(message).isInstanceOf(J.VariableDeclarations.class),
+                              cause -> assertThat(cause).isInstanceOf(J.VariableDeclarations.class)
+                          );
+                          assertThat(constructor.getMethodDeclaration().getBody()).isNull();
+                          assertThat(constructor.getConstructorInvocation().getArguments()).satisfiesExactly(
+                              message -> assertThat(message).isInstanceOf(J.Identifier.class),
+                              cause -> assertThat(cause).isInstanceOf(J.Identifier.class)
+                          );
+                      });
+                  });
+              })
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
+    void secondaryConstructorWithBody() {
+        rewriteRun(
+          kotlin(
+            """
+              class SerializationException : IllegalArgumentException {
+                  constructor(message: String?, cause: Throwable?) : super(message, cause) {
+                      println("foo")
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void localClass() {
+        rewriteRun(
+          kotlin(
+            """
+              fun foo() {
+                  class Inner
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void coneProjection() {
+        rewriteRun(
+          kotlin(
+            """
+              val map = mapOf(Pair("one", 1)) as? Map<*, *>
+              val s = map.orEmpty().entries.joinToString { (key, value) -> "$key: $value" }
+              """
+          )
+        );
+    }
+
+    @Test
+    void outerClassTypeParameters() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test<K, V> {
+                  abstract inner class LinkedTreeMapIterator<T> : MutableIterator<T> {
+                      var lastReturned: Map.Entry<K, V>? = null
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/301")
+    void qualifiedSuperType() {
+        rewriteRun(
+          kotlin(
+            """
+              abstract class LinkedHashTreeMap<K, V> : AbstractMutableMap<K, V>() {
+                  abstract inner class EntrySet : AbstractMutableSet<MutableMap.MutableEntry<K, V>>()
+              }
+              """
+          )
         );
     }
 }

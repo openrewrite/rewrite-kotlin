@@ -48,7 +48,7 @@ class WrappingAndBracesTest implements RewriteTest {
         return spec -> spec
           .recipes(
             toRecipe(() -> new WrappingAndBracesVisitor<>(wrapping.apply(IntelliJ.wrappingAndBraces()))),
-            toRecipe(() -> new TabsAndIndentsVisitor<>(IntelliJ.tabsAndIndents())),
+            toRecipe(() -> new TabsAndIndentsVisitor<>(IntelliJ.tabsAndIndents(), IntelliJ.wrappingAndBraces())),
             toRecipe(() -> new SpacesVisitor<>(spaces.apply(IntelliJ.spaces())))
           )
           .parser(KotlinParser.builder().styles(singletonList(
@@ -60,6 +60,21 @@ class WrappingAndBracesTest implements RewriteTest {
               )
             )
           )));
+    }
+
+    @Test
+    void classConstructor() {
+        rewriteRun(
+          kotlin(
+            """
+              class A   (
+                      val type: Int = 1
+              ) {
+                   var a = 2
+              }
+              """
+          )
+        );
     }
 
     @SuppressWarnings({"ClassInitializerMayBeStatic", "ReassignedVariable", "UnusedAssignment"})
@@ -361,14 +376,6 @@ class WrappingAndBracesTest implements RewriteTest {
                       @Suppress("ALL") var foo: Int
                   }
               }
-              """,
-            """
-              class Test {
-                  public fun doSomething() {
-                      @Suppress("ALL")
-               var foo: Int
-                  }
-              }
               """
           )
         );
@@ -496,6 +503,121 @@ class WrappingAndBracesTest implements RewriteTest {
               enum class Status {
                   NOT_STARTED,
                   STARTED
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void singleStatementFunctionNoNewLines() {
+        rewriteRun(
+          kotlin(
+            """
+              class A {
+                  fun name(): String =
+                          "123"
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void nonSingleStatementFunctionNeedNewLines() {
+        // An equivalent code with above test singleStatementFunctionNoNewLines, but not a single statement function
+        rewriteRun(
+          kotlin(
+            """
+              class A {
+                  fun name(): String {   return "123" }
+              }
+              """,
+            """
+              class A {
+                  fun name(): String {
+                 return "123"
+               }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void emptyClassBody() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {}
+              """
+          )
+        );
+    }
+
+    @Test
+    void primaryConstructorAnnotations() {
+        rewriteRun(
+          kotlin(
+            """
+              class T @Suppress constructor()
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingAnnotationCommentBeforeClass() {
+        rewriteRun(
+          kotlin(
+            """
+              class T {
+                  @Suppress // comment
+                  class A
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void annotatedLocalVariable() {
+        rewriteRun(
+          kotlin(
+            """
+              fun f() {
+                  @Suppress val i = 1
+                  @Suppress val j = 1
+              }
+              
+              val o = object {
+                  @Suppress val i = 1
+                  @Suppress val j = 1
+              }
+              
+              class T {
+                  @Suppress val i = 1
+                  @Suppress val j = 1
+              }
+              """,
+            """
+              fun f() {
+                  @Suppress val i = 1
+                  @Suppress val j = 1
+              }
+              
+              val o = object {
+                  @Suppress
+               val i = 1
+                  @Suppress
+               val j = 1
+              }
+              
+              class T {
+                  @Suppress
+               val i = 1
+                  @Suppress
+               val j = 1
               }
               """
           )

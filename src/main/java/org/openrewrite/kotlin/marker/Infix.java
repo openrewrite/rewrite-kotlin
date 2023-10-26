@@ -13,24 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.kotlin.internal;
+package org.openrewrite.kotlin.marker;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange;
+import lombok.Value;
+import lombok.With;
+import org.openrewrite.marker.Marker;
 
-/**
- * Internal util class to present a PSI token to help developers to debug or trouble-shooting.
- */
-@EqualsAndHashCode
-@Data
-public class PsiToken {
-    TextRange range;
-    String type;
-    String text;
+import java.util.UUID;
 
-    @Override
-    public String toString() {
-        return range + " | Type: " + type + " | Text: \"" + text.replace("\n", "\\n") + "\"";
+@Value
+@With
+public class Infix implements Marker {
+    UUID id;
+
+    public Infix(UUID id) {
+        this.id = id;
     }
 }

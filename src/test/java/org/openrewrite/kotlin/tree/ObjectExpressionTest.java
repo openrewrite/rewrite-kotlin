@@ -21,20 +21,18 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-class TypeMappingTest implements RewriteTest {
+class ObjectExpressionTest implements RewriteTest {
 
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/199")
     @Test
-    void parameterizedTypeMapping() {
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/274")
+    void referenceToObjectField() {
         rewriteRun(
           kotlin(
             """
-              import org.openrewrite.Maintainer
-              import org.openrewrite.test.AdHocRecipe
-
-              fun method(): List<Maintainer> {
-                  val adHocRecipe = AdHocRecipe(null, null, null, null, null, null, null)
-                  return adHocRecipe.maintainers
+              val x = object : Iterator<Any> {
+                  var elementsLeft = 1
+                  override fun hasNext(): Boolean = elementsLeft > 0
+                  override fun next(): String = "x"
               }
               """
           )

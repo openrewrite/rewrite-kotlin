@@ -81,6 +81,22 @@ class AnnotationTest implements RewriteTest {
     }
 
     @Test
+    void annotationOnEnumEntry() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder().classpath()),
+          kotlin(ANNOTATION),
+          kotlin(
+            """
+              enum class EnumTypeA {
+                  @Ann
+                  FOO
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void annotationWithDefaultArgument() {
         rewriteRun(
           kotlin(
@@ -118,14 +134,14 @@ class AnnotationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              @Target ( AnnotationTarget . LOCAL_VARIABLE )
-              @Retention ( AnnotationRetention . SOURCE )
-              annotation class Test ( val values : Array < String > )
+              @Target (  AnnotationTarget . LOCAL_VARIABLE   )
+              @Retention  ( AnnotationRetention . SOURCE )
+              annotation class Test ( val values : Array <  String > )
               """
           ),
           kotlin(
             """
-              @Test( values = [ "a" , "b" , "c" ] )
+              @Test( values =  [   "a"    ,     "b" ,  "c"   ]    )
               val a = 42
               """
           )
@@ -151,7 +167,7 @@ class AnnotationTest implements RewriteTest {
           kotlin(
             """
               annotation class Test ( val values : Array < String > )
-              @Test( values = [ "a" , "b" , /* trailing comma */ ] )
+              @Test( values = [ "a" , "b" ,  /* trailing comma */ ] )
               val a = 42
               """
           )
@@ -209,8 +225,8 @@ class AnnotationTest implements RewriteTest {
             """
               class TestB {
                   public
-                  @get : Ann
-                  @set : Ann
+                  @get  : Ann
+                  @set :  Ann
                   var name : String = ""
               }
               """
@@ -270,25 +286,12 @@ class AnnotationTest implements RewriteTest {
     }
 
     @Test
-    void conditionalParameter() {
-        rewriteRun(
-          kotlin("annotation class A ( val s : String )"),
-          kotlin(
-            """
-              @A ( if ( true ) "1" else "2" )
-              class Test
-              """
-          )
-        );
-    }
-
-    @Test
     void paramAnnotation() {
         rewriteRun(
           kotlin(ANNOTATION),
           kotlin(
             """
-              class Example ( @param : Ann val quux : String )
+              class Example  (   @param    :     Ann val  quux   :     String )
               """
           )
         );
@@ -340,7 +343,7 @@ class AnnotationTest implements RewriteTest {
           kotlin(
             """
               fun example ( ) {
-                val ( @Ann a , @Ann b , @Ann c ) = Triple ( 1 , 2 , 3 )
+                val (  @Ann   a , @Ann b , @Ann c ) = Triple ( 1 , 2 , 3 )
               }
               """
           )
@@ -362,10 +365,57 @@ class AnnotationTest implements RewriteTest {
                       }
               
                   @Ann inline fun < @Ann reified T > m ( @Ann s : @Ann String ) : String {
-                      @Ann return s
+                      @Ann return (@Ann s)
                   }
               }
-              @Ann typealias Other = @Ann String
+              @Ann typealias Other =   @Ann  String
+              """
+          )
+        );
+    }
+
+    @Test
+    void lambdaExpression() {
+        rewriteRun(
+          kotlin(ANNOTATION),
+          kotlin(
+            """
+              fun method ( ) {
+                  val list = listOf ( 1 , 2 , 3 )
+                  list  .  filterIndexed { index  ,   _    -> @Ann  index   %    2 == 0 }
+              }
+              """
+            )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/267")
+    void expressionAnnotationInsideLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              val s = java.util.function.Supplier<String> {
+                  @Suppress("UNCHECKED_CAST")
+                  requireNotNull("x")
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/284")
+    @Test
+    void annotationWithEmptyArguments() {
+        rewriteRun(
+          kotlin(
+            """
+              annotation class Ann
+
+              @Suppress( )
+              @Ann
+              class A {
+              }
               """
           )
         );

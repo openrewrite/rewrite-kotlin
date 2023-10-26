@@ -15,8 +15,9 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
@@ -59,7 +60,7 @@ class MethodDeclarationTest implements RewriteTest {
     @Test
     void functionTypeWithReceiver() {
         rewriteRun(
-          kotlin("fun method ( arg : String . ( ) -> String ) { }")
+          kotlin("fun method (  arg   :    String .  (   )    -> String  ) { }")
         );
     }
 
@@ -255,14 +256,29 @@ class MethodDeclarationTest implements RewriteTest {
         );
     }
 
-    @Disabled
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/205")
+    @ParameterizedTest
+    @ValueSource(strings = {
+      "out Number",
+      "in String"
+    })
+    void variance(String param) {
+        rewriteRun(
+          kotlin(
+            """
+              interface PT < T >
+              fun generic ( n : PT < %s > ) { }
+              """.formatted(param)
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/160")
     @Test
     void genericTypeConstraint() {
         rewriteRun(
           kotlin(
             """
-              fun <T> foo(): Int where T: List<T> {
+              fun <T> foo() :  Int   where    T     : List <  T   > {
                   return 0
               }
               """
@@ -283,6 +299,51 @@ class MethodDeclarationTest implements RewriteTest {
                     }
                 }
             }))
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/271")
+    void negativeSingleExpression() {
+        rewriteRun(
+          kotlin(
+            """
+              fun size(): Int = -1
+              """
+          )
+        );
+    }
+
+    @Test
+    void parenthesizedSingleExpression() {
+        rewriteRun(
+          kotlin(
+            """
+              fun size(): Int = (-1)
+              """
+          )
+        );
+    }
+
+    @Test
+    void multiplatformExpectDeclaration() {
+        rewriteRun(
+          kotlin(
+            """
+              expect suspend fun Any.executeAsync(): Any
+              """
+          )
+        );
+    }
+
+    @Test
+    void multipleTypeConstraints() {
+        rewriteRun(
+          kotlin(
+            """
+              fun <T> foo(t: T): T where T: CharSequence, T: Comparable<T> = t
+              """
+          )
         );
     }
 }

@@ -24,6 +24,7 @@ import org.openrewrite.Tree;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.style.IntelliJ;
 import org.openrewrite.kotlin.style.TabsAndIndentsStyle;
+import org.openrewrite.kotlin.style.WrappingAndBracesStyle;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -42,17 +43,58 @@ class TabsAndIndentsTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(toRecipe(() -> new TabsAndIndentsVisitor<>(IntelliJ.tabsAndIndents())));
+        spec.recipe(toRecipe(() -> new TabsAndIndentsVisitor<>(IntelliJ.tabsAndIndents(), IntelliJ.wrappingAndBraces())));
     }
 
     private static Consumer<RecipeSpec> tabsAndIndents(UnaryOperator<TabsAndIndentsStyle> with) {
-        return spec -> spec.recipe(toRecipe(() -> new TabsAndIndentsVisitor<>(with.apply(IntelliJ.tabsAndIndents()))))
+        return spec -> spec.recipe(toRecipe(() -> new TabsAndIndentsVisitor<>(with.apply(IntelliJ.tabsAndIndents()), IntelliJ.wrappingAndBraces())))
           .parser(KotlinParser.builder().styles(singletonList(
             new NamedStyles(
               Tree.randomId(), "test", "test", "test", emptySet(),
               singletonList(with.apply(IntelliJ.tabsAndIndents()))
             )
           )));
+    }
+
+    private static Consumer<RecipeSpec> wrappingAndBraces(UnaryOperator<WrappingAndBracesStyle> with) {
+        return spec -> spec.recipe(toRecipe(() -> new TabsAndIndentsVisitor<>(IntelliJ.tabsAndIndents(), with.apply(IntelliJ.wrappingAndBraces()))))
+          .parser(KotlinParser.builder().styles(singletonList(
+            new NamedStyles(
+              Tree.randomId(), "test", "test", "test", emptySet(),
+              singletonList(with.apply(IntelliJ.wrappingAndBraces()))
+            )
+          )));
+    }
+
+    private static Consumer<RecipeSpec> style(UnaryOperator<TabsAndIndentsStyle> tabsAndIndents, UnaryOperator<WrappingAndBracesStyle> wrappingAndBraces) {
+        return spec -> spec.recipe(toRecipe(() -> new TabsAndIndentsVisitor<>(
+            tabsAndIndents.apply(IntelliJ.tabsAndIndents()), wrappingAndBraces.apply(IntelliJ.wrappingAndBraces()))))
+          .parser(KotlinParser.builder().styles(singletonList(
+            new NamedStyles(
+              Tree.randomId(), "test", "test", "test", emptySet(),
+              singletonList(tabsAndIndents.apply(IntelliJ.tabsAndIndents()))
+            )
+          )));
+    }
+
+    @Test
+    void resetIndentationAfterParametersList() {
+        rewriteRun(
+          tabsAndIndents(style -> style.withFunctionDeclarationParameters(new TabsAndIndentsStyle.FunctionDeclarationParameters(false))),
+          kotlin(
+            """
+              data class A(
+                      val a: Boolean,
+                      val b: Boolean,
+                      val c: Boolean,
+                      val d: Boolean
+              ) {
+                  fun foo(
+                  ) = ""
+              }
+              """
+          )
+        );
     }
 
     @SuppressWarnings("SuspiciousIndentAfterControlStatement")
@@ -100,9 +142,10 @@ class TabsAndIndentsTest implements RewriteTest {
           kotlin(
             """
               class Test {
+                  @Suppress
                   private fun firstArgNoPrefix (first: String,
-                   second: Int,
-                   third: String) {
+                      second: Int,
+                      third: String) {
                   }
                   private fun firstArgOnNewLine(
                           first: String,
@@ -113,6 +156,7 @@ class TabsAndIndentsTest implements RewriteTest {
               """,
             """
               class Test {
+                  @Suppress
                   private fun firstArgNoPrefix (first: String,
                                                 second: Int,
                                                 third: String) {
@@ -265,8 +309,8 @@ class TabsAndIndentsTest implements RewriteTest {
             """
               class Test {
                   @Suppress(
-                          "unchecked",
-                          "ALL"
+                      "unchecked",
+                      "ALL"
                   )
                   val id: String = "1"
               }
@@ -278,14 +322,17 @@ class TabsAndIndentsTest implements RewriteTest {
     @Test
     void methodChain() {
         rewriteRun(
-          tabsAndIndents(style -> style.withContinuationIndent(2)),
+          style(
+            style -> style.withContinuationIndent(2),
+            style -> style.withChainedFunctionCalls(style.getChainedFunctionCalls().withUseContinuationIndent(true))
+          ),
           kotlin(
             """
               class Test {
                   fun method(t: Test) {
                       this
                         .method(
-                          t
+                            t
                         );
                   }
               }
@@ -330,11 +377,11 @@ class TabsAndIndentsTest implements RewriteTest {
 
                   fun method(t: Test) {
                       var t1 = t.withData(withData()
-                                      .withData()
-                                      .withData(),
-                              withData()
-                                      .withData()
-                                      .withData()
+                              .withData()
+                              .withData(),
+                          withData()
+                              .withData()
+                              .withData()
                       )
                   }
               }
@@ -355,9 +402,9 @@ class TabsAndIndentsTest implements RewriteTest {
 
                   fun method(t: Test) {
                       var t1 = t.withData(
-                              withData(), withData()
-                              .withData()
-                              .withData()
+                          withData(), withData()
+                          .withData()
+                          .withData()
                       );
                   }
               }
@@ -379,15 +426,15 @@ class TabsAndIndentsTest implements RewriteTest {
 
                   fun method(t: Test) {
                       var t1 = t.withData(withData()
-                              .withData(t
-                                      .
-                                              withData()
-                              )
-                              .withData(
-                                      t
-                                              .
-                                                      withData()
-                              )
+                          .withData(t
+                              .
+                                  withData()
+                          )
+                          .withData(
+                              t
+                                  .
+                                      withData()
+                          )
                       );
                   }
               }
@@ -507,7 +554,7 @@ class TabsAndIndentsTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              import java.util.Collection;
+              import java.util.Collection
 
               class Test {
                   fun withData(vararg arg0: Any): Test {
@@ -563,7 +610,7 @@ class TabsAndIndentsTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              import java.util.function.Predicate;
+              import java.util.function.Predicate
 
               class SomeUtility {
                   fun test(property: String, test: Predicate<String>): Boolean {
@@ -577,7 +624,7 @@ class TabsAndIndentsTest implements RewriteTest {
               class Test {
                   fun method() {
                       SomeUtility().test(
-                              "hello", { s ->
+                          "hello", { s ->
                                   true
                               })
                   }
@@ -593,8 +640,8 @@ class TabsAndIndentsTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              import java.util.*;
-              import java.util.stream.Collectors;
+              import java.util.*
+              import java.util.stream.Collectors
 
               class Test {
                   fun method(c: Collection<List<String>>) {
@@ -603,7 +650,7 @@ class TabsAndIndentsTest implements RewriteTest {
                               0
                           }
                       }
-                              .collect(Collectors.toList());
+                          .collect(Collectors.toList());
                   }
               }
               """
@@ -623,12 +670,12 @@ class TabsAndIndentsTest implements RewriteTest {
               class Test {
                   fun method(c: Collection<List<String>>) {
                       c.stream()
-                              .map { x ->
-                                  x.stream().max { r1, r2 ->
-                                      0
-                                  }
+                          .map { x ->
+                              x.stream().max { r1, r2 ->
+                                  0
                               }
-                              .collect(Collectors.toList())
+                          }
+                          .collect(Collectors.toList())
                   }
               }
               """
@@ -653,6 +700,31 @@ class TabsAndIndentsTest implements RewriteTest {
                       })
                   }
               }
+              """
+          )
+        );
+    }
+
+    @Test
+    void expressionBodyFunctions() {
+        rewriteRun(
+          kotlin(
+            """
+              val i =
+                  1
+              fun f() =
+                  2
+              """
+          )
+        );
+        rewriteRun(
+          wrappingAndBraces(style -> style.withExpressionBodyFunctions(style.getExpressionBodyFunctions().withUseContinuationIndent(true))),
+          kotlin(
+            """
+              val i =
+                      1
+              fun f() =
+                      2
               """
           )
         );
@@ -695,11 +767,11 @@ class TabsAndIndentsTest implements RewriteTest {
                   }
 
                   fun multilineMethod(
-                          foo: String,
-                          bar: String
-                          ) {
+                      foo: String,
+                      bar: String
+                  ) {
                       foo
-                              .length
+                          .length
                   }
 
                   fun expressionBodyMethod() =
@@ -999,10 +1071,10 @@ class TabsAndIndentsTest implements RewriteTest {
           kotlin(
             """
               annotation class Anno
-              
+                            
               class Test {
                   @Suppress(
-                          "unchecked"
+                      "unchecked"
                   )
                   @Anno
                   var id: Int = 0
@@ -1018,7 +1090,7 @@ class TabsAndIndentsTest implements RewriteTest {
           kotlin(
             """
               annotation class Anno
-              
+                            
               @Suppress("A")
               @Anno
                  class A {
@@ -1030,7 +1102,7 @@ class TabsAndIndentsTest implements RewriteTest {
               """,
             """
               annotation class Anno
-              
+                            
               @Suppress("A")
               @Anno
               class A {
@@ -1278,7 +1350,7 @@ class TabsAndIndentsTest implements RewriteTest {
                   fun method(t: Test) {
                       method(Test("hello" +
                               "world",
-                              1))
+                          1))
                   }
               }
               """
@@ -1291,32 +1363,32 @@ class TabsAndIndentsTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              import java.io.File;
+              import java.io.File
               class Test {
                   fun method(n: Int,f: File,m: Int,l: Int) {
                       method(n, File(
-                                      "test"
+                                  "test"
                               ),
-                              m,
-                              l)
+                          m,
+                          l)
                   }
 
                   fun method2(n: Int,f: File,m: Int) {
                       method(n, File(
-                                      "test"
+                                  "test"
                               ), m,
-                              0)
+                          0)
                   }
 
                   fun method3(n: Int,f: File) {
                       method2(n, File(
-                              "test"
+                          "test"
                       ), 0)
                   }
 
                   fun method4(n: Int) {
                       method3(n, File(
-                              "test"
+                          "test"
                       ))
                   }
               }
@@ -1333,12 +1405,12 @@ class TabsAndIndentsTest implements RewriteTest {
               class Test {
                   fun method5(n: Int, m: Int) {
                       method5(1,
-                              2);
+                          2);
                       return method5(method5(method5(method5(3,
-                              4),
-                              5),
-                              6),
-                              7);
+                          4),
+                          5),
+                          6),
+                          7);
                   }
               }
               """
@@ -1351,20 +1423,20 @@ class TabsAndIndentsTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              import java.util.stream.Stream;
+              import java.util.stream.Stream
 
               class Test {
                   var t: Test = this;
                   fun method(n: Stream<*>?,m: Int): Test {
                       this.t.t
-                              .method(null, 1)
-                              .t
-                              .method(null, 2);
+                          .method(null, 1)
+                          .t
+                          .method(null, 2);
                       Stream
-                              .of("a");
+                          .of("a");
                       method(Stream
-                                      .of("a"),
-                              3
+                              .of("a"),
+                          3
                       );
                       return this
                   }
@@ -1416,7 +1488,7 @@ class TabsAndIndentsTest implements RewriteTest {
                       method({ ->
                                   "hi"
                               },
-                              n);
+                          n);
                   }
               }
               """
@@ -1447,8 +1519,8 @@ class TabsAndIndentsTest implements RewriteTest {
 
               class Test {
                   @Throws(
-                          IOException::class,
-                          Exception::class)
+                      IOException::class,
+                      Exception::class)
                   fun method() {
                   }
 
@@ -1544,14 +1616,14 @@ class TabsAndIndentsTest implements RewriteTest {
               class Test {
                   fun method(n: Int): Test {
                       return method(n)
-                              .method(n)
-                              .method(n);
+                          .method(n)
+                          .method(n);
                   }
 
                   fun method2(): Test {
                       return method2().
-                              method2().
-                              method2();
+                          method2().
+                          method2();
                   }
               }
               """
@@ -1565,15 +1637,15 @@ class TabsAndIndentsTest implements RewriteTest {
           kotlin(
             """
               import java.io.File
-              
+                            
               class Test {
                   fun method(m: Int, f: File, f2: File) {
                       method(m, File(
-                                      "test"
+                                  "test"
                               ), 
-                              File("test", 
-                                      "test"
-                              ))
+                          File("test", 
+                              "test"
+                          ))
                   }
               }
               """
@@ -1604,18 +1676,18 @@ class TabsAndIndentsTest implements RewriteTest {
           kotlin(
             """
               import java.util.function.Function
-              
+                            
               abstract class Test {
                   abstract fun a(f: Function<Test, Test>): Test
                   abstract fun b(f: Function<Test, Test>): Test
                   abstract fun c(f: Function<Test, Test>): Test
-              
+                            
                   fun method(f: Function<Test, Test>): Test {
                       return a(f)
-                              .b { 
-                                      t ->
-                                  c(f)
-                              }
+                          .b { 
+                                  t ->
+                              c(f)
+                          }
                   }
               }
               """
@@ -1629,17 +1701,17 @@ class TabsAndIndentsTest implements RewriteTest {
           kotlin(
             """
               import java.util.function.Function
-              
+                            
               abstract class Test {
                   abstract fun a(f: Function<Test, Test>): Test
                   abstract fun b(f: Function<Test, Test>): Test
                   abstract fun c(f: Function<Test, Test>): Test
-              
+                            
                   fun method(f: Function<Test, Test>): Test {
                       return a(f)
-                              .b {t ->
-                                  c(f)
-                              }
+                          .b {t ->
+                              c(f)
+                          }
                   }
               }
               """
@@ -1654,14 +1726,14 @@ class TabsAndIndentsTest implements RewriteTest {
           kotlin(
             """
               import java.util.stream.Stream
-              
+                            
               class Test {
                   var b: Boolean = false
                   fun method(): Stream<Test> {
                       if (b && method()
-                              .anyMatch { t -> b || 
-                                      b
-                              }) {
+                          .anyMatch { t -> b || 
+                                  b
+                          }) {
                           // do nothing
                       }
                       return Stream.of(this)
@@ -1681,26 +1753,12 @@ class TabsAndIndentsTest implements RewriteTest {
               class Test {
                   constructor(t: Test)
                   constructor()
-              
+                            
                   fun method(t: Test) {
                       method(
                           Test(
                               Test()
                           )
-                      )
-                  }
-              }
-              """,
-            """
-              class Test {
-                  constructor(t: Test)
-                  constructor()
-              
-                  fun method(t: Test) {
-                      method(
-                              Test(
-                                      Test()
-                              )
                       )
                   }
               }
@@ -2040,8 +2098,8 @@ class TabsAndIndentsTest implements RewriteTest {
             """),
           kotlin(
             """
-              package org.b;
-              import org.a.A;
+              package org.b
+              import org.a.A
               class B
                   : A() {
               }
@@ -2050,7 +2108,7 @@ class TabsAndIndentsTest implements RewriteTest {
         );
     }
 
-//
+    //
     @Issue("https://github.com/openrewrite/rewrite/issues/1526")
     @Test
     void doNotFormatSingleLineCommentAtCol0() {
@@ -2090,6 +2148,200 @@ class TabsAndIndentsTest implements RewriteTest {
                   VALUE3,
                   @SuppressWarnings("value4")
                   VALUE4
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/323")
+    void resetIndentationAfterClosingParameterListParenthesis() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {
+                  fun foo(
+                      bar: String,
+                      baz: String
+                  ): String = null!!
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void propertyGetter() {
+        rewriteRun(
+          kotlin(
+            """
+              class JavaLocation {
+                  val bootClasspath: String
+                      get() = ""
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void methodInvocationAnnotation() {
+        rewriteRun(
+          kotlin(
+            """
+              class AutoToString {
+                  fun test0() {
+                      @Suppress
+                      print("")
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingLambdaCall() {
+        rewriteRun(
+          kotlin(
+            """
+              inline fun <reified T : Any> T.destruct(): Map<String, Any?> {
+                  return T::class.memberProperties.map {
+                      it.name to it.get(this)
+                  }.toMap()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void ternaryIndentation() {
+        rewriteRun(
+          kotlin(
+            """
+              fun f(): String? {
+                  val values = (listOf("") as List<String>?)
+                      ?.map { it }
+                      ?: return null
+                  return values.joinToString("")
+              }
+              """
+          )
+        );
+        rewriteRun(
+          wrappingAndBraces(style -> style.withElvisExpressions(style.getElvisExpressions().withUseContinuationIndent(true))),
+          kotlin(
+            """
+              fun f(): String? {
+                  val values = (listOf("") as List<String>?)
+                      ?.map { it }
+                          ?: return null
+                  return values.joinToString("")
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingAnnotationCommentBeforeClass() {
+        rewriteRun(
+          kotlin(
+            """
+              class T {
+                  @Suppress // comment
+                  class A
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void emptyClassWithWhereClause() {
+        rewriteRun(
+          kotlin(
+            """
+              class T {
+                  class A<T> where T : Any
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void implicitVoidReturn() {
+        rewriteRun(
+          kotlin(
+            """
+              class A {
+                  init {
+                      let {
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldAssignment() {
+        rewriteRun(
+          kotlin(
+            """
+              class Point(var x: Int, var y: Int)
+              fun x(p: Point) {
+                  p.x =
+                      3
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void annotatedEnumConstants() {
+        rewriteRun(
+          kotlin(
+            """
+              enum class T {
+                  @Suppress
+                  A
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.io.Closeable
+              
+              data class PrinterInput(
+                  val buildDuration: Long,
+                  val taskDurations: Collection<Pair<String, Long>>,
+                  val maxWidth: Int,
+                  val showBars: Boolean,
+              )
+              
+              interface Printer : Closeable {
+              
+                  fun print(input: PrinterInput) {
+                      // find the maxes needed for formatting
+                      val (maxLabelLen, maxDuration, maxFormattedDurationLen) = input.taskDurations.fold(
+                          Triple(-1, -1L, -1)
+                      ) { acc, elem ->
+                          val maxDuration = maxOf(acc.second, elem.second)
+                          Triple(maxOf(acc.first, elem.first.length), maxDuration, maxOf(acc.third, maxDuration.toInt()))
+                      }
+                  }
               }
               """
           )

@@ -20,6 +20,7 @@ import org.intellij.lang.annotations.Language;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.kotlin.internal.KotlinParsingException;
 import org.openrewrite.kotlin.tree.K;
@@ -42,8 +43,54 @@ public final class Assertions {
         }
     }
 
+    // A helper method to adjust white spaces in the input kotlin source to help us detect parse-to-print idempotent issues
+    // Just change from `before` to `adjustSpaces(before)` below to test locally
+    @Nullable
+    private static String adjustSpaces(@Nullable String input) {
+        if (input == null) {
+            return null;
+        }
+        StringBuilder out = new StringBuilder();
+        int count = 0;
+        int limit = 1;
+        char pre = 0;
+        for (char c : input.toCharArray()) {
+            if (c == ' ') {
+                if (pre == ' ') {
+                    count++;
+                    if (count <= limit) {
+                        out.append(c);
+                    }
+                } else {
+                    count++;
+                    out.append(c);
+                }
+            } else {
+                if (pre == ' ') {
+                    for (int i = count; i < limit; i++) {
+                        out.append(' ');
+                    }
+                    count = 0;
+                    limit++;
+                    if (limit > 5) {
+                        limit = 1;
+                    }
+                }
+                out.append(c);
+            }
+            pre = c;
+        }
+
+        return out.toString();
+    }
+
     public static SourceSpecs kotlin(@Language("kotlin") @Nullable String before) {
         return kotlin(before, s -> {
+        });
+    }
+
+    public static SourceSpecs kotlinScript(@Language("kts") @Nullable String before) {
+        return kotlinScript(before, s -> {
         });
     }
 
@@ -55,6 +102,16 @@ public final class Assertions {
         );
         acceptSpec(spec, kotlin);
         return kotlin;
+    }
+
+    public static SourceSpecs kotlinScript(@Language("kts") @Nullable String before, Consumer<SourceSpec<K.CompilationUnit>> spec) {
+        SourceSpec<K.CompilationUnit> kotlinScript = new SourceSpec<>(
+                K.CompilationUnit.class, null, KotlinParser.builder().isKotlinScript(true), before,
+                SourceSpec.EachResult.noop,
+                Assertions::customizeExecutionContext
+        );
+        acceptSpec(spec, kotlinScript);
+        return kotlinScript;
     }
 
     public static SourceSpecs kotlin(@Language("kotlin") @Nullable String before, @Language("kotlin") String after) {
@@ -96,6 +153,11 @@ public final class Assertions {
     public static Consumer<SourceSpec<K.CompilationUnit>> isFullyParsed() {
         return spec -> spec.afterRecipe(cu -> {
             new KotlinIsoVisitor<Integer>() {
+                @Override
+                public J visitUnknown(J.Unknown unknown, Integer integer) {
+                    throw new KotlinParsingException("Parsing error, J.Unknown detected", new RuntimeException());
+                }
+
                 @Override
                 public Space visitSpace(Space space, Space.Location loc, Integer integer) {
                     if (!space.getWhitespace().trim().isEmpty()) {

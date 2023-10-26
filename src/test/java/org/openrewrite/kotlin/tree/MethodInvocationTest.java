@@ -16,10 +16,12 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.kotlin.marker.IndexedAccess;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"RedundantVisibilityModifier", "PropertyName", "RedundantNullableReturnType", "UnusedReceiverParameter", "ConstantConditionIf", "MoveLambdaOutsideParentheses"})
@@ -33,14 +35,34 @@ class MethodInvocationTest implements RewriteTest {
               fun plugins ( input : ( ) -> String ) {
                   println ( input ( ) )
               }
-              """
-          ),
-          kotlin(
-            """
               fun main ( ) {
                   plugins {
                       "test"
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void unqualifiedImportedCall() {
+        rewriteRun(
+          kotlin(
+            """
+              package pkg
+              
+              import pkg.Callee.calleeMethod
+              import pkg.Callee.CALLEE_FIELD
+              
+              class Caller {
+                  fun method(): Any = calleeMethod()
+                  fun method2(): Any = CALLEE_FIELD
+              }
+              
+              object Callee {
+                  const val CALLEE_FIELD = ""
+                  fun calleeMethod(): Unit = Unit
               }
               """
           )
@@ -61,29 +83,20 @@ class MethodInvocationTest implements RewriteTest {
                       return this
                   }
               }
-              """
-          ),
-          kotlin(
-            """
+
               class SpecScope  {
                   val delegate : Spec = Spec ( )
                   fun id ( id : String ) : Spec = delegate . id ( id )
               }
-              public infix fun Spec . version ( version : String ) : Spec = version ( version )
+              infix fun Spec . version ( version : String ) : Spec = version ( version )
               public inline val SpecScope . `java-library` : Spec get ( ) = id ( "org.gradle.java-library" )
-              """
-          ),
-          kotlin(
-            """
+
               class DSL  {
                   fun plugins ( block : SpecScope . ( ) -> Unit ) {
                       block ( SpecScope ( ) )
                   }
               }
-              """
-          ),
-          kotlin(
-            """
+
               fun method ( ) {
                   DSL ( ) .
                   
@@ -111,9 +124,9 @@ class MethodInvocationTest implements RewriteTest {
     @Test
     void methodWithLambda() {
         rewriteRun(
-          kotlin("fun method ( arg : Any ) { }"),
           kotlin(
             """
+              fun method ( arg : Any ) { }
               fun callMethodWithLambda ( ) {
                   method {
                   }
@@ -132,10 +145,6 @@ class MethodInvocationTest implements RewriteTest {
                   fun method ( ) {
                   }
               }
-              """
-          ),
-          kotlin(
-            """
               fun method ( test : Test ? ) {
                   val a = test ?. method ( )
               }
@@ -154,13 +163,9 @@ class MethodInvocationTest implements RewriteTest {
                       return ""
                   }
               }
-              """
-          ),
-          kotlin(
-            """
               val t = Test ( )
               fun method ( ) {
-                  val a = t . method ( ) ?: null
+                  val a = t  .   method ( ) ?: null
               }
               """
           )
@@ -173,7 +178,7 @@ class MethodInvocationTest implements RewriteTest {
           kotlin(
             """
               fun method ( arg : Any ) {
-                  val l = listOf ( 1 , 2 , 3 )
+                  val l  =   listOf    (     1 ,  2   ,    3     )
               }
               """
           )
@@ -185,9 +190,7 @@ class MethodInvocationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              fun method ( arg : Any ) {
-                  val map = mapOf ( 1 to "one" , 2 to "two" , 3 to "three" )
-              }
+              val map = mapOf ( 1 to "one" , 2 to "two" , 3 to "three" )
               """
           )
         );
@@ -196,9 +199,9 @@ class MethodInvocationTest implements RewriteTest {
     @Test
     void multipleTypesOfMethodArguments() {
         rewriteRun(
-          kotlin("fun methodA ( a : String , b : Int , c : Double ) { }"),
           kotlin(
             """
+              fun methodA ( a : String , b : Int , c : Double ) { }
               fun methodB ( ) {
                   methodA ( "a" , 1 , 2.0 )
               }
@@ -210,9 +213,9 @@ class MethodInvocationTest implements RewriteTest {
     @Test
     void parameterAssignment() {
         rewriteRun(
-          kotlin("fun apply ( plugin : String ? = null) { }"),
           kotlin(
             """
+              fun apply ( plugin : String ? = null) { }
               fun method ( ) {
                   apply ( plugin = "something" )
               }
@@ -224,9 +227,9 @@ class MethodInvocationTest implements RewriteTest {
     @Test
     void typeParameters() {
         rewriteRun(
-          kotlin("fun < T : Number > methodA ( type : T ) { }"),
           kotlin(
             """
+              fun < T : Number > methodA ( type : T ) { }
               fun methodB ( ) {
                   methodA < Int > ( 10 )
               }
@@ -238,9 +241,10 @@ class MethodInvocationTest implements RewriteTest {
     @Test
     void anonymousObject() {
         rewriteRun(
-          kotlin("open class Test"),
           kotlin(
             """
+              open class Test
+              
               fun test ( a : Test ) { }
               
               fun method ( ) {
@@ -291,13 +295,28 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
+    @Test
+    void trailingLambdaArgumentWithParentheses() {
+        rewriteRun(
+          kotlin(
+            """
+              fun String.modify(block: () -> Unit) = this
+              
+              val spec = "test".modify() {
+                  println("Hello, world!")
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/78")
     @Test
     void infixTrailingLambdaDSL() {
         rewriteRun(
           kotlin(
             """
-              class FreeSpec ( private val init : FreeSpec . ( ) -> Unit ) {
+              class FreeSpec ( private val initializer : FreeSpec . ( ) -> Unit ) {
                 infix fun String . modify ( block : ( ) -> Unit ) : Nothing = TODO ( )
               }
               
@@ -316,10 +335,10 @@ class MethodInvocationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              infix fun String . modify ( block : ( ) -> Unit ) = TODO ( )
+              infix fun String.modify(block: () -> Unit) = this
               
-              val spec = "test" modify {
-                println ( "Hello, world!" )
+              val spec = "test"  modify   {
+                  println("Hello, world!")
               }
               """
           )
@@ -414,7 +433,7 @@ class MethodInvocationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              protected inline fun <reified TClass> default(arg: String) {
+              inline fun <reified TClass> default(arg: String) {
                   val v = TClass::class.qualifiedName
               }
               """
@@ -428,7 +447,7 @@ class MethodInvocationTest implements RewriteTest {
           kotlin(
             """
               fun test() {
-                "foo".foo()
+                "foo".toString()
               }
               """
           )
@@ -441,7 +460,7 @@ class MethodInvocationTest implements RewriteTest {
           kotlin(
             """
               fun test(bar: String) {
-                "foo $bar".foo()
+                "foo $bar".toInt()
               }
               """
           )
@@ -454,14 +473,9 @@ class MethodInvocationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              package foo.bar
               fun format ( vararg params : String ) { }
-              """
-          ),
-          kotlin(
-            """
               fun test ( ) {
-                foo . bar . format ( * arrayOf ( "foo" , "bar" ) )
+                format (  *   arrayOf ( "foo" , "bar" ) )
               }
               """)
         );
@@ -473,15 +487,10 @@ class MethodInvocationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              package foo.bar
               fun format ( first: String, vararg params : String ) { }
-              """
-          ),
-          kotlin(
-            """
               fun test ( ) {
                 val x = arrayOf ( "foo" , "bar" )
-                foo . bar . format ( "" , * x )
+                format ( "" , * x )
               }
               """)
         );
@@ -531,6 +540,17 @@ class MethodInvocationTest implements RewriteTest {
     }
 
     @Test
+    void nullSafeOnMethodTarget() {
+        rewriteRun(
+          kotlin(
+            """
+              val l = "x".length?.let { it + 1 }
+              """
+          )
+        );
+    }
+
+    @Test
     void trailingCommaAndTrailingLambda() {
         rewriteRun(
           kotlin(
@@ -538,7 +558,7 @@ class MethodInvocationTest implements RewriteTest {
               class Test {
                   fun foo(a : Int, b : (Int) -> Int) = a + b(a)
                   fun bar(): Int =
-                      foo(1,  ) { i -> i } + foo(
+                      foo(1  ,   ) { i -> i } + foo(
                           a = 1,
                       ) { i -> i }
               }
@@ -547,7 +567,21 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail
+    @Test
+    void parameterAndTrailingLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              fun f(x: Int, y: (Int) -> Int)  = y(x)
+
+              fun test() {
+                  print(f(1) { 2 })
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/100")
     @Test
     void anonymousLambdaInSuperConstructorCall() {
@@ -567,4 +601,92 @@ class MethodInvocationTest implements RewriteTest {
         );
     }
 
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
+    void extensionFunctionCall() {
+        rewriteRun(
+          kotlin(
+            """
+              val block: Collection<Any>.() -> Unit = {}
+              val r = listOf("descriptor").block()
+
+              val block2: Collection<Any>.(String, () -> Unit) -> Unit = {_, _ -> }
+              val r2 = listOf("descriptor").block2("x")  {   }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/233")
+    void indexedAccess() {
+        rewriteRun(
+          kotlin(
+            """
+              val arr = IntArray(1)
+              val a0 =  arr   [    0     ]
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/233")
+    void customIndexedAccess() {
+        rewriteRun(
+          kotlin(
+            """
+              class Surface {
+                  operator fun get(x: Int, y: Int) = 2 * x + 4 * y - 10
+              }
+              val surface = Surface()
+              val z = surface[4, 2]
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(((J.VariableDeclarations) cu.getStatements().get(cu.getStatements().size() - 1))).satisfies(
+                    z ->
+                        assertThat(((J.MethodInvocation) z.getVariables().get(0).getInitializer())).satisfies(
+                            get -> {
+                                assertThat(get.getMarkers().findFirst(IndexedAccess.class)).isPresent();
+                                assertThat(((J.Identifier) get.getSelect()).getSimpleName()).isEqualTo("surface");
+                                assertThat(get.getName().getSimpleName()).isEqualTo("get");
+                                assertThat(get.getArguments()).hasSize(2);
+                            }
+                        )
+                );
+            })
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/297")
+    void spaceAfterLambdaParameter() {
+        rewriteRun(
+          kotlin(
+            """
+                val l = listOf("")
+                val v = Pair(
+                    l?.map { true },
+                    "foo"
+                  )
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/308")
+    void trailingLambdaAfterNullSafe() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = "x"
+                   ?.associateTo(mutableMapOf()) { p ->
+                       p to listOfNotNull(p.uppercase())
+                   }
+              """
+          )
+        );
+    }
 }

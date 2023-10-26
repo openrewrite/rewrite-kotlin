@@ -16,6 +16,10 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junitpioneer.jupiter.ExpectedToFail;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -61,18 +65,57 @@ class CommentTest implements RewriteTest {
               
               // C2
               open class Test {
-                  // C3
+                  // C3  
                   
                   // C4
                   internal val n = 0
 
                   // C5
                   
-                  // C6
+                  // C6 
                   internal fun method() {
                   }
               }
               """
+          )
+        );
+    }
+
+    @ExpectedToFail("Only supported by psi-based parser")
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/320")
+    @Test
+    void nestedComment() {
+        rewriteRun(
+          kotlin(
+            """
+              /* Outer C1
+                  /**
+                  * Inner C2
+                  */
+                 Outer C3
+               */
+              val a = 1
+              """
+          )
+        );
+    }
+
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "class Foo {}",
+            "fun foo() {}",
+            "@file:Suppress(\"PLATFORM_CLASS_MAPPED_TO_KOTLIN\", \"unused\")"
+    })
+    void multilineComments(String input) {
+        rewriteRun(
+          kotlin(
+            """
+              /*
+               * Comment
+               */
+              %s
+              """.formatted(input)
           )
         );
     }

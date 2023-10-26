@@ -23,17 +23,17 @@ import org.openrewrite.java.ChangeType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.SourceSpec;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-public class ChangeTypeTest implements RewriteTest {
+class ChangeTypeTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
         spec.recipe(new ChangeType("a.b.Original", "x.y.Target", true));
     }
 
-    @Disabled("Will be fixed by autoformatting")
     @Test
     void changeImport() {
         rewriteRun(
@@ -55,6 +55,34 @@ public class ChangeTypeTest implements RewriteTest {
               
               class A {
                   val type : Target = Target()
+              }
+              """
+          )
+        );
+    }
+
+
+    @Test
+    void changeImportAlias() {
+        rewriteRun(
+          kotlin(
+            """
+              package a.b
+              class Original
+              """),
+          kotlin(
+            """
+              import a.b.Original as MyAlias
+              
+              class A {
+                  val type : MyAlias = MyAlias()
+              }
+              """,
+            """
+              import x.y.Target as MyAlias
+              
+              class A {
+                  val type : MyAlias = MyAlias()
               }
               """
           )
@@ -94,7 +122,40 @@ public class ChangeTypeTest implements RewriteTest {
         );
     }
 
-    @Disabled("Requires fix in rewrite: https://github.com/openrewrite/rewrite/issues/2995")
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/42")
+    @Test
+    void changeTypeWithGenericArgumentAlias() {
+        rewriteRun(
+          kotlin(
+            """
+              package a.b
+              class Original<A>
+              """),
+          kotlin(
+            """
+              package x.y
+              class Target<A>
+              """),
+          kotlin(
+            """
+              package example
+              
+              import a.b.Original as MyAlias
+              
+              fun test(original: MyAlias<String>) { }
+              """,
+            """
+              package example
+              
+              import x.y.Target as MyAlias
+              
+              fun test(original: MyAlias<String>) { }
+              """
+          )
+        );
+    }
+
     @Test
     void changeTypeWithGenericArgumentFullyQualified() {
         rewriteRun(
@@ -116,7 +177,7 @@ public class ChangeTypeTest implements RewriteTest {
               """,
             """
               package example
-              
+
               fun test(original: x.y.Target<String>) { }
               """
           )
@@ -162,6 +223,153 @@ public class ChangeTypeTest implements RewriteTest {
               """,
             spec -> spec.path("file.kt").afterRecipe(cu ->
                 assertThat(TypeUtils.isOfClassType(cu.getClasses().get(0).getType(), "newFile")).isTrue())
+          )
+        );
+    }
+
+    @Test
+    void addImportAlias() {
+        rewriteRun(
+          spec -> spec.recipe(new ChangeType("java.util.ArrayList", "java.util.LinkedList", true)),
+          kotlin(
+            """
+              import java.util.ArrayList as MyList
+              import java.util.ArrayList
+
+              fun main() {
+                  val list = ArrayList<String>()
+                  val list2 = MyList<String>()
+              }
+              """,
+            """
+              import java.util.LinkedList as MyList
+              import java.util.LinkedList
+
+              fun main() {
+                  val list = LinkedList<String>()
+                  val list2 = MyList<String>()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void updateImportAlias() {
+        rewriteRun(
+          spec -> spec.recipe(new ChangeType("java.util.ArrayList", "java.util.LinkedList", true)),
+          kotlin(
+            """
+              import java.util.ArrayList as MyList
+              import java.util.ArrayList
+
+              fun main() {
+                  val list = ArrayList<String>()
+                  val list2 = MyList<String>()
+              }
+              """,
+            """
+              import java.util.LinkedList as MyList
+              import java.util.LinkedList
+
+              fun main() {
+                  val list = LinkedList<String>()
+                  val list2 = MyList<String>()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void usingAliasOnly() {
+        rewriteRun(
+          spec -> spec.recipe(new ChangeType("java.util.ArrayList", "java.util.LinkedList", true)),
+          kotlin(
+            """
+              import java.util.ArrayList as MyList
+
+              fun main() {
+                  val list2 = MyList<String>()
+              }
+              """,
+            """
+              import java.util.LinkedList as MyList
+
+              fun main() {
+                  val list2 = MyList<String>()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void implicitImport() {
+        rewriteRun(
+          spec -> spec.recipe(new ChangeType("java.util.ArrayList", "java.util.LinkedList", true)),
+          kotlin(
+            """
+              fun main() {
+                  val list = ArrayList<String>()
+              }
+              """,
+            """
+              import java.util.LinkedList
+
+              fun main() {
+                  val list = LinkedList<String>()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void qualifiedReference() {
+        rewriteRun(
+          spec -> spec.recipe(new ChangeType("java.util.ArrayList", "java.util.LinkedList", true)),
+          kotlin(
+            """
+              import java.util.ArrayList as MyList
+
+              fun main() {
+                  val list2 = java.util.ArrayList<String>()
+              }
+              """,
+            """
+
+
+              fun main() {
+                  val list2 = java.util.LinkedList<String>()
+              }
+              """
+            , SourceSpec::noTrim
+          )
+        );
+    }
+
+    @Disabled
+    @Test
+    void fromLibrary() {
+        rewriteRun(
+          spec -> spec.recipe(new ChangeType(
+            "misk.metrics.backends.prometheus.v2.PrometheusMetrics",
+              "misk.metrics.v2.Metrics", true))
+            .parser(KotlinParser.builder()
+              .classpath("misk-prometheus", "misk-metrics"))
+          ,
+          kotlin(
+            """
+              import misk.metrics.backends.prometheus.v2.PrometheusMetrics
+              
+              class A(val a: PrometheusMetrics)
+              """,
+            """
+              import java.util.LinkedList as MyList
+              
+              class A(val a: Metrics)
+              """
           )
         );
     }

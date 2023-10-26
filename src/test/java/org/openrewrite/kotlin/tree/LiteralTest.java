@@ -45,7 +45,7 @@ class LiteralTest implements RewriteTest {
     @Test
     void literalCharacter() {
         rewriteRun(
-          kotlin("val c : Character = 'c' ")
+          kotlin("val c : Char = 'c' ")
         );
     }
 
@@ -58,6 +58,18 @@ class LiteralTest implements RewriteTest {
               val f : Float = 1.0F
               val l1 : Long = 1
               val l2 : Long = 1L
+              """
+          )
+        );
+    }
+
+    @Test
+    void nullLiteral() {
+        rewriteRun(
+          kotlin(
+            """
+              val n1 = null
+              val n2: Any = null!!
               """
           )
         );
@@ -95,8 +107,8 @@ class LiteralTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              val c1 : Character = '\uD800'
-              val c2 : Character = '\uDfFf'
+              val c1 : Char = '\uD800'
+              val c2 : Char = '\uDfFf'
               """
           )
         );

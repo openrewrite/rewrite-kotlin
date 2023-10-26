@@ -26,6 +26,7 @@ import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
+import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.style.GeneralFormatStyle;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.style.Style;
@@ -76,7 +77,7 @@ public class Autodetect extends NamedStyles {
         public Autodetect build() {
             return new Autodetect(Tree.randomId(), Arrays.asList(
                     indentStatistics.getTabsAndIndentsStyle(),
-                    findImportLayout.aggregate().getImportLayoutStyle(),
+                    findImportLayout.getImportLayoutStyle(),
                     spacesStatistics.getSpacesStyle(),
                     wrappingAndBracesStatistics.getWrappingAndBracesStyle(),
                     generalFormatStatistics.getFormatStyle()));
@@ -241,8 +242,7 @@ public class Autodetect extends NamedStyles {
             int tabSize = (moreFrequentTabSize == 0) ? 4 : moreFrequentTabSize;
 
             IndentStatistic continuationFrequencies = useTabs ? tabContinuationIndentFrequencies : spaceContinuationIndentFrequencies;
-
-            int continuationIndent = continuationFrequencies.continuationIndent(tabSize);
+            int continuationIndent = continuationFrequencies.continuationIndent(useTabs ? 1 : tabSize) * (useTabs ? tabSize : 1);
             return new TabsAndIndentsStyle(
                     useTabs,
                     tabSize,
@@ -293,12 +293,11 @@ public class Autodetect extends NamedStyles {
         @Override
         public Space visitSpace(Space space, Space.Location loc, GeneralFormatStatistics stats) {
             String prefix = space.getWhitespace();
-            char[] chars = prefix.toCharArray();
 
-            for (int i = 0; i < chars.length; i++) {
-                char c = chars[i];
+            for (int i = 0; i < prefix.length(); i++) {
+                char c = prefix.charAt(i);
                 if (c == '\n') {
-                    if (i == 0 || chars[i - 1] != '\r') {
+                    if (i == 0 || prefix.charAt(i - 1) != '\r') {
                         stats.linesWithLFNewLines++;
                     } else {
                         stats.linesWithCRLFNewLines++;
@@ -343,10 +342,11 @@ public class Autodetect extends NamedStyles {
                 List<Statement> parameters = method.getParameters();
                 for (int i = 1; i < parameters.size(); i++) {
                     if (parameters.get(i).getPrefix().getLastWhitespace().contains("\n")) {
-                        if (alignTo == parameters.get(i).getPrefix().getLastWhitespace().length()) {
+                        if (alignTo == parameters.get(i).getPrefix().getLastWhitespace().length() - 1) {
                             stats.multilineAlignedToFirstArgument++;
                         } else {
                             stats.multilineNotAlignedToFirstArgument++;
+                            countIndents(parameters.get(i).getPrefix().getWhitespace(), true, stats);
                         }
                     }
                 }
@@ -418,9 +418,23 @@ public class Autodetect extends NamedStyles {
             if (statementExpressions.contains(expression)) {
                 return expression;
             }
-            countIndents(expression.getPrefix().getWhitespace(), true, stats);
+            // (newline-separated) annotations on some common target are not continuations
+            // (newline-separated) annotations on some common target are not continuations
+            boolean isContinuation = !(expression instanceof J.Annotation && !(
+                    // ...but annotations which are *arguments* to other annotations can be continuations
+                    getCursor().getParentTreeCursor().getValue() instanceof J.Annotation
+                            || getCursor().getParentTreeCursor().getValue() instanceof J.NewArray
+            ));
+            countIndents(expression.getPrefix().getWhitespace(), isContinuation, stats);
 
             return expression;
+        }
+
+        @Override
+        public J.FieldAccess visitFieldAccess(J.FieldAccess fa, IndentStatistics stats) {
+            visit(fa.getTarget(), stats);
+            countIndents(fa.getPadding().getName().getBefore().getWhitespace(), true, stats);
+            return fa;
         }
 
         @SuppressWarnings("CommentedOutCode")
@@ -434,6 +448,7 @@ public class Autodetect extends NamedStyles {
             }
             if (m.getPadding().getSelect() != null) {
                 countIndents(m.getPadding().getSelect().getAfter().getWhitespace(), true, stats);
+                visit(m.getSelect(), stats);
             }
             visitContainer(m.getPadding().getTypeParameters(), JContainer.Location.TYPE_PARAMETERS, stats);
 
@@ -460,14 +475,13 @@ public class Autodetect extends NamedStyles {
                 int spaceIndent = 0;
                 int tabIndent = 0;
                 boolean mixed = false;
-                char[] chars = space.substring(ni).toCharArray();
-                for (char c : chars) {
-                    if (c == ' ') {
+                for (int i = ni; i < space.length(); i++) {
+                    if (space.charAt(i) == ' ') {
                         if (tabIndent > 0) {
                             mixed = true;
                         }
                         spaceIndent++;
-                    } else if (c == '\t') {
+                    } else if (space.charAt(i) == '\t') {
                         if (spaceIndent > 0) {
                             mixed = true;
                         }
@@ -492,16 +506,10 @@ public class Autodetect extends NamedStyles {
     private static class ImportLayoutStatistics {
         List<List<Block>> blocksPerSourceFile = new ArrayList<>();
         Map<String, String> pkgToBlockPattern = new LinkedHashMap<>();
-        int staticAtTopCount = 0;
-        int staticAtBotCount = 0;
         int javaBeforeJavaxCount = 0;
         int javaxBeforeJavaCount = 0;
         int minimumFoldedImports = Integer.MAX_VALUE;
         int minimumFoldedStaticImports = Integer.MAX_VALUE;
-
-        public boolean isStaticImportsAtBot() {
-            return staticAtBotCount >= staticAtTopCount;
-        }
 
         public boolean isJavaxBeforeJava() {
             return javaxBeforeJavaCount >= javaBeforeJavaxCount;
@@ -564,11 +572,7 @@ public class Autodetect extends NamedStyles {
 
                         // Add static imports at the top if it's the standard.
                         boolean addNewLine = false;
-                        if (!isStaticImportsAtBot()) {
-                            // There are no static imports in Kotlin, add an all other import block.
-                            builder = builder.importAllOthers();
-                        }
-                        addNewLine = !isStaticImportsAtBot();
+                        addNewLine = false;
 
                         // There are no non-static imports, add a block of all other import.
                         if (!insertAllOthers) {
@@ -678,12 +682,11 @@ public class Autodetect extends NamedStyles {
                         }
 
                         // Add statics at bottom.
-                        if (isStaticImportsAtBot()) {
-                            builder = builder.blankLine();
+                        builder = builder.blankLine();
 
-                            // There are no static imports, add an all other import block.
-                            builder = builder.importAllOthers();
-                        }
+                        // There are no static imports, add an all other import block.
+                        builder = builder.importAllOthers();
+
 
                         if (longestBlocks.isEmpty()) {
                             builder.importAllOthers();
@@ -761,11 +764,9 @@ public class Autodetect extends NamedStyles {
                 return pkg;
             }
 
-            char[] p1 = pkg.toCharArray();
-            char[] p2 = lcp.toCharArray();
             int i = 0;
-            for (; i < p1.length && i < p2.length; i++) {
-                if (p1[i] != p2[i]) {
+            for (; i < pkg.length() && i < lcp.length(); i++) {
+                if (pkg.charAt(i) != lcp.charAt(i)) {
                     break;
                 }
             }
@@ -775,9 +776,9 @@ public class Autodetect extends NamedStyles {
 
     @Value
     private static class ImportAttributes {
-        boolean isStatic;
         String packageName;
         String prefix;
+        boolean isAlias;
     }
 
     private static class FindImportLayout extends KotlinIsoVisitor<Integer> {
@@ -785,19 +786,103 @@ public class Autodetect extends NamedStyles {
         private final NavigableSet<String> importedPackages = new TreeSet<>();
         private final ImportLayoutStatistics importLayoutStatistics = new ImportLayoutStatistics();
 
+        private static final String TYPE_ALL_OTHERS = "allOther";
+        private static final String TYPE_JAVA = "java";
+        private static final String TYPE_JAVAX = "javax";
+        private static final String TYPE_KOTLIN = "kotlin";
+        private static final String TYPE_ALL_ALIASES = "allAliases";
+
+        private static final Double AVE_DEFAULT_WEIGHT_ALL_OTHERS = 0.5;
+        private static final Double AVE_DEFAULT_WEIGHT_JAVA = 0.4;
+        private static final Double AVE_DEFAULT_WEIGHT_JAVAX = 0.3;
+        private static final Double AVE_DEFAULT_WEIGHT_KOTLIN = 0.2;
+        private static final Double AVE_DEFAULT_WEIGHT_ALL_ALIASES = 0.1;
+
+
+        public ImportLayoutStyle getImportLayoutStyle() {
+            return importsBySourceFile.stream()
+                    .max(Comparator.comparing(List::size))
+                    .map(longestImports -> {
+                        ImportLayoutStyle.Builder builder = ImportLayoutStyle.builder();
+                        builder.packageToFold("kotlinx.android.synthetic.*", true)
+                                .packageToFold("io.ktor.*", true);
+
+                        Map<String, List<Integer>> weightMap = new HashMap<>();
+
+                        for ( int i = 0 ; i < longestImports.size(); i++) {
+                            ImportAttributes importAttributes = longestImports.get(i);
+                            int weight = longestImports.size() - i;
+                            if (importAttributes.isAlias()) {
+                                weightMap.computeIfAbsent(TYPE_ALL_ALIASES, k -> new ArrayList<>()).add(weight);
+                            } else if (importAttributes.getPackageName().startsWith("java.")) {
+                                weightMap.computeIfAbsent(TYPE_JAVA, k -> new ArrayList<>()).add(weight);
+                            } else if (importAttributes.getPackageName().startsWith("javax.")) {
+                                weightMap.computeIfAbsent(TYPE_JAVAX, k -> new ArrayList<>()).add(weight);
+                            } else if (importAttributes.getPackageName().startsWith("kotlin.")) {
+                                weightMap.computeIfAbsent(TYPE_KOTLIN, k -> new ArrayList<>()).add(weight);
+                            } else {
+                                weightMap.computeIfAbsent(TYPE_ALL_OTHERS, k -> new ArrayList<>()).add(weight);
+                            }
+                        }
+
+                        Map<String, Double> averageWeightMap = weightMap.entrySet().stream().collect(Collectors.toMap(
+                                Map.Entry::getKey,
+                                entry -> {
+                                    List<Integer> weights = entry.getValue();
+                                    int sum = 0;
+                                    for (int number : weights) {
+                                        sum += number;
+                                    }
+                                    return (double) sum / weights.size();
+                                }
+                        ));
+
+                        averageWeightMap.computeIfAbsent(TYPE_ALL_OTHERS, w -> AVE_DEFAULT_WEIGHT_ALL_OTHERS);
+                        averageWeightMap.computeIfAbsent(TYPE_JAVA, w -> AVE_DEFAULT_WEIGHT_JAVA);
+                        averageWeightMap.computeIfAbsent(TYPE_JAVAX, w -> AVE_DEFAULT_WEIGHT_JAVAX);
+                        averageWeightMap.computeIfAbsent(TYPE_KOTLIN, w -> AVE_DEFAULT_WEIGHT_KOTLIN);
+                        averageWeightMap.computeIfAbsent(TYPE_ALL_ALIASES, w -> AVE_DEFAULT_WEIGHT_ALL_ALIASES);
+
+                        List<String> sortedTypes = sortTypesByWeightDescending(averageWeightMap);
+
+                        for (String type : sortedTypes) {
+                            switch (type) {
+                                case TYPE_ALL_OTHERS:
+                                    builder.importAllOthers();
+                                    break;
+                                case TYPE_JAVA:
+                                    builder.importPackage("java.*");
+                                    break;
+                                case TYPE_JAVAX:
+                                    builder.importPackage("javax.*");
+                                    break;
+                                case TYPE_KOTLIN:
+                                    builder.importPackage("kotlin.*");
+                                    break;
+                                case TYPE_ALL_ALIASES:
+                                    builder.importAllAliases();
+                                    break;
+                            }
+                        }
+
+                        return builder.build();
+                    })
+                    .orElse(IntelliJ.importLayout());
+        }
+
+        public static List<String> sortTypesByWeightDescending(Map<String, Double> averageWeightMap) {
+            return averageWeightMap.entrySet().stream()
+                    .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toList());
+        }
+
         public ImportLayoutStatistics aggregate() {
             // initializes importLayoutStatistics.pkgToBlockPattern which is used in the loop that follows
             importLayoutStatistics.mapBlockPatterns(importedPackages);
 
             for (List<ImportAttributes> imports : importsBySourceFile) {
                 Set<ImportLayoutStatistics.Block> blocks = new LinkedHashSet<>();
-
-                importLayoutStatistics.staticAtBotCount += (imports.size() > 0 &&
-                                                            imports.get(imports.size() - 1).isStatic()) ? 1 : 0;
-                importLayoutStatistics.staticAtTopCount += (imports.size() > 0 &&
-                                                            imports.get(0).isStatic()) ? 1 : 0;
-
-                boolean staticBlock = false;
                 int blockStart = 0;
                 int i = 0;
                 String previousPkg = "";
@@ -831,7 +916,6 @@ public class Autodetect extends NamedStyles {
                         blockStart = i;
                     }
 
-                    staticBlock = anImport.isStatic();
                     i++;
                     previousPkg = importLayoutStatistics.pkgToBlockPattern.getOrDefault(anImport.getPackageName() + ".", "");
                 }
@@ -863,7 +947,7 @@ public class Autodetect extends NamedStyles {
         }
 
         @Override
-        public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, Integer integer) {
+        public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, Integer integer) {
             for (J.Import anImport : cu.getImports()) {
                 importedPackages.add(anImport.getPackageName() + ".");
 
@@ -903,9 +987,10 @@ public class Autodetect extends NamedStyles {
             }
 
             importsBySourceFile.add(cu.getImports().stream()
-                    .map(it -> new ImportAttributes(it.isStatic(), it.getPackageName(), it.getPrefix().getWhitespace()))
+                    .map(it -> new ImportAttributes(it.getPackageName(),
+                            it.getPrefix().getWhitespace(),
+                            it.getAlias() != null))
                     .collect(Collectors.toList()));
-
             return cu;
         }
     }

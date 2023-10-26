@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.format;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
@@ -101,6 +100,7 @@ class BlankLinesTest implements RewriteTest {
                           field1 = 2
                       }
 
+                      fun test0() = 1
                       fun test1() {
                           object : Runnable {
                               override fun run() {
@@ -128,6 +128,7 @@ class BlankLinesTest implements RewriteTest {
                           field1 = 2
                       }
 
+                      fun test0() = 1
                       fun test1() {
                           object : Runnable {
                               override fun run() {
@@ -312,7 +313,6 @@ class BlankLinesTest implements RewriteTest {
                 );
             }
 
-            @Disabled("Parsing error to be fixed")
             @Issue("https://github.com/openrewrite/rewrite/issues/1171")
             @Test
             void minimumAfterClassHeaderNestedEnum() {
@@ -331,7 +331,6 @@ class BlankLinesTest implements RewriteTest {
                       class OuterClass {
                       
                           enum class InnerEnum0 {
-                      
                               FIRST,
                               SECOND
                           }
@@ -451,6 +450,9 @@ class BlankLinesTest implements RewriteTest {
                       annotation class Annotation
 
                       class Bar {
+                      
+                      
+                      
                           @Annotation
                           val a = 42
 
@@ -485,8 +487,9 @@ class BlankLinesTest implements RewriteTest {
           kotlin(
             """
               class A {
+              
                   private val id: Long = 0 // this comment will move to wrong place
-
+              
                   fun id(): Long {
                       return id;
                   }
@@ -531,6 +534,32 @@ class BlankLinesTest implements RewriteTest {
 
                   fun b(): Unit {
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/314")
+    void blankLinesBetweenTopLevelStatements() {
+        rewriteRun(
+          blankLines(),
+          kotlin(
+            """
+              class T
+              fun a(): Unit {
+              }
+              fun b(): Unit {
+              }
+              """,
+            """
+              class T
+
+              fun a(): Unit {
+              }
+
+              fun b(): Unit {
               }
               """
           )
@@ -765,6 +794,144 @@ class BlankLinesTest implements RewriteTest {
               package com.intellij.samples
               
               class Test {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void maximumBlankLinesBetweenHeaderAndPackage() {
+        // keepMaximumBlankLines_BetweenHeaderAndPackage defaults to 2
+        rewriteRun(
+          blankLines(),
+          kotlin(
+            """
+              /*
+               *  Copyright 2023 XXX, Inc.
+               */
+
+
+
+
+              package org.a
+
+              class A {
+              }
+              """,
+            """
+              /*
+               *  Copyright 2023 XXX, Inc.
+               */
+
+
+              package org.a
+
+              class A {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void minimumBlankLinesBeforePackageStatement() {
+        // minimumBlankLines_BeforePackageStatement defaults to 0
+        rewriteRun(
+          blankLines(),
+          kotlin(
+            """
+              /*
+               *  Copyright 2023 XXX, Inc.
+               */
+
+              package org.a
+
+              class A {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void topLevelPropertyBeforeStatement() {
+        rewriteRun(
+          blankLines(),
+          kotlin(
+            """
+              val one = 1
+              
+              class Test
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/324")
+    void fileAnnotation() {
+        rewriteRun(
+          blankLines(),
+          kotlin(
+            """
+              @file:JvmName("Foo")
+              package foo
+              """
+          )
+        );
+    }
+
+    @Test
+    void annotatedPrimaryConstructor() {
+        rewriteRun(
+          blankLines(),
+          kotlin(
+            """
+              class A @Suppress constructor(val a: Boolean,): Any()
+              """
+          )
+        );
+    }
+
+    @Test
+    void annotatedLocalVariable() {
+        rewriteRun(
+          blankLines(),
+          kotlin(
+            """
+              fun f() {
+                  @Suppress val i = 1
+                  @Suppress val j = 1
+              }
+              
+              val o = object {
+                  @Suppress val i = 1
+                  @Suppress val j = 1
+              }
+              
+              class T {
+                  @Suppress val i = 1
+                  @Suppress val j = 1
+              }
+              """,
+            """
+              fun f() {
+                  @Suppress val i = 1
+                  @Suppress val j = 1
+              }
+              
+              val o = object {
+                  @Suppress val i = 1
+              
+                  @Suppress val j = 1
+              }
+              
+              class T {
+              
+                  @Suppress val i = 1
+              
+                  @Suppress val j = 1
               }
               """
           )

@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
@@ -133,6 +134,42 @@ class IfTest implements RewriteTest {
               fun method ( a : Any? ) {
                   ( ( ( ( if ( ( ( a ) ) == ( ( null ) ) ) return ) ) ) )
                   val r = a
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void annotatedIf() {
+        rewriteRun(
+          kotlin(
+            """
+              fun foo(t: Boolean) {
+                  @Suppress
+                  if (t)
+                      print("t")
+              }
+              """
+          )
+        );
+    }
+
+    @ExpectedToFail("Fixed by PSI based parser")
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/298")
+    void functionCallCondition() {
+        rewriteRun(
+          kotlin(
+            """
+              import kotlin.text.Regex
+
+              fun foo(choices: List<Pair<String, String>>, peekedHeader: Regex) {
+                  for ((_, adapter) in choices) {
+                      if (adapter.matches(peekedHeader)) {
+                          print("1")
+                      }
+                  }
               }
               """
           )

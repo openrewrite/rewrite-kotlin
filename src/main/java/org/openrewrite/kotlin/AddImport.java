@@ -16,8 +16,6 @@
 package org.openrewrite.kotlin;
 
 import lombok.EqualsAndHashCode;
-import org.openrewrite.Cursor;
-import org.openrewrite.SourceFile;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
@@ -123,6 +121,13 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
 
             if (cu.getImports().stream().anyMatch(i -> {
                 String ending = i.getQualid().getSimpleName();
+
+                String alias1 = Optional.ofNullable(i.getAlias()).map(J.Identifier::getSimpleName).orElse("");
+                String alias2 = alias != null ? alias : "";
+                if (!alias1.equals(alias2)) {
+                    return false;
+                }
+
                 if (member == null) {
                     return i.getPackageName().equals(packageName) &&
                            (ending.equals(typeName) || "*".equals(ending));
@@ -160,13 +165,13 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
                 if (cu.getPackageDeclaration() == null) {
                     // leave javadocs on the class and move other comments up to the import
                     // (which could include license headers and the like)
-                    Space firstClassPrefix = cu.getClasses().get(0).getPrefix();
-                    importToAdd = importToAdd.withPrefix(firstClassPrefix
-                            .withComments(ListUtils.map(firstClassPrefix.getComments(), comment -> comment instanceof Javadoc ? null : comment))
+                    Space firstStatementPrefix = cu.getStatements().get(0).getPrefix();
+                    importToAdd = importToAdd.withPrefix(firstStatementPrefix
+                            .withComments(ListUtils.map(firstStatementPrefix.getComments(), comment -> comment instanceof Javadoc ? null : comment))
                             .withWhitespace(""));
 
-                    cu = cu.withClasses(ListUtils.mapFirst(cu.getClasses(), clazz ->
-                            clazz.withComments(ListUtils.map(clazz.getComments(), comment -> comment instanceof Javadoc ? comment : null))
+                    cu = cu.withStatements(ListUtils.mapFirst(cu.getStatements(), stmt ->
+                            stmt.withComments(ListUtils.map(stmt.getComments(), comment -> comment instanceof Javadoc ? comment : null))
                     ));
                 }
             }
@@ -180,16 +185,18 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
 
             List<JRightPadded<J.Import>> newImports = layoutStyle.addImport(cu.getPadding().getImports(), importToAdd, cu.getPackageDeclaration(), classpath);
 
-            // ImportLayoutStile::addImport adds always `\n` as newlines. Checking if we need to fix them
-            newImports = checkCRLF(cu, newImports);
+            // ImportLayoutStyle::addImport adds always `\n` as newlines. Checking if we need to fix them
+            GeneralFormatStyle generalFormatStyle = Optional.ofNullable(cu.getStyle(GeneralFormatStyle.class))
+              .orElse(autodetectGeneralFormatStyle(cu));
+            newImports = checkCRLF(cu, newImports, generalFormatStyle);
 
             cu = cu.getPadding().withImports(newImports);
 
-            JavaSourceFile c = cu;
-            cu = cu.withClasses(ListUtils.mapFirst(cu.getClasses(), clazz -> {
-                J.ClassDeclaration cl = autoFormat(clazz, clazz.getName(), p, new Cursor(null, c));
-                return clazz.withPrefix(clazz.getPrefix().withWhitespace(cl.getPrefix().getWhitespace()));
-            }));
+            // make sure first statement has a prefix if necessary
+            if (((K.CompilationUnit) tree).getImports().isEmpty() || ((K.CompilationUnit) tree).getPackageDeclaration() == null) {
+                cu = cu.withStatements(ListUtils.mapFirst(cu.getStatements(), stmt ->
+                  stmt.getPrefix().isEmpty() ? stmt.withPrefix(stmt.getPrefix().withWhitespace(generalFormatStyle.isUseCRLFNewLines() ? "\r\n\r\n" : "\n\n")) : stmt));
+            }
 
             j = cu;
         }
@@ -197,9 +204,7 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
     }
 
     // TODO refactor ImportLayoutStyle so that this method can be removed
-    private List<JRightPadded<J.Import>> checkCRLF(JavaSourceFile cu, List<JRightPadded<J.Import>> newImports) {
-        GeneralFormatStyle generalFormatStyle = Optional.ofNullable(((SourceFile) cu).getStyle(GeneralFormatStyle.class))
-                .orElse(autodetectGeneralFormatStyle(cu));
+    private List<JRightPadded<J.Import>> checkCRLF(JavaSourceFile cu, List<JRightPadded<J.Import>> newImports, GeneralFormatStyle generalFormatStyle) {
         if (generalFormatStyle.isUseCRLFNewLines()) {
             return ListUtils.map(newImports, rp -> rp.map(
                     i -> i.withPrefix(i.getPrefix().withWhitespace(i.getPrefix().getWhitespace()
@@ -232,7 +237,39 @@ public class AddImport<P> extends KotlinIsoVisitor<P> {
         if (member == null) {
             //Non-static imports, we just look for field accesses.
             for (NameTree t : FindTypes.find(compilationUnit, fullyQualifiedName)) {
-                if ((!(t instanceof J.FieldAccess) || !((J.FieldAccess) t).isFullyQualifiedClassReference(fullyQualifiedName)) &&
+                JavaType.Class classType = JavaType.ShallowClass.build(fullyQualifiedName);
+                boolean foundReference = false;
+                boolean usingAlias = false;
+                if (t instanceof J.ParameterizedType) {
+                    J.ParameterizedType pt = (J.ParameterizedType) t;
+                    if (pt.getClazz() instanceof J.Identifier) {
+                        String nameInSource = ((J.Identifier) pt.getClazz()).getSimpleName();
+                        if (alias != null) {
+                            if ( nameInSource.equals(alias)) {
+                                usingAlias = true;
+                            }
+                        } else if (nameInSource.equals(classType.getClassName())) {
+                            foundReference = true;
+                        }
+                    }
+                } else if (t instanceof J.Identifier) {
+                    String nameInSource = ((J.Identifier) t).getSimpleName();
+                    if (alias != null) {
+                        if ( nameInSource.equals(alias)) {
+                            usingAlias = true;
+                        }
+                    } else if (nameInSource.equals(classType.getClassName())) {
+                        foundReference = true;
+                    }
+                } else {
+                    foundReference = true;
+                }
+
+                if (usingAlias) {
+                    return true;
+                }
+
+                if (foundReference && (!(t instanceof J.FieldAccess) || !((J.FieldAccess) t).isFullyQualifiedClassReference(fullyQualifiedName)) &&
                     isTypeReference(t)) {
                     return true;
                 }

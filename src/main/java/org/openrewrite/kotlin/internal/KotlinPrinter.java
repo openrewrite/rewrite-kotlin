@@ -41,6 +41,7 @@ import java.util.function.UnaryOperator;
 
 public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     private final KotlinJavaPrinter<P> delegate;
+
     public KotlinPrinter() {
         delegate = delegate();
     }
@@ -84,12 +85,26 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public J visitAnnotatedExpression(K.AnnotatedExpression annotatedExpression, PrintOutputCapture<P> p) {
+        visit(annotatedExpression.getAnnotations(), p);
+        visit(annotatedExpression.getExpression(), p);
+        afterSyntax(annotatedExpression, p);
+        return annotatedExpression;
+    }
+
+    @Override
     public J visitBinary(K.Binary binary, PrintOutputCapture<P> p) {
         beforeSyntax(binary, Space.Location.BINARY_PREFIX, p);
         String keyword = "";
         switch (binary.getOperator()) {
             case Contains:
                 keyword = "in";
+                break;
+            case Elvis:
+                keyword = "?:";
+                break;
+            case NotContains:
+                keyword = "!in";
                 break;
             case IdentityEquals:
                 keyword = "===";
@@ -100,23 +115,69 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             case RangeTo:
                 keyword = "..";
                 break;
+            case RangeUntil:
+                keyword = "..<";
+                break;
         }
         visit(binary.getLeft(), p);
         visitSpace(binary.getPadding().getOperator().getBefore(), KSpace.Location.BINARY_OPERATOR, p);
         p.append(keyword);
-        if (binary.getOperator() == K.Binary.Type.Get) {
-            p.append("[");
-        }
 
         visit(binary.getRight(), p);
 
         visitSpace(binary.getAfter(), KSpace.Location.BINARY_SUFFIX, p);
-        if (binary.getOperator() == K.Binary.Type.Get) {
-            p.append("]");
-        }
-        trailingMarkers(binary.getMarkers(), p);
         afterSyntax(binary, p);
         return binary;
+    }
+
+    @Override
+    public J visitClassDeclaration(K.ClassDeclaration classDeclaration, PrintOutputCapture<P> p) {
+        return delegate.visitClassDeclaration0(classDeclaration.getClassDeclaration(), classDeclaration.getTypeConstraints(), p);
+    }
+
+    @Override
+    public J visitConstructor(K.Constructor constructor, PrintOutputCapture<P> p) {
+        J.MethodDeclaration method = constructor.getMethodDeclaration();
+
+        beforeSyntax(method, Space.Location.METHOD_DECLARATION_PREFIX, p);
+        p.append("constructor");
+        JContainer<Statement> params = method.getPadding().getParameters();
+        beforeSyntax(params.getBefore(), params.getMarkers(), JContainer.Location.METHOD_DECLARATION_PARAMETERS.getBeforeLocation(), p);
+        p.append("(");
+        List<JRightPadded<Statement>> elements = params.getPadding().getElements();
+        for (int i = 0; i < elements.size(); i++) {
+            delegate.printMethodParameters(p, i, elements);
+        }
+        afterSyntax(params.getMarkers(), p);
+        p.append(")");
+
+        visitSpace(constructor.getColon(), KSpace.Location.CONSTRUCTOR_COLON, p);
+        p.append(':');
+        visit(constructor.getConstructorInvocation(), p);
+        afterSyntax(constructor, p);
+
+        visit(method.getBody(), p);
+
+        return constructor;
+    }
+
+    @Override
+    public J visitConstructorInvocation(K.ConstructorInvocation constructorInvocation, PrintOutputCapture<P> p) {
+        beforeSyntax(constructorInvocation, KSpace.Location.CONSTRUCTOR_INVOCATION_PREFIX, p);
+        visit(constructorInvocation.getTypeTree(), p);
+        delegate.visitArgumentsContainer(constructorInvocation.getPadding().getArguments(), Space.Location.METHOD_INVOCATION_ARGUMENTS, p);
+        afterSyntax(constructorInvocation, p);
+        return constructorInvocation;
+    }
+
+    @Override
+    public J visitDelegatedSuperType(K.DelegatedSuperType delegatedSuperType, PrintOutputCapture<P> p) {
+        visit(delegatedSuperType.getTypeTree(), p);
+        visitSpace(delegatedSuperType.getBy(), KSpace.Location.DELEGATED_SUPER_TYPE_BY, p);
+        p.append("by");
+        visit(delegatedSuperType.getDelegate(), p);
+        afterSyntax(delegatedSuperType, p);
+        return delegatedSuperType;
     }
 
     @Override
@@ -141,7 +202,8 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         if (!destructuringDeclaration.getInitializer().getVariables().isEmpty() &&
                 destructuringDeclaration.getInitializer().getVariables().get(0).getPadding().getInitializer() != null) {
-            visitSpace(Objects.requireNonNull(destructuringDeclaration.getPadding().getAssignments().getPadding().getElements().get(0).getElement().getPadding().getInitializer()).getBefore(), Space.Location.LANGUAGE_EXTENSION, p);
+            visitSpace(Objects.requireNonNull(destructuringDeclaration.getInitializer().getVariables().get(0).getPadding()
+                    .getInitializer()).getBefore(), Space.Location.LANGUAGE_EXTENSION, p);
             p.append("=");
             visit(Objects.requireNonNull(destructuringDeclaration.getInitializer().getVariables().get(0).getPadding().getInitializer()).getElement(), p);
         }
@@ -151,23 +213,46 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
     @Override
     public J visitFunctionType(K.FunctionType functionType, PrintOutputCapture<P> p) {
+        boolean nullable = functionType.getMarkers().findFirst(IsNullable.class).isPresent();
+
         beforeSyntax(functionType, KSpace.Location.FUNCTION_TYPE_PREFIX, p);
         visit(functionType.getLeadingAnnotations(), p);
         for (J.Modifier modifier : functionType.getModifiers()) {
             delegate.visitModifier(modifier, p);
         }
 
+        if (nullable) {
+            p.append("(");
+        }
         if (functionType.getReceiver() != null) {
             visitRightPadded(functionType.getReceiver(), p);
             p.append(".");
         }
-        visit(functionType.getTypedTree(), p);
+        delegate.visitContainer("(", functionType.getPadding().getParameters(), JContainer.Location.TYPE_PARAMETERS, ",", ")", p);
+        visitSpace(functionType.getArrow() != null ? functionType.getArrow() : Space.SINGLE_SPACE, KSpace.Location.FUNCTION_TYPE_ARROW_PREFIX, p);
+        p.append("->");
+        visit(functionType.getReturnType(), p);
+        if (nullable) {
+            p.append(")");
+        }
         afterSyntax(functionType, p);
         return functionType;
     }
 
     @Override
+    public J visitFunctionTypeParameter(K.FunctionType.Parameter parameter, PrintOutputCapture<P> p) {
+        if (parameter.getName() != null) {
+            visit(parameter.getName(), p);
+            parameter.getMarkers().findFirst(TypeReferencePrefix.class).ifPresent(tref -> visitSpace(tref.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p));
+            p.append(":");
+        }
+        visit(parameter.getParameterType(), p);
+        return parameter;
+    }
+
+    @Override
     public J visitKReturn(K.KReturn kReturn, PrintOutputCapture<P> p) {
+        // backwards compatibility: leave this in until `K.KReturn#annotations` has been deleted
         visit(kReturn.getAnnotations(), p);
         J.Return return_ = kReturn.getExpression();
         if (kReturn.getLabel() != null) {
@@ -240,6 +325,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public J visitMethodDeclaration(K.MethodDeclaration methodDeclaration, PrintOutputCapture<P> p) {
+        return delegate.visitMethodDeclaration0(methodDeclaration.getMethodDeclaration(), methodDeclaration.getTypeConstraints(), p);
+    }
+
+    @Override
     public J visitProperty(K.Property property, PrintOutputCapture<P> p) {
         beforeSyntax(property, KSpace.Location.PROPERTY_PREFIX, p);
 
@@ -252,8 +342,15 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             }
         }
 
+        delegate.visitContainer("<", property.getPadding().getTypeParameters(), JContainer.Location.TYPE_PARAMETERS, ",", ">", p);
+
         Extension extension = vd.getMarkers().findFirst(Extension.class).orElse(null);
         if (extension != null) {
+            if (property.getReceiver() != null) {
+                visitRightPadded(property.getPadding().getReceiver(), p);
+                p.append(".");
+            }
+
             if (property.getSetter() != null &&
                     !property.getSetter().getParameters().isEmpty() &&
                     property.getSetter().getParameters().get(0) instanceof J.VariableDeclarations) {
@@ -286,6 +383,10 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                 p.append(equals);
             }
             visit(nv.getInitializer(), p);
+        }
+
+        if (property.getTypeConstraints() != null) {
+            delegate.visitContainer("where", property.getTypeConstraints().getPadding().getConstraints(), JContainer.Location.TYPE_PARAMETERS, ",", "", p);
         }
 
         if (property.isSetterFirst()) {
@@ -397,22 +498,22 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                     keyword = "!=";
                     break;
                 case BitAnd:
-                    keyword = "&";
+                    keyword = "and";
                     break;
                 case BitOr:
-                    keyword = "|";
+                    keyword = "or";
                     break;
                 case BitXor:
-                    keyword = "^";
+                    keyword = "xor";
                     break;
                 case LeftShift:
-                    keyword = "<<";
+                    keyword = "shl";
                     break;
                 case RightShift:
-                    keyword = ">>";
+                    keyword = "shr";
                     break;
                 case UnsignedRightShift:
-                    keyword = ">>>";
+                    keyword = "ushr";
                     break;
                 case Or:
                     keyword = (binary.getMarkers().findFirst(LogicalComma.class).isPresent()) ? "," : "||";
@@ -444,13 +545,13 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                 p.append("=");
             }
 
-            boolean omitParens = block.getMarkers().findFirst(OmitBraces.class).isPresent();
-            if (!omitParens) {
+            boolean omitBraces = block.getMarkers().findFirst(OmitBraces.class).isPresent();
+            if (!omitBraces) {
                 p.append("{");
             }
             visitStatements(block.getPadding().getStatements(), JRightPadded.Location.BLOCK_STATEMENT, p);
             visitSpace(block.getEnd(), Space.Location.BLOCK_END, p);
-            if (!omitParens) {
+            if (!omitBraces) {
                 p.append("}");
             }
             afterSyntax(block, p);
@@ -470,7 +571,22 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         }
 
         @Override
+        public void visitContainer(String before, @Nullable JContainer<? extends J> container, JContainer.Location location, String suffixBetween, @Nullable String after, PrintOutputCapture<P> p) {
+            super.visitContainer(before, container, location, suffixBetween, after, p);
+        }
+
+        @Override
+        public <J2 extends J> JContainer<J2> visitContainer(@Nullable JContainer<J2> container, JContainer.Location loc, PrintOutputCapture<P> pPrintOutputCapture) {
+            return super.visitContainer(container, loc, pPrintOutputCapture);
+        }
+
+        @Override
         public J visitClassDeclaration(J.ClassDeclaration classDecl, PrintOutputCapture<P> p) {
+            return visitClassDeclaration0(classDecl, null, p);
+        }
+
+        @NotNull
+        private J.ClassDeclaration visitClassDeclaration0(J.ClassDeclaration classDecl, @Nullable K.TypeConstraints typeConstraints, PrintOutputCapture<P> p) {
             beforeSyntax(classDecl, Space.Location.CLASS_DECLARATION_PREFIX, p);
             visit(classDecl.getLeadingAnnotations(), p);
             for (J.Modifier m : classDecl.getModifiers()) {
@@ -505,7 +621,8 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             if (classDecl.getMarkers().findFirst(PrimaryConstructor.class).isPresent()) {
                 for (Statement statement : classDecl.getBody().getStatements()) {
                     if (statement instanceof J.MethodDeclaration &&
-                            statement.getMarkers().findFirst(PrimaryConstructor.class).isPresent()) {
+                            statement.getMarkers().findFirst(PrimaryConstructor.class).isPresent() &&
+                            !statement.getMarkers().findFirst(Implicit.class).isPresent()) {
                         J.MethodDeclaration method = (J.MethodDeclaration) statement;
                         beforeSyntax(method, Space.Location.METHOD_DECLARATION_PREFIX, p);
                         visit(method.getLeadingAnnotations(), p);
@@ -528,7 +645,25 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             }
 
             if (classDecl.getImplements() != null) {
-                visitContainer(":", classDecl.getPadding().getImplements(), JContainer.Location.IMPLEMENTS, ",", null, p);
+                JContainer<TypeTree> container = classDecl.getPadding().getImplements();
+                beforeSyntax(container.getBefore(), container.getMarkers(), JContainer.Location.IMPLEMENTS.getBeforeLocation(), p);
+                p.append(":");
+                List<? extends JRightPadded<? extends J>> nodes = container.getPadding().getElements();
+                for (int i = 0; i < nodes.size(); i++) {
+                    JRightPadded<? extends J> node = nodes.get(i);
+                    J element = node.getElement();
+                    visit(element, p);
+                    visitSpace(node.getAfter(), JContainer.Location.IMPLEMENTS.getElementLocation().getAfterLocation(), p);
+                    visitMarkers(node.getMarkers(), p);
+                    if (i < nodes.size() - 1) {
+                        p.append(",");
+                    }
+                }
+                afterSyntax(container.getMarkers(), p);
+            }
+
+            if (typeConstraints != null) {
+                visitContainer("where", typeConstraints.getPadding().getConstraints(), JContainer.Location.TYPE_PARAMETERS, ",", "", p);
             }
 
             if (!classDecl.getBody().getMarkers().findFirst(OmitBraces.class).isPresent()) {
@@ -556,7 +691,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             visit(fieldAccess.getTarget(), p);
             String prefix = fieldAccess.getMarkers().findFirst(IsNullSafe.class).isPresent() ? "?." : ".";
             visitLeftPadded(prefix, fieldAccess.getPadding().getName(), JLeftPadded.Location.FIELD_ACCESS_NAME, p);
-            kotlinPrinter.trailingMarkers(fieldAccess.getMarkers(), p);
             afterSyntax(fieldAccess, p);
             return fieldAccess;
         }
@@ -582,11 +716,10 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                 return ident;
             }
 
-            beforeSyntax(Space.EMPTY, ident.getMarkers(), Space.Location.IDENTIFIER_PREFIX, p);
             visit(ident.getAnnotations(), p);
-            visitSpace(ident.getPrefix(), Space.Location.IDENTIFIER_PREFIX, p);
+            beforeSyntax(ident, Space.Location.IDENTIFIER_PREFIX, p);
+            visitSpace(Space.EMPTY, Space.Location.ANNOTATIONS, p);
             p.append(ident.getSimpleName());
-            kotlinPrinter.trailingMarkers(ident.getMarkers(), p);
             afterSyntax(ident, p);
             return ident;
         }
@@ -634,26 +767,29 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         @Override
         public J visitLambda(J.Lambda lambda, PrintOutputCapture<P> p) {
             beforeSyntax(lambda, Space.Location.LAMBDA_PREFIX, p);
-            boolean omitBraces = lambda.getMarkers().findFirst(OmitBraces.class).isPresent();
-            if (!omitBraces) {
-                p.append('{');
+
+            if (lambda.getMarkers().findFirst(AnonymousFunction.class).isPresent()) {
+                p.append("fun");
+                visitLambdaParameters(lambda.getParameters(), p);
+                visitBlock((J.Block) lambda.getBody(), p);
+            } else {
+                boolean omitBraces = lambda.getMarkers().findFirst(OmitBraces.class).isPresent();
+                if (!omitBraces) {
+                    p.append('{');
+                }
+
+                visitSpace(lambda.getParameters().getPrefix(), Space.Location.LAMBDA_PARAMETER, p);
+                visitLambdaParameters(lambda.getParameters(), p);
+                if (!lambda.getParameters().getParameters().isEmpty()) {
+                    visitSpace(lambda.getArrow(), Space.Location.LAMBDA_ARROW_PREFIX, p);
+                    p.append("->");
+                }
+                visit(lambda.getBody(), p);
+                if (!omitBraces) {
+                    p.append('}');
+                }
             }
 
-            visitLambdaParameters(lambda.getParameters(), p);
-            if (!lambda.getParameters().getParameters().isEmpty()) {
-                visitSpace(lambda.getArrow(), Space.Location.LAMBDA_ARROW_PREFIX, p);
-                p.append("->");
-            }
-            if (lambda.getBody() instanceof J.Block) {
-                J.Block block = (J.Block) lambda.getBody();
-                visitStatements(block.getPadding().getStatements(), JRightPadded.Location.BLOCK_STATEMENT, p);
-                visitSpace(block.getEnd(), Space.Location.BLOCK_END, p);
-            } else {
-                visit(lambda.getBody(), p);
-            }
-            if (!omitBraces) {
-                p.append('}');
-            }
             afterSyntax(lambda, p);
             return lambda;
         }
@@ -686,6 +822,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         @Override
         public J visitMethodDeclaration(J.MethodDeclaration method, PrintOutputCapture<P> p) {
+            return visitMethodDeclaration0(method, null, p);
+        }
+
+        @NotNull
+        private J.MethodDeclaration visitMethodDeclaration0(J.MethodDeclaration method, @Nullable K.TypeConstraints typeConstraints, PrintOutputCapture<P> p) {
             // Do not print generated methods.
             for (Marker marker : method.getMarkers().getMarkers()) {
                 if (marker instanceof Implicit || marker instanceof PrimaryConstructor) {
@@ -723,14 +864,18 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
             JContainer<Statement> params = method.getPadding().getParameters();
             beforeSyntax(params.getBefore(), params.getMarkers(), JContainer.Location.METHOD_DECLARATION_PARAMETERS.getBeforeLocation(), p);
-            p.append("(");
+            if (!params.getMarkers().findFirst(OmitParentheses.class).isPresent()) {
+                p.append("(");
+            }
             int i = hasReceiverType ? 1 : 0;
             List<JRightPadded<Statement>> elements = params.getPadding().getElements();
             for (; i < elements.size(); i++) {
                 printMethodParameters(p, i, elements);
             }
             afterSyntax(params.getMarkers(), p);
-            p.append(")");
+            if (!params.getMarkers().findFirst(OmitParentheses.class).isPresent()) {
+                p.append(")");
+            }
 
             if (method.getReturnTypeExpression() != null) {
                 method.getMarkers().findFirst(TypeReferencePrefix.class).ifPresent(typeReferencePrefix ->
@@ -738,6 +883,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                 p.append(":");
                 visit(method.getReturnTypeExpression(), p);
             }
+
+            if (typeConstraints != null) {
+                visitContainer("where", typeConstraints.getPadding().getConstraints(), JContainer.Location.TYPE_PARAMETERS, ",", "", p);
+            }
+
             visit(method.getBody(), p);
             afterSyntax(method, p);
             return method;
@@ -748,35 +898,53 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             if (element.getElement().getMarkers().findFirst(Implicit.class).isPresent()) {
                 return;
             }
+
+            // inlined modified logic `JavaPrinter#visitRightPadded(JRightPadded, JRightPadded.Location, String, PrintOutputCapture)`
+            // as that method would end up printing markers before the element and there is currently no way to differentiate
+            // before and after markers
             String suffix = i == elements.size() - 1 ? "" : ",";
-            visitRightPadded(element, JContainer.Location.METHOD_DECLARATION_PARAMETERS.getElementLocation(), suffix, p);
+            visit(((JRightPadded<? extends J>) element).getElement(), p);
+            visitSpace(element.getAfter(), JContainer.Location.METHOD_DECLARATION_PARAMETERS.getElementLocation().getAfterLocation(), p);
+            visitMarkers(element.getMarkers(), p);
+            p.append(suffix);
         }
 
         @Override
         public J visitMethodInvocation(J.MethodInvocation method, PrintOutputCapture<P> p) {
+            boolean indexedAccess = method.getMarkers().findFirst(IndexedAccess.class).isPresent();
+
             beforeSyntax(method, Space.Location.METHOD_INVOCATION_PREFIX, p);
 
             visitRightPadded(method.getPadding().getSelect(), JRightPadded.Location.METHOD_SELECT, p);
-            if (method.getSelect() != null && !method.getMarkers().findFirst(Extension.class).isPresent()) {
-                if (method.getSelect().getMarkers().findFirst(IsNullSafe.class).isPresent()) {
+            if (method.getSelect() != null && !method.getMarkers().findFirst(Extension.class).isPresent() && !indexedAccess) {
+                if (method.getMarkers().findFirst(IsNullSafe.class).isPresent()) {
                     p.append("?");
                 }
                 p.append(".");
             }
 
-            visit(method.getName(), p);
-            visitContainer("<", method.getPadding().getTypeParameters(), JContainer.Location.TYPE_PARAMETERS, ",", ">", p);
-            JContainer<Expression> argContainer = method.getPadding().getArguments();
+            if (!indexedAccess) {
+                visit(method.getName(), p);
+                visitContainer("<", method.getPadding().getTypeParameters(), JContainer.Location.TYPE_PARAMETERS, ",", ">", p);
+            }
 
-            visitSpace(argContainer.getBefore(), Space.Location.METHOD_INVOCATION_ARGUMENTS, p);
+            visitArgumentsContainer(method.getPadding().getArguments(), Space.Location.METHOD_INVOCATION_ARGUMENTS, p);
+
+            afterSyntax(method, p);
+            return method;
+        }
+
+        private void visitArgumentsContainer(JContainer<Expression> argContainer, Space.Location argsLocation, PrintOutputCapture<P> p) {
+            visitSpace(argContainer.getBefore(), argsLocation, p);
             List<JRightPadded<Expression>> args = argContainer.getPadding().getElements();
-            boolean omitParensOnMethod = method.getMarkers().findFirst(OmitParentheses.class).isPresent();
+            boolean omitParensOnMethod = argContainer.getMarkers().findFirst(OmitParentheses.class).isPresent();
+            boolean indexedAccess = argContainer.getMarkers().findFirst(IndexedAccess.class).isPresent();
 
             int argCount = args.size();
             boolean isTrailingLambda = !args.isEmpty() && args.get(argCount - 1).getElement().getMarkers().findFirst(TrailingLambdaArgument.class).isPresent();
 
             if (!omitParensOnMethod) {
-                p.append('(');
+                p.append(indexedAccess ? '[' : '(');
             }
 
             for (int i = 0; i < argCount; i++) {
@@ -785,15 +953,15 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                 // Print trailing lambda.
                 if (i == argCount - 1 && isTrailingLambda) {
                     visitSpace(arg.getAfter(), JRightPadded.Location.METHOD_INVOCATION_ARGUMENT.getAfterLocation(), p);
-                    p.append(")");
+                    if (!omitParensOnMethod) {
+                        p.append(indexedAccess ? ']' : ')');
+                    }
                     visit(arg.getElement(), p);
                     break;
                 }
 
-                if (i > 0 && omitParensOnMethod && (
-                        !args.get(0).getElement().getMarkers().findFirst(OmitParentheses.class).isPresent() &&
-                                !args.get(0).getElement().getMarkers().findFirst(org.openrewrite.java.marker.OmitParentheses.class).isPresent())) {
-                    p.append(')');
+                if (i > 0 && omitParensOnMethod && !args.get(0).getElement().getMarkers().findFirst(OmitParentheses.class).isPresent()) {
+                    p.append(indexedAccess ? ']' : ')');
                 } else if (i > 0) {
                     p.append(',');
                 }
@@ -801,53 +969,44 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                 SpreadArgument spread = arg.getElement().getMarkers().findFirst(SpreadArgument.class).orElse(null);
                 if (spread != null) {
                     kotlinPrinter.visitSpace(spread.getPrefix(), KSpace.Location.SPREAD_ARGUMENT_PREFIX, p);
-                    p.append("*");
+                    p.append('*');
                 }
                 visitRightPadded(arg, JRightPadded.Location.METHOD_INVOCATION_ARGUMENT, p);
             }
 
             if (!omitParensOnMethod && !isTrailingLambda) {
-                p.append(')');
+                p.append(indexedAccess ? ']' : ')');
             }
-
-            kotlinPrinter.trailingMarkers(method.getMarkers(), p);
-            afterSyntax(method, p);
-            return method;
         }
 
         @Override
         public J visitNewClass(J.NewClass newClass, PrintOutputCapture<P> p) {
-            KObject kObject = newClass.getMarkers().findFirst(KObject.class).orElse(null);
-            if (kObject != null) {
-                kotlinPrinter.visitSpace(kObject.getPrefix(), KSpace.Location.OBJECT_PREFIX, p);
-                p.append("object");
-            }
-
             beforeSyntax(newClass, Space.Location.NEW_CLASS_PREFIX, p);
 
+            KObject kObject = newClass.getMarkers().findFirst(KObject.class).orElse(null);
             if (kObject != null) {
+                p.append("object");
+                kotlinPrinter.visitSpace(kObject.getPrefix(), KSpace.Location.OBJECT_PREFIX, p);
+            }
+
+            TypeReferencePrefix typeReferencePrefix = newClass.getMarkers().findFirst(TypeReferencePrefix.class).orElse(null);
+            if (typeReferencePrefix != null) {
+                kotlinPrinter.visitSpace(typeReferencePrefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p);
+            }
+
+            if (kObject != null && newClass.getClazz() != null) {
                 p.append(":");
             }
 
             visitRightPadded(newClass.getPadding().getEnclosing(), JRightPadded.Location.NEW_CLASS_ENCLOSING, ".", p);
             visitSpace(newClass.getNew(), Space.Location.NEW_PREFIX, p);
             visit(newClass.getClazz(), p);
-            if (!newClass.getPadding().getArguments().getMarkers().findFirst(OmitParentheses.class).isPresent()) {
-                visitContainer("(", newClass.getPadding().getArguments(), JContainer.Location.NEW_CLASS_ARGUMENTS, ",", ")", p);
-            }
+
+            visitArgumentsContainer(newClass.getPadding().getArguments(), Space.Location.NEW_CLASS_ARGUMENTS, p);
+
             visit(newClass.getBody(), p);
             afterSyntax(newClass, p);
             return newClass;
-        }
-
-        @Override
-        public J visitParameterizedType(J.ParameterizedType type, PrintOutputCapture<P> p) {
-            beforeSyntax(type, Space.Location.PARAMETERIZED_TYPE_PREFIX, p);
-            visit(type.getClazz(), p);
-            visitContainer("<", type.getPadding().getTypeParameters(), JContainer.Location.TYPE_PARAMETERS, ",", ">", p);
-            kotlinPrinter.trailingMarkers(type.getMarkers(), p);
-            afterSyntax(type, p);
-            return type;
         }
 
         @Override
@@ -879,7 +1038,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             J.ControlParentheses<TypeTree> controlParens = typeCast.getClazz();
             beforeSyntax(controlParens, Space.Location.CONTROL_PARENTHESES_PREFIX, p);
 
-            String as = typeCast.getMarkers().findFirst(IsNullable.class).isPresent() ? "as?" : "as";
+            String as = typeCast.getMarkers().findFirst(IsNullSafe.class).isPresent() ? "as?" : "as";
             p.append(as);
 
             visit(controlParens.getTree(), p);
@@ -901,11 +1060,28 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                     delimiter = "in";
                 }
             } else if (typeParam.getBounds() != null && !typeParam.getBounds().isEmpty()) {
+                typeParam.getMarkers().findFirst(TypeReferencePrefix.class).ifPresent(prefix ->
+                        kotlinPrinter.visitSpace(prefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p)
+                );
                 delimiter = ":";
             }
             visitContainer(delimiter, typeParam.getPadding().getBounds(), JContainer.Location.TYPE_BOUNDS, "&", "", p);
             afterSyntax(typeParam, p);
             return typeParam;
+        }
+
+        @Override
+        public J visitUnary(J.Unary unary, PrintOutputCapture<P> p) {
+            if (unary.getOperator() == J.Unary.Type.Not && unary.getExpression() instanceof K.Binary && ((K.Binary) unary.getExpression()).getOperator() == K.Binary.Type.NotContains) {
+                // This is a special case for the `!in` operator.
+                // The `!` is a unary operator, but the `in` is a binary operator.
+                // The `!` is printed as part of the binary operator.
+                beforeSyntax(unary, Space.Location.UNARY_PREFIX, p);
+                visit(unary.getExpression(), p);
+                afterSyntax(unary, p);
+                return unary;
+            }
+            return super.visitUnary(unary, p);
         }
 
         @Override
@@ -1017,7 +1193,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         protected void visitStatement(@Nullable JRightPadded<Statement> paddedStat, JRightPadded.Location location, PrintOutputCapture<P> p) {
             if (paddedStat != null) {
-                visit(paddedStat.getElement(), p);
+                Statement element = paddedStat.getElement();
+                if (element.getMarkers().findFirst(Implicit.class).isPresent()) {
+                    return;
+                }
+                visit(element, p);
                 visitSpace(paddedStat.getAfter(), location.getAfterLocation(), p);
                 visitMarkers(paddedStat.getMarkers(), p);
             }
@@ -1027,8 +1207,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         public <M extends Marker> M visitMarker(Marker marker, PrintOutputCapture<P> p) {
             if (marker instanceof Semicolon) {
                 p.append(';');
-            } else if (marker instanceof Reified) {
-                p.append("reified");
             } else if (marker instanceof TrailingComma) {
                 // TODO consider adding cursor message to only print for last element in list
                 // TODO the space should then probably be printed anyway (could contain a comment)
@@ -1094,6 +1272,12 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             beforeSyntax(mod, Space.Location.MODIFIER_PREFIX, p);
             p.append(keyword);
             afterSyntax(mod, p);
+        }
+
+        @Override
+        protected void afterSyntax(J j, PrintOutputCapture<P> p) {
+            kotlinPrinter.trailingMarkers(j.getMarkers(), p);
+            super.afterSyntax(j, p);
         }
     }
 
@@ -1190,6 +1374,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     private void afterSyntax(J j, PrintOutputCapture<P> p) {
+        trailingMarkers(j.getMarkers(), p);
         afterSyntax(j.getMarkers(), p);
     }
 

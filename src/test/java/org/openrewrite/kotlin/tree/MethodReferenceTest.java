@@ -63,7 +63,7 @@ class MethodReferenceTest implements RewriteTest {
     @Test
     void getJavaClass() {
         rewriteRun(
-          kotlin("val a = Integer :: class . java ")
+          kotlin("val a = Integer ::   class  .     java ")
         );
     }
 
@@ -91,6 +91,23 @@ class MethodReferenceTest implements RewriteTest {
                   val l = listOf ( Test ( 42 , 24 ) )
                   l . map { if ( true ) Test :: a else Test :: b }
               }
+              """
+          )
+        );
+    }
+
+    @Test
+    void anonymousClassArgument() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.function.Supplier
+              
+              val s1: Supplier<List<String>> = Supplier(::emptyList)
+              val s2: Supplier<List<String>> = Supplier { emptyList() }
+              
+              val s3 = Supplier<List<String>>(::emptyList)
+              val s4 = Supplier<List<String>> { emptyList() }
               """
           )
         );

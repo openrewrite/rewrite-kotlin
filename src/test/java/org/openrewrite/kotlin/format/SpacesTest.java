@@ -60,8 +60,22 @@ class SpacesTest implements RewriteTest {
           )));
     }
 
+    @Test
+    void spaceAfterAsKeyword() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              fun parseValue(input: Any) {
+                  val split = (input as String).split("-")
+              }
+              """
+          )
+        );
+    }
+
     @Nested
-    class beforeParensTest {
+    class BeforeParens {
         @DocumentExample
         @Test
         void beforeParensMethodDeclaration() {
@@ -391,7 +405,7 @@ class SpacesTest implements RewriteTest {
     }
 
     @Nested
-    class aroundOperatorsTest {
+    class AroundOperators {
         @Test
         void aroundOperatorsAssignmentFalse() {
             rewriteRun(
@@ -401,12 +415,14 @@ class SpacesTest implements RewriteTest {
                   fun method() {
                       var x = 0
                       x += 1
+                      x++
                   }
                   """,
                 """
                   fun method() {
                       var x=0
                       x+=1
+                      x++
                   }
                   """
               )
@@ -687,6 +703,30 @@ class SpacesTest implements RewriteTest {
                       val a = 1 * 2
                       val b = 1 / 2
                       val c = 1 % 2
+                  }
+                  """
+              )
+            );
+        }
+
+        @Test
+        @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/321")
+        void afterSpreadOperator() {
+            rewriteRun(
+              spaces(style -> style.withAroundOperators(style.getAroundOperators().withUnary(false))
+                .withOther(style.getOther().withAfterComma(true))
+              ),
+              kotlin(
+                """
+                  fun format(format: String, vararg params: String) { }
+                  fun test() {
+                    format("f",* arrayOf("foo", "bar"))
+                  }
+                  """,
+                """
+                  fun format(format: String, vararg params: String) { }
+                  fun test() {
+                    format("f", *arrayOf("foo", "bar"))
                   }
                   """
               )
@@ -1208,6 +1248,51 @@ class SpacesTest implements RewriteTest {
                           private val f : (Int) -> Int = { a : Int -> a * 2 }
                           val test : Int = 12
                       }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeColonAfterDeclarationNameFalseFunctionTypeParameter() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(false))),
+                  kotlin(
+                    """
+                      val ft : (a  :  Int) -> Int = { 2 }
+                      """,
+                    """
+                      val ft: (a: Int) -> Int = { 2 }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void otherBeforeColonAfterDeclarationNameTrueFunctionTypeParameter() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
+                  kotlin(
+                    """
+                      val ft : (a  :  Int) -> Int = { 2 }
+                      """,
+                    """
+                      val ft : (a : Int) -> Int = { 2 }
+                      """
+                  )
+                );
+            }
+
+            @Test
+            void whereClause() {
+                rewriteRun(
+                  spaces(style -> style.withOther(style.getOther().withBeforeColonAfterDeclarationName(true))),
+                  kotlin(
+                    """
+                      class Test<T> where T: Comparable<T>, T: CharSequence
+                      """,
+                    """
+                      class Test<T> where T : Comparable<T>, T : CharSequence
                       """
                   )
                 );
@@ -2553,7 +2638,7 @@ class SpacesTest implements RewriteTest {
                     """
                       import java.util.ArrayList
 
-                      class Test <T, U> {
+                      class Test<T, U> {
                           fun <T2 : T> foo(): T2? {
                               val myList: List<T2> = ArrayList()
                               return null
@@ -2628,7 +2713,7 @@ class SpacesTest implements RewriteTest {
                       }
                       """,
                     """
-                      class Test <T> {
+                      class Test<T> {
                       }
                       """
                   )
@@ -2636,4 +2721,67 @@ class SpacesTest implements RewriteTest {
             }
         }
     }
+
+    @Test
+    void qualifiedReference() {
+        rewriteRun(
+          kotlin(
+            """
+              class A {
+                  private sealed class RelTypes {
+                      object KNOWS : RelTypes()
+                  }
+                  private val v: RelTypes = RelTypes.KNOWS
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void when() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              fun method ( i : Int ) : String {
+                  when (  i   ) {
+                      1  ,   2    , 3   ->     return "1 or 2 or 3"
+                      else -> {
+                          return "42"
+                      }
+                  }
+              }
+              """,
+            """
+              fun method(i: Int): String {
+                  when (i) {
+                      1, 2, 3 -> return "1 or 2 or 3"
+                      else -> {
+                          return "42"
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void extensionProperty() {
+        rewriteRun(
+          spaces(),
+          kotlin(
+            """
+              val String .  extension   :   Any
+                  get (  )  =  ""
+              """,
+            """
+              val String.extension: Any
+                  get() =  ""
+              """
+          )
+        );
+    }
+
 }

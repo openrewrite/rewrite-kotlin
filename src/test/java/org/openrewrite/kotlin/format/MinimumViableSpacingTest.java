@@ -17,8 +17,10 @@ package org.openrewrite.kotlin.format;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.Space;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -126,6 +128,20 @@ class MinimumViableSpacingTest implements RewriteTest {
     }
 
     @Test
+    void trailingLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = "foo".let {}
+              """,
+            """
+              val x="foo".let{}
+              """
+          )
+        );
+    }
+
+    @Test
     void ifElse() {
         rewriteRun(
           kotlin(
@@ -188,6 +204,24 @@ class MinimumViableSpacingTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void variableDeclarationsInClass2() {
+        rewriteRun(
+          spec -> spec.recipes(
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
+          ),
+          kotlin(
+            """
+              class A {
+                  val zero: Int = 0
+                  var one: Int = 1
+              }
+              """
+          )
+        );
+    }
+
 
     @Test
     void variableDeclarationsInMethod() {
@@ -266,6 +300,116 @@ class MinimumViableSpacingTest implements RewriteTest {
               class Test{fun foo(arr:IntArray){for(n in 0..arr.size){}
               for(i in arr){}
               for(i:Int in arr){}}}
+              """
+          )
+        );
+    }
+
+    @Test
+    void noSpaceAferAnnotation() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder().classpath("junit-jupiter-api"))
+            .recipes(
+              toRecipe(() -> new MinimumViableSpacingVisitor<>())
+            ),
+          kotlin(
+            """
+              import org.junit.jupiter.api.Test
+
+              class A {
+                  @Test
+                  fun testA() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void classConstructor() {
+        rewriteRun(
+          spec -> spec.recipes(
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
+          ),
+          kotlin(
+            """
+              package com.netflix.graphql.dgs.client.codegen
+
+              class BaseProjectionNode (
+                      val type: Int = 1
+                      ) {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void spaceAfterPublic() {
+        rewriteRun(
+          spec -> spec.recipes(
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
+          ),
+          kotlin(
+            """
+              class A {
+                  public fun me() {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/322")
+    void statementWithCommentInPrefix() {
+        rewriteRun(
+          spec -> spec.recipes(
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
+          ),
+          kotlin(
+            """
+              fun x() {
+                  "s".length; "s".length
+                  // c1
+                  "s".length
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void compilationUnitDeclarations() {
+        rewriteRun(
+          spec -> spec.recipes(
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
+          ),
+          kotlin(
+            """
+              val one = 1
+              val two = 2
+              
+              class Test
+              """
+          )
+        );
+    }
+
+    @Test
+    void blockWithImplicitReturn() {
+        rewriteRun(
+          spec -> spec.recipes(
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
+          ),
+          kotlin(
+            """
+              val maybeOne = listOf(1, 2).firstOrNull {
+                  print("Found $it")
+                  it == 1
+              }
               """
           )
         );

@@ -22,6 +22,8 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.marker.OmitBraces;
+import org.openrewrite.kotlin.marker.PrimaryConstructor;
+import org.openrewrite.kotlin.marker.SingleExpressionBlock;
 import org.openrewrite.kotlin.style.BlankLinesStyle;
 import org.openrewrite.kotlin.tree.K;
 
@@ -29,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.Objects.requireNonNull;
 
@@ -40,7 +43,7 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
 
     // Unconfigurable default formatting in IntelliJ's Kotlin formatting.
     private static final int keepMaximumBlankLines_BetweenHeaderAndPackage = 2;
-    // private static final int minimumBlankLines_BeforePackageStatement = 0;
+    private static final int minimumBlankLines_BeforePackageStatement = 0;
     private static final int minimumBlankLines_AfterPackageStatement = 1;
     private static final int minimumBlankLines_BeforeImports = 1;
     private static final int minimumBlankLines_AfterImports = 1;
@@ -50,7 +53,7 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
     private static final int minimumBlankLines_AroundFieldInInterface = 0;
     private static final int minimumBlankLines_AroundField = 0;
     private static final int minimumBlankLines_AroundMethodInInterface = 1;
-    private static final int minimumBlankLines_AroundMethod = 1;
+    private static final int minimumBlankLines_AfterDeclarationWithBody = 1;
     private static final int minimumBlankLines_BeforeMethodBody = 0;
     private static final int minimumBlankLines_AroundInitializer = 1;
 
@@ -72,11 +75,11 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
         if (tree instanceof K.CompilationUnit) {
             K.CompilationUnit cu = (K.CompilationUnit) requireNonNull(tree);
             if (cu.getPackageDeclaration() != null) {
-                J.Package pa =  cu.getPackageDeclaration();
-                if (!pa.getPrefix().getComments().isEmpty()) {
-                    List<Comment> updatedComments =  ListUtils.mapLast(pa.getPrefix().getComments(), c -> {
+                J.Package pa = cu.getPackageDeclaration();
+                if (!pa.getPrefix().getComments().isEmpty() || !cu.getAnnotations().isEmpty()) {
+                    List<Comment> updatedComments = ListUtils.mapLast(pa.getPrefix().getComments(), c -> {
                         String suffix = keepMaximumLines(c.getSuffix(), keepMaximumBlankLines_BetweenHeaderAndPackage);
-                        suffix = minimumLines(suffix, keepMaximumBlankLines_BetweenHeaderAndPackage);
+                        suffix = minimumLines(suffix, minimumBlankLines_BeforePackageStatement);
                         return c.withSuffix(suffix);
                     });
                     cu = cu.withPackageDeclaration(pa.withPrefix(pa.getPrefix().withComments(updatedComments)));
@@ -103,7 +106,7 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
             } else {
 
                 cu = cu.getPadding().withImports(ListUtils.mapFirst(cu.getPadding().getImports(), i ->
-                        minimumLines(i,  minimumBlankLines_AfterPackageStatement)));
+                        minimumLines(i, minimumBlankLines_AfterPackageStatement)));
             }
             return super.visit(cu, p);
         }
@@ -123,7 +126,7 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
                 }
             } else if (statements.get(i - 1).getElement() instanceof J.Block) {
                 s = minimumLines(s, minimumBlankLines_AroundInitializer);
-            } else if (s.getElement() instanceof J.ClassDeclaration) {
+            } else if (s.getElement() instanceof J.ClassDeclaration || s.getElement() instanceof K.ClassDeclaration) {
                 // Apply `style.getMinimum().getAroundClass()` to inner classes.
                 s = minimumLines(s, minimumBlankLines_AroundClass);
             }
@@ -134,22 +137,22 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
         j = j.withBody(j.getBody().withEnd(minimumLines(j.getBody().getEnd(),
                 minimumBlankLines_BeforeClassEnd)));
 
-        JavaSourceFile cu = getCursor().firstEnclosingOrThrow(JavaSourceFile.class);
+        K.CompilationUnit cu = getCursor().firstEnclosingOrThrow(K.CompilationUnit.class);
         boolean hasImports = !cu.getImports().isEmpty();
-        boolean firstClass = j.equals(cu.getClasses().get(0));
-        Set<J.ClassDeclaration> classes = new HashSet<>(cu.getClasses());
+        boolean firstStatement = j.equals(cu.getStatements().get(0));
+        Set<Statement> topLevelStatements = new HashSet<>(cu.getStatements());
 
-        j = firstClass ?
+        j = firstStatement ?
                 (hasImports ? minimumLines(j, minimumBlankLines_AfterImports) : j) :
                 // Apply `style.getMinimum().getAroundClass()` to classes declared in the SourceFile.
-                (classes.contains(j)) ? minimumLines(j, minimumBlankLines_AroundClass) : j;
+                (topLevelStatements.contains(j)) ? minimumLines(j, minimumBlankLines_AroundClass) : j;
 
         // style.getKeepMaximum().getInDeclarations() also sets the maximum new lines of class declaration prefixes.
-        j = firstClass ?
+        j = firstStatement ?
                 (hasImports ? keepMaximumLines(j, Math.max(style.getKeepMaximum().getInDeclarations(), minimumBlankLines_AfterImports)) : j) :
-                (classes.contains(j)) ? keepMaximumLines(j, style.getKeepMaximum().getInDeclarations()) : j;
+                (topLevelStatements.contains(j)) ? keepMaximumLines(j, style.getKeepMaximum().getInDeclarations()) : j;
 
-        if (!hasImports && firstClass) {
+        if (!hasImports && firstStatement) {
             if (cu.getPackageDeclaration() == null) {
                 if (!j.getPrefix().getWhitespace().isEmpty()) {
                     j = j.withPrefix(j.getPrefix().withWhitespace(""));
@@ -231,18 +234,15 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
                             declMax = Math.max(declMax, minimumBlankLines_AroundField);
                             j = minimumLines(j, minimumBlankLines_AroundField);
                         }
-                    } else if (j instanceof J.MethodDeclaration) {
+                    } else if (j instanceof J.MethodDeclaration || j instanceof K.MethodDeclaration) {
                         if (classDecl.getKind() == J.ClassDeclaration.Kind.Type.Interface) {
                             declMax = Math.max(declMax, minimumBlankLines_AroundMethodInInterface);
                             j = minimumLines(j, minimumBlankLines_AroundMethodInInterface);
-                        } else {
-                            declMax = Math.max(declMax, minimumBlankLines_AroundMethod);
-                            j = minimumLines(j, minimumBlankLines_AroundMethod);
                         }
                     } else if (j instanceof J.Block) {
                         declMax = Math.max(declMax, minimumBlankLines_AroundInitializer);
                         j = minimumLines(j, minimumBlankLines_AroundInitializer);
-                    } else if (j instanceof J.ClassDeclaration) {
+                    } else if (j instanceof J.ClassDeclaration || j instanceof K.ClassDeclaration) {
                         declMax = Math.max(declMax, minimumBlankLines_AroundClass);
                         j = minimumLines(j, minimumBlankLines_AroundClass);
                     }
@@ -252,6 +252,29 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
             } else {
                 return keepMaximumLines(j, style.getKeepMaximum().getInCode());
             }
+        } else if (parentTree instanceof K.CompilationUnit) {
+            K.CompilationUnit cu = (K.CompilationUnit) parentTree;
+
+            int declMax = style.getKeepMaximum().getInDeclarations();
+
+            // don't adjust the first statement
+            if (!cu.getStatements().isEmpty() && !cu.getStatements().iterator().next().isScope(j)) {
+                if (j instanceof J.VariableDeclarations) {
+                    declMax = Math.max(declMax, minimumBlankLines_AroundField);
+                    j = minimumLines(j, minimumBlankLines_AroundField);
+                } else if (j instanceof J.MethodDeclaration || j instanceof K.MethodDeclaration) {
+                    declMax = Math.max(declMax, minimumBlankLines_AfterDeclarationWithBody);
+                    j = minimumLines(j, minimumBlankLines_AfterDeclarationWithBody);
+                } else if (j instanceof J.Block) {
+                    declMax = Math.max(declMax, minimumBlankLines_AroundInitializer);
+                    j = minimumLines(j, minimumBlankLines_AroundInitializer);
+                } else if (j instanceof J.ClassDeclaration || j instanceof K.ClassDeclaration) {
+                    declMax = Math.max(declMax, minimumBlankLines_AroundClass);
+                    j = minimumLines(j, minimumBlankLines_AroundClass);
+                }
+            }
+
+            j = keepMaximumLines(j, declMax);
         }
         return j;
     }
@@ -261,33 +284,42 @@ public class BlankLinesVisitor<P> extends KotlinIsoVisitor<P> {
         J.Block b = super.visitBlock(block, p);
         b = b.withEnd(keepMaximumLines(b.getEnd(), style.getKeepMaximum().getBeforeEndOfBlock()));
 
-        List<Statement> blockStatements = b.getStatements();
-        blockStatements = ListUtils.map(blockStatements, (index, statement) -> {
-            if (index == 0) {
-                return statement;
-            }
-
-            if (statement instanceof J.MethodDeclaration) {
-                J.MethodDeclaration m = (J.MethodDeclaration) statement;
+        J parent = getCursor().getParentTreeCursor().getValue();
+        AtomicBoolean previousWithBody = new AtomicBoolean();
+        List<JRightPadded<Statement>> blockStatements = b.getPadding().getStatements();
+        blockStatements = ListUtils.map(blockStatements, (index, padded) -> {
+            Statement statement = padded.getElement();
+            if (statement instanceof J.MethodDeclaration || statement instanceof K.MethodDeclaration) {
+                J.MethodDeclaration m = statement instanceof J.MethodDeclaration ? (J.MethodDeclaration) statement :
+                        ((K.MethodDeclaration) statement).getMethodDeclaration();
+                if (previousWithBody.get()) {
+                    m = minimumLines(m, minimumBlankLines_AfterDeclarationWithBody);
+                }
+                if (m.getBody() != null && !m.getBody().getMarkers().findFirst(SingleExpressionBlock.class).isPresent()) {
+                    previousWithBody.set(true);
+                } else {
+                    previousWithBody.set(false);
+                }
                 if (!m.getPrefix().getComments().isEmpty()) {
-                    return minimumLines(m, style.getMinimum().getBeforeDeclarationWithCommentOrAnnotation());
+                    m = minimumLines(m, style.getMinimum().getBeforeDeclarationWithCommentOrAnnotation());
                 }
 
-                if (!m.getLeadingAnnotations().isEmpty()) {
-                    return minimumLines(m, style.getMinimum().getBeforeDeclarationWithCommentOrAnnotation());
+                if (!m.getLeadingAnnotations().isEmpty() && !m.getMarkers().findFirst(PrimaryConstructor.class).isPresent()) {
+                    m = minimumLines(m, style.getMinimum().getBeforeDeclarationWithCommentOrAnnotation());
                 }
+                statement = statement instanceof J.MethodDeclaration ? m : ((K.MethodDeclaration) statement).withMethodDeclaration(m);
             } else if (statement instanceof J.VariableDeclarations) {
                 J.VariableDeclarations v = (J.VariableDeclarations) statement;
 
-                if (!v.getLeadingAnnotations().isEmpty()) {
-                    return minimumLines(v, style.getMinimum().getBeforeDeclarationWithCommentOrAnnotation());
+                if (!v.getLeadingAnnotations().isEmpty() && (parent instanceof J.ClassDeclaration || parent instanceof J.NewClass && index > 0)) {
+                    statement = minimumLines(v, style.getMinimum().getBeforeDeclarationWithCommentOrAnnotation());
                 }
             }
 
-            return statement;
+            return padded.withElement(statement);
         });
 
-        b = b.withStatements(blockStatements);
+        b = b.getPadding().withStatements(blockStatements);
         return b;
     }
 

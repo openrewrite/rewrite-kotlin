@@ -34,7 +34,7 @@ class WhenTest implements RewriteTest {
               class A {
                 val a = 1
                 fun method ( ) {
-                    val a = A ( )
+                    val a =   A  ( )
                     val b = a
                 }
               }
@@ -49,10 +49,10 @@ class WhenTest implements RewriteTest {
           kotlin(
             """
               fun method ( i : Int ) : String {
-                  when {
-                      i == 1 -> return "1"
-                      i == 2 -> return "2"
-                      else -> {
+                  when  {
+                      i == 1  ->   return "1"
+                      i == 2   ->  return "2"
+                      else    ->  {
                           return "42"
                       }
                   }
@@ -68,8 +68,8 @@ class WhenTest implements RewriteTest {
           kotlin(
             """
               fun method ( i : Int ) : String {
-                  when ( i ) {
-                      1 , 2 , 3 -> return "1 or 2 or 3"
+                  when (  i   ) {
+                      1  ,   2    , 3  -> return "1 or 2 or 3"
                       else -> {
                           return "42"
                       }
@@ -87,8 +87,8 @@ class WhenTest implements RewriteTest {
             """
               fun method ( i : Int ) : String {
                   return when ( i ) {
-                      in 1 .. 10 -> return "in range 1"
-                      !in 10 .. 20 -> return "not in range 2"
+                      in  1 .. 10 -> return "in range 1"
+                      !in 10 .. 20  -> return "not in range 2"
                       else -> "42"
                   }
               }
@@ -121,8 +121,8 @@ class WhenTest implements RewriteTest {
             """
               fun method ( i : Any ) : String {
                   when ( i ) {
-                      is Boolean -> return "is"
-                      !is Int -> return "is not"
+                      is  Boolean -> return "is"
+                      !is   Int -> return "is not"
                       else -> return "42"
                   }
               }
@@ -218,8 +218,9 @@ class WhenTest implements RewriteTest {
               fun method() {
                   val condition: Int = 11
                   when {
-                      condition < 10   ->    1
-                      condition > 10   ->    true
+                      condition < 20   ->    'c'
+                      condition < 10   ->    2
+                      condition > 10   ->    (true)
                       else             ->    0.9
                   }
               }
@@ -228,6 +229,7 @@ class WhenTest implements RewriteTest {
                 K.When when = (K.When)((J.MethodDeclaration)(cu.getStatements().get(0))).getBody().getStatements().get(1);
                 boolean allBranchesHasLiteralBody = when.getBranches().getStatements().stream().map(K.WhenBranch.class::cast).allMatch(
                   branch -> branch.getBody() instanceof J.Literal
+                            || branch.getBody() instanceof J.Parentheses<?> && ((J.Parentheses<?>) branch.getBody()).getTree() instanceof J.Literal
                 );
                 assertThat(allBranchesHasLiteralBody).isTrue();
             })
@@ -243,11 +245,35 @@ class WhenTest implements RewriteTest {
               fun isReferenceApplicable(myReference: kotlin.reflect.KClass<*>) = when (myReference) {
                   Comparable::class,
                   Iterable::class,
-                  String::class, // trailing comma
+                  String::class   ,   // trailing comma
                       -> true
                   else -> false
               }
               """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/240")
+    void subjectVariable() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = when (val response = listOf(1, 2) as Collection<Int>) {
+                  is List -> "l"
+                  else -> ""
+              }
+              """,
+              spec -> spec.afterRecipe(cu -> {
+                  assertThat(cu.getStatements()).satisfiesExactly(
+                      stmt -> {
+                          J.VariableDeclarations x = (J.VariableDeclarations) stmt;
+                          K.When initializer = (K.When) x.getVariables().get(0).getInitializer();
+                          assertThat(initializer.getSelector().getTree()).isInstanceOf(J.VariableDeclarations.class);
+                      }
+                  );
+              })
           )
         );
     }

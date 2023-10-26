@@ -23,6 +23,10 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.marker.ImplicitReturn;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
+import org.openrewrite.kotlin.marker.Extension;
+import org.openrewrite.kotlin.marker.Implicit;
+import org.openrewrite.kotlin.marker.PrimaryConstructor;
+import org.openrewrite.kotlin.marker.Semicolon;
 import org.openrewrite.kotlin.tree.K;
 
 import java.util.List;
@@ -36,6 +40,7 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
         this.stopAfter = stopAfter;
     }
 
+    @SuppressWarnings("unused")
     public MinimumViableSpacingVisitor() {
         this(null);
     }
@@ -43,8 +48,7 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, P p) {
         K.CompilationUnit kcu = super.visitCompilationUnit(cu, p);
-        kcu = kcu.withStatements(ListUtils.map(kcu.getStatements(),
-                (i, st) -> (i != 0) ? st.withPrefix(st.getPrefix().withWhitespace("\n")) : st));
+        kcu = kcu.getPadding().withStatements(visitStatementList(kcu.getPadding().getStatements()));
         return kcu;
     }
 
@@ -59,14 +63,14 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
         if (!hasFinalModifierOnly && !c.getModifiers().isEmpty()) {
             if (!first && Space.firstPrefix(c.getModifiers()).getWhitespace().isEmpty()) {
                 c = c.withModifiers(Space.formatFirstPrefix(c.getModifiers(),
-                        c.getModifiers().iterator().next().getPrefix().withWhitespace(" ")));
+                        updateSpace(c.getModifiers().iterator().next().getPrefix(), true)));
             }
             if (c.getModifiers().size() > 1) {
                 c = c.withModifiers(ListUtils.map(c.getModifiers(), (index, modifier) -> {
                     if (index > 0 &&
                             modifier.getPrefix().getWhitespace().isEmpty() &&
                             modifier.getType() != J.Modifier.Type.Final) {
-                        return modifier.withPrefix(modifier.getPrefix().withWhitespace(" "));
+                        return spaceBefore(modifier, true);
                     }
                     return modifier;
                 }));
@@ -82,62 +86,90 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
             first = false;
         }
 
-        if (!first && c.getName().getPrefix().getWhitespace().isEmpty()) {
-            c = c.withName(c.getName().withPrefix(c.getName().getPrefix().withWhitespace(" ")));
+        if (!first && !c.getName().getMarkers().findFirst(Implicit.class).isPresent() &&
+                c.getName().getPrefix().getWhitespace().isEmpty()) {
+            c = c.withName(spaceBefore(c.getName(), true));
         }
 
         J.ClassDeclaration.Padding padding = c.getPadding();
         JContainer<J.TypeParameter> typeParameters = padding.getTypeParameters();
         if (typeParameters != null && !typeParameters.getElements().isEmpty()) {
             if (!first && !typeParameters.getBefore().getWhitespace().isEmpty()) {
-                c = padding.withTypeParameters(typeParameters.withBefore(typeParameters.getBefore().withWhitespace(" ")));
+                c = padding.withTypeParameters(typeParameters.withBefore(updateSpace(typeParameters.getBefore(), true)));
             }
         }
 
         if (c.getPadding().getExtends() != null) {
             Space before = c.getPadding().getExtends().getBefore();
             if (before.getWhitespace().isEmpty()) {
-                c = c.getPadding().withExtends(c.getPadding().getExtends().withBefore(before.withWhitespace(" ")));
-            }
-        }
-
-        if (c.getPadding().getImplements() != null) {
-            Space before = c.getPadding().getImplements().getBefore();
-            if (before.getWhitespace().isEmpty()) {
-                c = c.getPadding().withImplements(c.getPadding().getImplements().withBefore(before.withWhitespace(" ")));
-                c = c.withImplements(ListUtils.mapFirst(c.getImplements(), anImplements -> {
-                    if (anImplements.getPrefix().getWhitespace().isEmpty()) {
-                        return anImplements.withPrefix(anImplements.getPrefix().withWhitespace(" "));
-                    }
-                    return anImplements;
-                }));
+                c = c.getPadding().withExtends(c.getPadding().getExtends().withBefore(updateSpace(before, true)));
             }
         }
 
         c = c.withBody(c.getBody().withStatements(ListUtils.map(c.getBody().getStatements(),
-                (i, st) -> (i != 0) ? st.withPrefix(st.getPrefix().withWhitespace("\n")) : st)));
+                (i, st) -> (i != 0) ? st.withPrefix(addNewline(st.getPrefix())) : st)));
 
         return c;
+    }
+
+    private Space addNewline(Space prefix) {
+        if (prefix.getComments().isEmpty() ||
+                prefix.getWhitespace().contains("\n") ||
+                prefix.getComments().get(0) instanceof Javadoc ||
+                (prefix.getComments().get(0).isMultiline() && prefix.getComments().get(0)
+                        .printComment(getCursor()).contains("\n"))) {
+            return prefix.withWhitespace(minimumLines(prefix.getWhitespace()));
+        }
+
+        // the first comment is a trailing comment on the previous line
+        return prefix.withComments(ListUtils.map(prefix.getComments(), (i, c) -> i == 0 ?
+                c.withSuffix(minimumLines(c.getSuffix())) : c));
+    }
+
+    private String minimumLines(String whitespace) {
+        String minWhitespace = whitespace;
+
+        if (getNewLineCount(whitespace) == 0) {
+            minWhitespace = "\n" + minWhitespace;
+        }
+
+        return minWhitespace;
+    }
+
+    private static int getNewLineCount(String whitespace) {
+        int newLineCount = 0;
+        for (char c : whitespace.toCharArray()) {
+            if (c == '\n') {
+                newLineCount++;
+            }
+        }
+        return newLineCount;
     }
 
     @Override
     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, P p) {
         J.MethodDeclaration m = super.visitMethodDeclaration(method, p);
 
+        if (m.getMarkers().findFirst(PrimaryConstructor.class).isPresent()) {
+            return m;
+        }
+
         boolean first = m.getLeadingAnnotations().isEmpty();
         if (!m.getModifiers().isEmpty()) {
-            if (!first && Space.firstPrefix(m.getModifiers()).getWhitespace().isEmpty()) {
-                m = m.withModifiers(Space.formatFirstPrefix(m.getModifiers(),
-                        m.getModifiers().iterator().next().getPrefix().withWhitespace(" ")));
-            }
-
             boolean firstFinal = m.getModifiers().get(0).getType() == J.Modifier.Type.Final;
             int startPosition = firstFinal ? 1 : 0;
 
+            if (!first && !firstFinal && Space.firstPrefix(m.getModifiers()).getWhitespace().isEmpty()) {
+                m = m.withModifiers(Space.formatFirstPrefix(m.getModifiers(),
+                        updateSpace(m.getModifiers().iterator().next().getPrefix(), true)));
+            }
+
             if (m.getModifiers().size() > 1) {
                 m = m.withModifiers(ListUtils.map(m.getModifiers(), (index, modifier) -> {
-                    if (index > startPosition && modifier.getPrefix().getWhitespace().isEmpty()) {
-                        return modifier.withPrefix(modifier.getPrefix().withWhitespace(" "));
+                    if (index > startPosition &&
+                            modifier.getType() != J.Modifier.Type.Final &&
+                            modifier.getPrefix().getWhitespace().isEmpty()) {
+                        return spaceBefore(modifier, true);
                     }
                     return modifier;
                 }));
@@ -149,9 +181,7 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
         if (typeParameters != null && !typeParameters.getTypeParameters().isEmpty()) {
             if (!first && typeParameters.getPrefix().getWhitespace().isEmpty()) {
                 m = m.getAnnotations().withTypeParameters(
-                        typeParameters.withPrefix(
-                                typeParameters.getPrefix().withWhitespace(" ")
-                        )
+                        spaceBefore(typeParameters, true)
                 );
             }
             first = false;
@@ -166,28 +196,48 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
                 if (returnTypeExpression instanceof J.AnnotatedType) {
                     J.AnnotatedType annotatedType = (J.AnnotatedType) returnTypeExpression;
                     List<J.Annotation> annotations = ListUtils.mapFirst(annotatedType.getAnnotations(), annotation ->
-                            annotation.withPrefix(annotation.getPrefix().withWhitespace(" "))
+                            spaceBefore(annotation, true)
                     );
                     m = m.withReturnTypeExpression(annotatedType.withAnnotations(annotations));
                 }
             }
             first = false;
         }
-        if (!first) {
-            m = m.withName(m.getName().withPrefix(m.getName().getPrefix().withWhitespace(" ")));
+
+        boolean hasReceiverType = method.getMarkers().findFirst(Extension.class).isPresent();
+        if (!first && !hasReceiverType) {
+            m = m.withName(m.getName().withPrefix(updateSpace(m.getName().getPrefix(), true)));
         }
 
         if (m.getPadding().getThrows() != null) {
             Space before = m.getPadding().getThrows().getBefore();
             if (before.getWhitespace().isEmpty()) {
-                m = m.getPadding().withThrows(m.getPadding().getThrows().withBefore(before.withWhitespace(" ")));
+                m = m.getPadding().withThrows(m.getPadding().getThrows().withBefore(updateSpace(before, true)));
             }
         }
 
-        m = m.withBody(m.getBody().withStatements(ListUtils.map(m.getBody().getStatements(),
-                (i, st) -> (i != 0) ? st.withPrefix(st.getPrefix().withWhitespace("\n")) : st)));
-
         return m;
+    }
+
+    @Override
+    public J.Block visitBlock(J.Block block, P p) {
+        J.Block b = super.visitBlock(block, p);
+        b = b.getPadding().withStatements(visitStatementList(b.getPadding().getStatements()));
+        return b;
+    }
+
+    private List<JRightPadded<Statement>> visitStatementList(List<JRightPadded<Statement>> statements) {
+        return ListUtils.map(statements,
+                (i, st) -> {
+                    Statement element = st.getElement();
+                    if (i == 0
+                            || element.getPrefix().getWhitespace().contains("\n")
+                            || element.getPrefix().getLastWhitespace().contains("\n")
+                            || statements.get(i - 1).getMarkers().findFirst(Semicolon.class).isPresent()) {
+                        return st;
+                    }
+                    return st.withElement(element.withPrefix(addNewline(element.getPrefix())));
+                });
     }
 
     @Override
@@ -195,7 +245,7 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
         J.Return r = super.visitReturn(return_, p);
         if (r.getExpression() != null && r.getExpression().getPrefix().getWhitespace().isEmpty() &&
                 !return_.getMarkers().findFirst(ImplicitReturn.class).isPresent()) {
-            r = r.withExpression(r.getExpression().withPrefix(r.getExpression().getPrefix().withWhitespace(" ")));
+            r = r.withExpression(spaceBefore(r.getExpression(), true));
         }
         return r;
     }
@@ -203,13 +253,14 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public K.Binary visitBinary(K.Binary binary, P p) {
         K.Binary kb = super.visitBinary(binary, p);
-        if (kb.getOperator() ==  K.Binary.Type.Contains) {
+        if (kb.getOperator() == K.Binary.Type.Contains || kb.getOperator() == K.Binary.Type.NotContains) {
             kb = kb.getPadding().withOperator(kb.getPadding().getOperator().withBefore(updateSpace(kb.getPadding().getOperator().getBefore(), true)));
             kb = kb.withRight(spaceBefore(kb.getRight(), true));
         }
         return kb;
     }
 
+    @SuppressWarnings("DataFlowIssue")
     @Override
     public J.If visitIf(J.If iff, P p) {
         J.If updatedIff = super.visitIf(iff, p);
@@ -245,7 +296,7 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
                     ListUtils.map(v.getModifiers(), (index, modifier) -> {
                         if (index != 0 || needFirstSpace) {
                             if (modifier.getPrefix().getWhitespace().isEmpty()) {
-                                modifier = modifier.withPrefix(modifier.getPrefix().withWhitespace(" "));
+                                modifier = spaceBefore(modifier, true);
                             }
                         }
                         return modifier;
@@ -254,10 +305,10 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
         }
 
         J firstEnclosing = getCursor().getParentOrThrow().firstEnclosing(J.class);
-        if (!(firstEnclosing instanceof J.Lambda)) {
-            if (Space.firstPrefix(v.getVariables()).getWhitespace().isEmpty() && !v.getModifiers().isEmpty()) {
-                v = v.withVariables(Space.formatFirstPrefix(v.getVariables(),
-                        v.getVariables().iterator().next().getPrefix().withWhitespace(" ")));
+        if (!v.getVariables().isEmpty() && !(firstEnclosing instanceof J.Lambda)) {
+            boolean extension = v.getMarkers().findFirst(Extension.class).isPresent();
+            if (v.getVariables().get(0).getPrefix().getWhitespace().isEmpty() && !v.getModifiers().isEmpty() && !extension) {
+                v = v.withVariables(ListUtils.mapFirst(v.getVariables(), v0 -> v0.withName(spaceBefore(v0.getName(), true))));
             }
         }
 
@@ -282,6 +333,7 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
         return super.visit(tree, p);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static <T extends J> T spaceBefore(T j, boolean spaceBefore) {
         if (!j.getComments().isEmpty()) {
             return j;
@@ -296,6 +348,7 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static Space updateSpace(Space s, boolean haveSpace) {
         if (!s.getComments().isEmpty()) {
             return s;

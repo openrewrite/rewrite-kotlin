@@ -69,16 +69,46 @@ class FieldAccessTest implements RewriteTest {
               open class Super {
                   val id : String = ""
               }
-              """
-          ),
-          kotlin(
-            """
               class Test : Super() {
                   fun getId ( ) : String {
                       return super . id
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void constructorDelegationWithExpression() {
+        rewriteRun(
+          kotlin(
+            """
+              open class Super(val id : Int)
+              class Test(val id2 : Int) : @Suppress Super(1 + 3)
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                J.ClassDeclaration test = (J.ClassDeclaration) cu.getStatements().get(1);
+                assertThat(test.getImplements()).satisfiesExactly(
+                  superType -> {
+                      K.ConstructorInvocation call = (K.ConstructorInvocation) superType;
+                      assertThat(((JavaType.FullyQualified) call.getType()).getFullyQualifiedName()).isEqualTo("Super");
+                      assertThat(((J.Identifier) call.getTypeTree()).getSimpleName()).isEqualTo("Super");
+                      assertThat(call.getArguments()).satisfiesExactly(
+                        id -> assertThat(id).isInstanceOf(J.Binary.class)
+                      );
+                  }
+                );
+                assertThat(test.getBody().getStatements()).satisfiesExactly(
+                  stmt -> {
+                      J.MethodDeclaration constr = (J.MethodDeclaration) stmt;
+                      assertThat(constr.getParameters()).satisfiesExactly(
+                        id2 -> assertThat(id2).isInstanceOf(J.VariableDeclarations.class)
+                      );
+                      assertThat(constr.getBody()).isNull();
+                  }
+                );
+            })
           )
         );
     }
@@ -91,10 +121,6 @@ class FieldAccessTest implements RewriteTest {
               class Test {
                   val property = 42
               }
-              """
-          ),
-          kotlin(
-            """
               fun method ( test : Test ? ) {
                   val a = test ?. property
               }
@@ -111,10 +137,6 @@ class FieldAccessTest implements RewriteTest {
               class Test {
                   val value : Int ? = 42
               }
-              """
-          ),
-          kotlin(
-            """
               fun method ( test : Test ) {
                   val a = test . value ?: null
               }
