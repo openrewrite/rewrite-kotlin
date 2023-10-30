@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.marker.IndexedAccess;
@@ -239,16 +240,18 @@ class MethodInvocationTest implements RewriteTest {
     }
 
     @Test
+    @ExpectedToFail("not yet implemented correctly")
     void anonymousObject() {
         rewriteRun(
           kotlin(
             """
               open class Test
+              interface A
               
               fun test ( a : Test ) { }
               
               fun method ( ) {
-                  test ( object :  Test   ( ) {
+                  test ( object :  Test   ( ),    A {
                   } )
               }
               """

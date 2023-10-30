@@ -179,53 +179,34 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitArrayAccessExpression(KtArrayAccessExpression expression, ExecutionContext data) {
-        Expression left = convertToExpression(expression.getArrayExpression().accept(this, data));
+        Markers markers = Markers.EMPTY;
+        boolean hasExplicitReceiver = false;
+        boolean implicitExtensionFunction = false;
+        Expression selectExpr = convertToExpression(expression.getArrayExpression().accept(this, data));
+        JRightPadded<Expression> select = padRight(selectExpr, suffix(expression.getArrayExpression()));
+        JContainer<Expression> typeParams = null;
+        J.Identifier name = createIdentifier("get", Space.EMPTY, methodInvocationType(expression));
 
-        if (expression.getIndexExpressions().size() != 1) {
-            throw new UnsupportedOperationException("TODO");
+        markers = markers.addIfAbsent(new IndexedAccess(randomId()));
+
+        List<KtExpression> indexExpressions = expression.getIndexExpressions();
+        List<JRightPadded<Expression>> expressions = new ArrayList<>();
+
+        for (KtExpression indexExp : indexExpressions) {
+            expressions.add(padRight(convertToExpression(indexExp.accept(this, data)), suffix(indexExp)));
         }
 
-        return new J.ArrayAccess(randomId(),
-                prefix(expression),
-                Markers.EMPTY,
-                left,
-                new J.ArrayDimension(randomId(),
-                        merge(prefix(expression.getIndicesNode()), prefix(expression.getLeftBracket())),
-                        Markers.EMPTY,
-                        padRight(convertToExpression(expression.getIndexExpressions().get(0).accept(this, data)),
-                                prefix(expression.getRightBracket()))
-                ),
-                null // type(expression)
+        JContainer<Expression> args = JContainer.build(Space.EMPTY, expressions, markers);
+        return new J.MethodInvocation(
+                randomId(),
+                Space.EMPTY,
+                markers,
+                select,
+                typeParams,
+                name,
+                args,
+                methodInvocationType(expression)
         );
-//
-//        Markers markers = Markers.EMPTY;
-//        boolean hasExplicitReceiver = false;
-//        boolean implicitExtensionFunction = false;
-//        Expression selectExpr = convertToExpression(expression.getArrayExpression().accept(this, data));
-//        JRightPadded<Expression> select = padRight(selectExpr, suffix(expression.getArrayExpression()));
-//        JContainer<Expression> typeParams = null;
-//        J.Identifier name = createIdentifier("get", Space.EMPTY, methodInvocationType(expression));
-//
-//        markers = markers.addIfAbsent(new IndexedAccess(randomId()));
-//
-//        List<KtExpression> indexExpressions = expression.getIndexExpressions();
-//        List<JRightPadded<Expression>> expressions = new ArrayList<>();
-//
-//        for (KtExpression indexExp : indexExpressions) {
-//            expressions.add(padRight(convertToExpression(indexExp.accept(this, data)), suffix(indexExp)));
-//        }
-//
-//        JContainer<Expression> args = JContainer.build(Space.EMPTY, expressions, markers);
-//        return new J.MethodInvocation(
-//                randomId(),
-//                Space.EMPTY,
-//                markers,
-//                select,
-//                typeParams,
-//                name,
-//                args,
-//                methodInvocationType(expression)
-//        );
     }
 
     @Override
@@ -489,11 +470,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (!enumEntry.getAnnotationEntries().isEmpty()) {
             mapModifiers(enumEntry.getModifierList(), annotations, emptyList(), data);
         }
-
+        // TODO: in java the EnumValue has a type of JavaType.Variable with a null fieldType.
         J.Identifier name = createIdentifier(enumEntry.getNameIdentifier(), type(enumEntry));
         J.NewClass initializer = null;
 
         if (enumEntry.getInitializerList() != null) {
+            // TODO: this creates an empty init with no type attribution: enum class Foo { BAR() }
+            //   Add constructor method type.
             initializer = (J.NewClass) enumEntry.getInitializerList().accept(this, data);
         }
 
@@ -829,7 +812,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     .withPrefix(prefix(parameter));
         }
 
-        J.Identifier name = createIdentifier(parameter.getNameIdentifier(), type(parameter));
+        JavaType.Variable vt = variableType(parameter);
+        J.Identifier name = createIdentifier(parameter.getNameIdentifier(), vt);
 
         if (parameter.getTypeReference() != null) {
             markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(parameter.getColon())));
@@ -847,7 +831,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 name,
                 emptyList(),
                 initializer,
-                name.getFieldType()
+                vt
         );
 
         vars.add(padRight(namedVariable, Space.EMPTY));
@@ -1858,6 +1842,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         PsiElementAssociations.ExpressionType type = psiElementAssociations.getCallType(expression);
         if (type == PsiElementAssociations.ExpressionType.CONSTRUCTOR) {
             TypeTree name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
+            // FIXME. The PSI may does not require type arguments on parameterized types. Check the FIR.
+            // psiElementAssociations.primary(expression.getCalleeExpression()) => symbol may contain type params.
             if (!expression.getTypeArguments().isEmpty()) {
                 List<JRightPadded<Expression>> parameters = new ArrayList<>(expression.getTypeArguments().size());
                 for (KtTypeProjection ktTypeProjection : expression.getTypeArguments()) {
@@ -2203,7 +2189,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 throw new UnsupportedOperationException();
             }
 
-            J.Identifier nameVar = createIdentifier(entry.getNameIdentifier(), vt != null ? vt.getType() : null, vt);
+            J.Identifier nameVar = createIdentifier(entry.getNameIdentifier(), vt);
             if (!annotations.isEmpty()) {
                 nameVar = nameVar.withAnnotations(annotations);
             } else {
@@ -2227,22 +2213,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             vars.add(padRight(namedVariable, suffix(entry)));
         }
 
+        JavaType.Variable vt = variableType(multiDeclaration);
         J.VariableDeclarations.NamedVariable emptyWithInitializer = new J.VariableDeclarations.NamedVariable(
                 randomId(),
                 Space.EMPTY,
                 Markers.EMPTY,
-                new J.Identifier(
-                        randomId(),
-                        Space.SINGLE_SPACE,
-                        Markers.EMPTY,
-                        emptyList(),
-                        "<destruct>",
-                        variableType(multiDeclaration),
-                        null
-                ),
+                createIdentifier("<destruct>", Space.SINGLE_SPACE, vt),
                 emptyList(),
                 paddedInitializer,
-                null
+                vt
         );
 
         J.VariableDeclarations variableDeclarations = new J.VariableDeclarations(
@@ -2342,13 +2321,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 //            );
         } else if (expression.getSelectorExpression() instanceof KtNameReferenceExpression) {
             // Maybe need to type check before creating a field access.
+            JavaType.Variable vt = variableType(expression.getSelectorExpression());
             return new J.FieldAccess(
                     randomId(),
                     prefix(expression),
                     Markers.EMPTY,
                     expression.getReceiverExpression().accept(this, data).withPrefix(Space.EMPTY),
-                    padLeft(suffix(expression.getReceiverExpression()), (J.Identifier) expression.getSelectorExpression().accept(this, data)),
-                    type(expression.getSelectorExpression()) // FIXME: this will not result in a type.
+                    padLeft(suffix(expression.getReceiverExpression()), createIdentifier(expression.getSelectorExpression(), vt)),
+                    vt
             );
         } else {
             throw new UnsupportedOperationException("Unsupported dot qualified selector: " + expression.getSelectorExpression().getClass());
@@ -2377,7 +2357,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 importDirective.getNode().findChildByType(KtTokens.WHITE_SPACE),
                 importDirective.isAllUnder() ? importDirective.getNode().findChildByType(KtTokens.MUL)
                         : importDirective.getNode().findChildByType(KtNodeTypes.DOT_QUALIFIED_EXPRESSION));
-        J reference = TypeTree.build(text);
+        J reference = TypeTree.build(text); // FIXME: this creates a shallow class for a resolvable type.
 //        J reference = importDirective.getImportedReference().accept(this, data);
 //        if (importDirective.isAllUnder()) {
 //            reference = new J.FieldAccess(
@@ -2805,16 +2785,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             maybeBeforeSemicolon = prefix(property.getLastChild());
         }
 
+        JavaType.Variable vt = variableType(property);
         J.VariableDeclarations.NamedVariable namedVariable =
                 new J.VariableDeclarations.NamedVariable(
                         randomId(),
                         prefix(property.getNameIdentifier()),
                         Markers.EMPTY,
                         // TODO: fix NPE.
-                        createIdentifier(property.getNameIdentifier(), type(property)).withPrefix(Space.EMPTY),
+                        createIdentifier(property.getNameIdentifier(), vt).withPrefix(Space.EMPTY),
                         emptyList(),
                         initializer,
-                        variableType(property)
+                        vt
                 );
 
         variables.add(padRight(namedVariable, maybeBeforeSemicolon).withMarkers(rpMarker));
@@ -2933,10 +2914,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitSimpleNameExpression(KtSimpleNameExpression expression, ExecutionContext data) {
-        // TODO: The FIR does not have a PSI element associated to names, similarly name references from the PSI are not linked to the IR.
-        //       The type must be added in context to the parent element.
-        //       I.E. IrConstructor assocaited to the KtPrimaryConstructor.
-        return createIdentifier(expression, type(expression), variableType(expression));
+        // The correct type cannot consistently be associated to the expression due to the relationship between the PSI and FIR.
+        // The parent tree should use the associated FIR to fix mis-mapped types.
+        // I.E. MethodInvocations, MethodDeclarations, VariableNames should be set manually through `createIdentifier(psi, type)`
+        J.Identifier name = createIdentifier(expression, type(expression));
+        if (name.getType() instanceof JavaType.Parameterized) {
+            name = name.withType(((JavaType.Parameterized) name.getType()).getType());
+        }
+        return name;
     }
 
     @Override
@@ -3294,13 +3279,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Nullable
     private JavaType.Variable variableType(PsiElement psi) {
-        if (psi instanceof KtExpression) {
-            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtExpression) psi);
+        if (psi instanceof KtDeclaration) {
+            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtDeclaration) psi);
             if (basedSymbol instanceof FirVariableSymbol) {
                 return (JavaType.Variable) psiElementAssociations.getTypeMapping().type(basedSymbol.getFir(), owner(psi));
             }
-        }
+        } else if (psi instanceof KtNameReferenceExpression) {
+            FirBasedSymbol<?> basedSymbol = psiElementAssociations.symbol((KtNameReferenceExpression) psi);
+            if (basedSymbol instanceof FirVariableSymbol) {
+                return (JavaType.Variable) psiElementAssociations.getTypeMapping().type(basedSymbol.getFir(), owner(psi));
+            }
 
+        }
         return null;
     }
 
@@ -3326,7 +3316,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return psiElementAssociations.getTypeMapping().methodInvocationType((FirFunctionCall) firElement, psiElementAssociations.getFile().getSymbol());
         }
         if (firElement instanceof FirResolvedNamedReference) {
-            throw new UnsupportedOperationException("FIXME");
+            return psiElementAssociations.getTypeMapping().methodDeclarationType(((FirFunction) ((FirResolvedNamedReference) firElement).getResolvedSymbol().getFir()), null, psiElementAssociations.getFile().getSymbol());
         }
         return null;
     }
@@ -3358,7 +3348,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 Markers.EMPTY,
                 emptyList(),
                 name,
-                (type instanceof JavaType.Parameterized) ? ((JavaType.Parameterized) type).getType() : type ,
+                type,
                 fieldType
         );
     }
@@ -3579,7 +3569,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     name,
                     emptyList(),
                     null,
-                    variableType(ktDestructuringDeclaration)
+                    variableType(ktDestructuringDeclarationEntry)
             );
             variables.add(padRight(namedVariable, suffix(ktDestructuringDeclarationEntry)));
         }
