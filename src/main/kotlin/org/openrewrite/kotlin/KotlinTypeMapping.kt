@@ -273,6 +273,9 @@ class KotlinTypeMapping(
             }
 
             is ConeClassLikeType -> {
+                if (type.toSymbol(firSession) is FirTypeAliasSymbol) {
+                    return classType((type.toSymbol(firSession) as FirTypeAliasSymbol).resolvedExpandedTypeRef.type, parent, signature)
+                }
                 val ref = type.toRegularClassSymbol(firSession)
                 if (type.typeArguments.isNotEmpty()) {
                     params = type.typeArguments.toList()
