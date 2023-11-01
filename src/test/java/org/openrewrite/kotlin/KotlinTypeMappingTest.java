@@ -17,6 +17,9 @@ package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
@@ -504,6 +507,57 @@ public class KotlinTypeMappingTest {
                         }
                     }.visit(cu, found);
                     assertThat(found.get()).isTrue();
+                })
+              )
+            );
+        }
+
+        @ParameterizedTest
+        @CsvSource({
+          "n++,kotlin.Int",
+          "--n,kotlin.Int",
+          "n += a,kotlin.Int",
+          "n = a + b,kotlin.Int{name=plus,return=kotlin.Int,parameters=[kotlin.Int]}"
+        })
+        void operatorOverload(String p1, String p2) {
+            rewriteRun(
+              kotlin(
+                """
+                  class Foo {
+                      fun bar(a: Int, b: Int) {
+                          var n = 0
+                          %s
+                      }
+                  }
+                  """.formatted(p1), spec -> spec.afterRecipe(cu -> {
+                    AtomicBoolean found = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<AtomicBoolean>() {
+                        @Override
+                        public J.AssignmentOperation visitAssignmentOperation(J.AssignmentOperation assignOp, AtomicBoolean atomicBoolean) {
+                            if (p2.equals(assignOp.getType().toString())) {
+                                found.set(true);
+                            }
+                            return super.visitAssignmentOperation(assignOp, atomicBoolean);
+                        }
+
+                        @Override
+                        public J.Unary visitUnary(J.Unary unary, AtomicBoolean b) {
+                            if (p2.equals(unary.getType().toString())) {
+                                found.set(true);
+                            }
+                            return super.visitUnary(unary, b);
+                        }
+
+                        @Override
+                        public J.Binary visitBinary(J.Binary binary, AtomicBoolean b) {
+                            JavaType.Method mt = (JavaType.Method) binary.getType();
+                            if (p2.equals(mt.toString())) {
+                                found.set(true);
+                            }
+                            return super.visitBinary(binary, b);
+                        }
+                    }.visit(cu, found);
+                    assertThat(found.get()).isEqualTo(true);
                 })
               )
             );
