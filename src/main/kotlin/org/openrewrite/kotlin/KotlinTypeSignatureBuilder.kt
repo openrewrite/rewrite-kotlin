@@ -24,8 +24,10 @@ import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.toResolvedBaseSymbol
+import org.jetbrains.kotlin.fir.resolve.inference.ConeTypeParameterBasedTypeVariable
 import org.jetbrains.kotlin.fir.resolve.providers.toSymbol
 import org.jetbrains.kotlin.fir.resolve.toFirRegularClass
+import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.types.*
@@ -58,8 +60,14 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
             is ConeFlexibleType -> {
                 signature(type.lowerBound)
             }
+            is ConeStubTypeForChainInference -> {
+                signature(type.constructor.variable)
+            }
             is ConeTypeProjection -> {
                 coneTypeProjectionSignature(type)
+            }
+            is ConeTypeParameterBasedTypeVariable -> {
+                signature(type.typeParameterSymbol.fir)
             }
             is FirAnonymousFunctionExpression -> {
                 signature(type.anonymousFunction)

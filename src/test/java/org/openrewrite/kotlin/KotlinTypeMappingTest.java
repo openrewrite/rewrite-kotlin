@@ -364,7 +364,7 @@ public class KotlinTypeMappingTest {
 
     @Nested
     class ParsingTest implements RewriteTest {
-        @ExpectedToFail("Enable when we switch to IR parser.")
+
         @Test
         @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/303")
         void coneTypeProjection() {
@@ -381,7 +381,7 @@ public class KotlinTypeMappingTest {
                         @Override
                         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
                             if (methodMatcher.matches(method)) {
-                                assertThat(method.getMethodType().toString()).isEqualTo("kotlin.collections.MutableList{name=addAll,return=kotlin.Boolean,parameters=[kotlin.collections.List<kotlin.String>]}");
+                                assertThat(method.getMethodType().toString()).isEqualTo("kotlin.collections.MutableList<Generic{E}>{name=addAll,return=kotlin.Boolean,parameters=[kotlin.collections.List<kotlin.String>]}");
                                 found.set(true);
                             }
                             return super.visitMethodInvocation(method, found);
@@ -504,6 +504,47 @@ public class KotlinTypeMappingTest {
                         }
                     }.visit(cu, found);
                     assertThat(found.get()).isTrue();
+                })
+              )
+            );
+        }
+
+        @Test
+        void operatorOverload() {
+            rewriteRun(
+              kotlin(
+                """
+                  class Foo {
+                      operator fun contains(element: Int): Boolean {
+                          return true
+                      }
+                      val b = 1 !in listOf(2)
+                      val a = 1 !in Foo()
+                  }
+                  """, spec -> spec.afterRecipe(cu -> {
+                    MethodMatcher kotlinCollection = new MethodMatcher("kotlin.collections.List contains(..)");
+                    AtomicBoolean kotlinCollectionFound = new AtomicBoolean(false);
+                    MethodMatcher operatorOverload = new MethodMatcher("Foo contains(..)");
+                    AtomicBoolean operatorOverloadFound = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<Integer>() {
+                        @Override
+                        public K.Binary visitBinary(K.Binary binary, Integer integer) {
+                            JavaType.Method methodType = (JavaType.Method) binary.getType();
+                            if (kotlinCollection.matches(methodType)) {
+                                assertThat(methodType.toString())
+                                  .isEqualTo("kotlin.collections.List<kotlin.Int>{name=contains,return=kotlin.Boolean,parameters=[kotlin.Int]}");
+                                kotlinCollectionFound.set(true);
+                            }
+                            if (operatorOverload.matches(methodType)) {
+                                assertThat(methodType.toString())
+                                  .isEqualTo("Foo{name=contains,return=kotlin.Boolean,parameters=[kotlin.Int]}");
+                                operatorOverloadFound.set(true);
+                            }
+                            return binary;
+                        }
+                    }.visit(cu, 0);
+                    assertThat(kotlinCollectionFound.get()).isTrue();
+                    assertThat(operatorOverloadFound.get()).isTrue();
                 })
               )
             );
