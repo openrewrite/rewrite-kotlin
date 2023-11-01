@@ -462,13 +462,12 @@ class KotlinTypeMapping(
         )
         typeCache.put(signature, method)
         var parentType = when {
-            parent is FirRegularClass || parent != null -> type(parent)
             function.symbol is FirConstructorSymbol -> type(function.returnTypeRef)
             function.dispatchReceiverType != null -> type(function.dispatchReceiverType!!)
             function.symbol.getOwnerLookupTag()?.toFirRegularClass(firSession) != null -> {
                 type(function.symbol.getOwnerLookupTag()!!.toFirRegularClass(firSession)!!)
             }
-
+            parent is FirRegularClass || parent != null -> type(parent)
             else -> type(firFile)
         }
         if (parentType is JavaType.Method) {
@@ -596,14 +595,24 @@ class KotlinTypeMapping(
 
     @OptIn(SymbolInternals::class)
     fun methodInvocationType(function: FirFunctionCall, signature: String): JavaType.Method? {
-        var paramNames: MutableList<String>? = null
         val sym = function.calleeReference.toResolvedBaseSymbol() ?: return null
+        val receiver = if (sym is FirFunctionSymbol<*>) sym.receiverParameter else null
+        var paramNames: MutableList<String>? = when {
+            sym is FirFunctionSymbol<*> && receiver != null ||
+            function.arguments.isNotEmpty() -> {
+                ArrayList(function.arguments.size + (if (receiver != null) 1 else 0))
+            }
+            else -> null
+        }
+        val paramTypes: MutableList<JavaType>? = if (paramNames != null) ArrayList(paramNames.size) else null
+        if (receiver != null) {
+            paramNames!!.add('$'+ "this" + '$')
+        }
         if (function.arguments.isNotEmpty()) {
-            paramNames = ArrayList(function.arguments.size)
             when (sym) {
                 is FirFunctionSymbol<*> -> {
                     for (p in sym.valueParameterSymbols) {
-                        paramNames.add(p.name.asString())
+                        paramNames!!.add(p.name.asString())
                     }
                 }
             }
@@ -651,10 +660,10 @@ class KotlinTypeMapping(
                 if (resolvedSymbol.fir.containerSource is JvmPackagePartSource) {
                     val source: JvmPackagePartSource? = resolvedSymbol.fir.containerSource as JvmPackagePartSource?
                     if (source != null) {
-                        if (source.facadeClassName != null) {
-                            declaringType = createShallowClass(convertKotlinFqToJavaFq(source.facadeClassName.toString()))
+                        declaringType = if (source.facadeClassName != null) {
+                            createShallowClass(convertKotlinFqToJavaFq(source.facadeClassName.toString()))
                         } else {
-                            declaringType = createShallowClass(convertKotlinFqToJavaFq(source.className.toString()))
+                            createShallowClass(convertKotlinFqToJavaFq(source.className.toString()))
                         }
                     }
                 }
@@ -664,21 +673,13 @@ class KotlinTypeMapping(
                 declaringType = createShallowClass("kotlin.Library")
             }
         } else if (sym is FirFunctionSymbol<*>) {
-            declaringType = TypeUtils.asFullyQualified(type(sym.fir.returnTypeRef))
+            declaringType = TypeUtils.asFullyQualified(type(function.typeRef))
         }
-        if (declaringType is JavaType.Parameterized) {
-            declaringType = declaringType.type
-        } else if (declaringType == null) {
+        if (declaringType == null) {
             declaringType = TypeUtils.asFullyQualified(type(firFile))
         }
         val returnType = type(function.typeRef)
 
-        val paramTypes: MutableList<JavaType>? = when {
-            function.toResolvedCallableSymbol()?.receiverParameter != null || function.arguments.isNotEmpty() -> {
-                ArrayList(function.arguments.size + (if (function.toResolvedCallableSymbol()?.receiverParameter != null) 1 else 0))
-            }
-            else -> null
-        }
         if (function.toResolvedCallableSymbol()?.receiverParameter != null) {
             paramTypes!!.add(type(function.toResolvedCallableSymbol()?.receiverParameter!!.typeRef))
         }
@@ -762,24 +763,28 @@ class KotlinTypeMapping(
         typeCache.put(signature, vt)
         val annotations = listAnnotations(variable.annotations)
         var declaringType: JavaType? = null
-        // TODO: fix type attribution for anonymous objects. Currently, returns JavaType.Unknown.
-        if (parent is FirClass) {
-            declaringType = type(parent)
-        } else if (parent is FirFunction) {
-            declaringType = methodDeclarationType(parent, null)
-        } else if (variable.symbol.dispatchReceiverType != null) {
-            declaringType = type(variable.symbol.dispatchReceiverType)
-        } else if (variable.symbol.getContainingClassSymbol(firSession) != null) {
-            if (variable.symbol.getContainingClassSymbol(firSession) !is FirAnonymousObjectSymbol) {
-                declaringType = type(variable.symbol.getContainingClassSymbol(firSession)!!.fir)
+        when {
+            variable.symbol.dispatchReceiverType != null -> {
+                declaringType = type(variable.symbol.dispatchReceiverType)
             }
+            variable.symbol.getContainingClassSymbol(firSession) != null -> {
+                if (variable.symbol.getContainingClassSymbol(firSession) !is FirAnonymousObjectSymbol) {
+                    declaringType = type(variable.symbol.getContainingClassSymbol(firSession)!!.fir)
+                }
+            }
+            parent is FirClass -> {
+                declaringType = type(parent)
+            }
+            parent is FirFunction -> {
+                declaringType = methodDeclarationType(parent, null)
+            }
+            else -> declaringType = TypeUtils.asFullyQualified(type(firFile))
         }
+
         if (declaringType is JavaType.Parameterized) {
             declaringType = declaringType.type
         }
-        if (declaringType == null) {
-            declaringType = TypeUtils.asFullyQualified(type(firFile))
-        }
+
         val typeRef = type(variable.returnTypeRef)
         vt.unsafeSet(declaringType!!, typeRef, annotations)
         return vt

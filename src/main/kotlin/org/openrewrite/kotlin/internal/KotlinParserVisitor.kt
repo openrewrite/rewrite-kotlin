@@ -689,7 +689,7 @@ class KotlinParserVisitor(
                 paddedExpr,
                 null,
                 padLeft(whitespace(), visitElement(callableReferenceAccess.calleeReference, data) as J.Identifier),
-                type(callableReferenceAccess.calleeReference),
+                type(callableReferenceAccess),
                 methodReferenceType,
                 fieldReferenceType
         )

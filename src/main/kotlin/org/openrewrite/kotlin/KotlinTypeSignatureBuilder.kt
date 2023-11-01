@@ -35,6 +35,7 @@ import org.jetbrains.kotlin.load.java.structure.*
 import org.jetbrains.kotlin.load.java.structure.impl.classFiles.BinaryJavaAnnotation
 import org.jetbrains.kotlin.load.java.structure.impl.classFiles.BinaryJavaClass
 import org.jetbrains.kotlin.load.java.structure.impl.classFiles.BinaryJavaTypeParameter
+import org.jetbrains.kotlin.load.kotlin.JvmPackagePartSource
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.types.Variance
 import org.openrewrite.java.JavaTypeSignatureBuilder
@@ -262,9 +263,45 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
         return genericArgumentTypes.toString()
     }
 
+    @OptIn(SymbolInternals::class)
     fun methodCallSignature(function: FirFunctionCall): String {
-        val sig = StringBuilder(classSignature(function.typeRef))
-        when (val sym = function.calleeReference.toResolvedBaseSymbol()) {
+        val sym = function.calleeReference.toResolvedBaseSymbol() ?: return "{undefined}"
+        var declaringSig: String? = null
+        if (function.calleeReference is FirResolvedNamedReference &&
+            (function.calleeReference as FirResolvedNamedReference).resolvedSymbol is FirNamedFunctionSymbol) {
+            val resolvedSymbol =
+                (function.calleeReference as FirResolvedNamedReference).resolvedSymbol as FirNamedFunctionSymbol
+            if (resolvedSymbol.dispatchReceiverType is ConeClassLikeType) {
+                declaringSig = signature(resolvedSymbol.dispatchReceiverType)
+            } else if (resolvedSymbol.containingClassLookupTag() != null &&
+                resolvedSymbol.containingClassLookupTag()!!.toFirRegularClass(firSession) != null
+            ) {
+                declaringSig = signature(resolvedSymbol.containingClassLookupTag()!!.toFirRegularClass(firSession))
+            } else if (resolvedSymbol.origin == FirDeclarationOrigin.Library) {
+                if (resolvedSymbol.fir.containerSource is JvmPackagePartSource) {
+                    val source: JvmPackagePartSource? = resolvedSymbol.fir.containerSource as JvmPackagePartSource?
+                    if (source != null) {
+                        declaringSig = if (source.facadeClassName != null) {
+                            convertKotlinFqToJavaFq(source.facadeClassName.toString())
+                        } else {
+                            convertKotlinFqToJavaFq(source.className.toString())
+                        }
+                    }
+                }
+            } else if (!resolvedSymbol.fir.origin.generated &&
+                !resolvedSymbol.fir.origin.fromSupertypes &&
+                !resolvedSymbol.fir.origin.fromSource) {
+                declaringSig = "kotlin.Library"
+            }
+        } else if (sym is FirFunctionSymbol<*>) {
+            declaringSig = signature(function.typeRef)
+        }
+        if (declaringSig == null) {
+            declaringSig = signature(firFile)
+        }
+
+        val sig = StringBuilder(declaringSig)
+        when (sym) {
             is FirConstructorSymbol -> sig.append("{name=<constructor>,return=${signature(function.typeRef)}")
             is FirNamedFunctionSymbol -> {
                 sig.append("{name=${sym.name.asString()}")

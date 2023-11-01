@@ -530,7 +530,7 @@ public class KotlinTypeMappingTest {
                         public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean found) {
                             if ("Triple".equals(((J.Identifier) newClass.getClazz()).getSimpleName())) {
                                 assertThat(newClass.getClazz().getType().toString()).isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>");
-                                assertThat(newClass.getConstructorType().toString()).isEqualTo("kotlin.Triple{name=<constructor>,return=kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>,parameters=[kotlin.Int,kotlin.Int,kotlin.Int]}");
+                                assertThat(newClass.getConstructorType().toString()).isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=<constructor>,return=kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>,parameters=[kotlin.Int,kotlin.Int,kotlin.Int]}");
                             }
                             return super.visitNewClass(newClass, found);
                         }
@@ -545,21 +545,21 @@ public class KotlinTypeMappingTest {
                                       .isEqualTo("openRewriteFile0Kt{name=a,type=kotlin.Int}");
                                     assertThat(variable.getInitializer()).isInstanceOf(J.MethodInvocation.class);
                                     assertThat(((J.MethodInvocation) variable.getInitializer()).getMethodType().toString())
-                                      .isEqualTo("kotlin.Triple{name=component1,return=kotlin.Int,parameters=[]}");
+                                      .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=component1,return=kotlin.Int,parameters=[]}");
                                 }
                                 case "b" -> {
                                     assertThat(variable.getVariableType().toString())
                                       .isEqualTo("openRewriteFile0Kt{name=b,type=kotlin.Int}");
                                     assertThat(variable.getInitializer()).isInstanceOf(J.MethodInvocation.class);
                                     assertThat(((J.MethodInvocation) variable.getInitializer()).getMethodType().toString())
-                                      .isEqualTo("kotlin.Triple{name=component2,return=kotlin.Int,parameters=[]}");
+                                      .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=component2,return=kotlin.Int,parameters=[]}");
                                 }
                                 case "c" -> {
                                     assertThat(variable.getVariableType().toString())
                                       .isEqualTo("openRewriteFile0Kt{name=c,type=kotlin.Int}");
                                     assertThat(variable.getInitializer()).isInstanceOf(J.MethodInvocation.class);
                                     assertThat(((J.MethodInvocation) variable.getInitializer()).getMethodType().toString())
-                                      .isEqualTo("kotlin.Triple{name=component3,return=kotlin.Int,parameters=[]}");
+                                      .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=component3,return=kotlin.Int,parameters=[]}");
                                 }
                             }
                             return super.visitVariable(variable, found);
