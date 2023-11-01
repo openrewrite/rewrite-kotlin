@@ -121,14 +121,14 @@ public class KotlinTypeMappingTest {
 
         JavaType.FullyQualified declaringType = property.getGetter().getMethodType().getDeclaringType();
         assertThat(declaringType.getFullyQualifiedName()).isEqualTo("org.openrewrite.kotlin.KotlinTypeGoat");
-        assertThat(property.getGetter().getMethodType().getName()).isEqualTo("accessor"); // FIXME
+        assertThat(property.getGetter().getMethodType().getName()).isEqualTo("accessor");
         assertThat(property.getGetter().getMethodType().getReturnType()).isEqualTo(id.getType());
         assertThat(property.getGetter().getName().getType()).isEqualTo(property.getGetter().getMethodType());
         assertThat(property.getGetter().getMethodType().toString().substring(declaringType.toString().length())).isEqualTo("{name=accessor,return=kotlin.Int,parameters=[]}");
 
         declaringType = property.getSetter().getMethodType().getDeclaringType();
         assertThat(declaringType.getFullyQualifiedName()).isEqualTo("org.openrewrite.kotlin.KotlinTypeGoat");
-        assertThat(property.getSetter().getMethodType().getName()).isEqualTo("accessor"); // FIXME
+        assertThat(property.getSetter().getMethodType().getName()).isEqualTo("accessor");
         assertThat(property.getSetter().getMethodType()).isEqualTo(property.getSetter().getName().getType());
         assertThat(property.getSetter().getMethodType().toString().substring(declaringType.toString().length())).isEqualTo("{name=accessor,return=kotlin.Unit,parameters=[kotlin.Int]}");
     }
@@ -332,7 +332,6 @@ public class KotlinTypeMappingTest {
         assertThat(clazzMethod.getAnnotations().get(0).getClassName()).isEqualTo("AnnotationWithRuntimeRetention");
     }
 
-    @ExpectedToFail("Enable when we switch to IR parser.")
     @Test
     void receiver() {
         JavaType.Method receiverMethod = methodType("receiver");
@@ -436,7 +435,7 @@ public class KotlinTypeMappingTest {
                         public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean found) {
                             if (methodMatcher.matches(method)) {
                                 assertThat(method.getMethodType().toString())
-                                  .isEqualTo("kotlin.collections.CollectionsKt{name=listOf,return=kotlin.collections.List<kotlin.Pair<kotlin.String, Generic{kotlin.Comparable<Generic{*}> & java.io.Serializable}>>,parameters=[kotlin.Array<Generic{? extends Generic{T}}>]}");
+                                  .isEqualTo("kotlin.collections.CollectionsKt{name=listOf,return=kotlin.collections.List<kotlin.Pair<kotlin.String, Generic{kotlin.Comparable<Generic{?}> & java.io.Serializable}>>,parameters=[kotlin.Array<Generic{? extends kotlin.Pair<kotlin.String, Generic{kotlin.Comparable<Generic{?}> & java.io.Serializable}>}>]}");
                                 found.set(true);
                             }
                             return super.visitMethodInvocation(method, found);
@@ -462,9 +461,9 @@ public class KotlinTypeMappingTest {
                         public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicBoolean found) {
                             if ("entries".equals(fieldAccess.getSimpleName())) {
                                 assertThat(fieldAccess.getName().getType().toString())
-                                  .isEqualTo("kotlin.collections.Set<kotlin.collections.Map$Entry<Generic{*}, kotlin.Any>>");
+                                  .isEqualTo("kotlin.collections.Set<kotlin.collections.Map$Entry<Generic{?}, kotlin.Any>>");
                                 assertThat(fieldAccess.getName().getFieldType().toString())
-                                  .isEqualTo("kotlin.collections.Map<Generic{*}, kotlin.Any>{name=entries,type=kotlin.collections.Set<kotlin.collections.Map$Entry<Generic{*}, kotlin.Any>>}");
+                                  .isEqualTo("kotlin.collections.Map{name=entries,type=kotlin.collections.Set<kotlin.collections.Map$Entry<Generic{?}, kotlin.Any>>}");
                                 found.set(true);
                             }
                             return super.visitFieldAccess(fieldAccess, found);
@@ -498,7 +497,7 @@ public class KotlinTypeMappingTest {
                         @Override
                         public K.When visitWhen(K.When when, AtomicBoolean found) {
                             if (when.getType() instanceof JavaType.GenericTypeVariable) {
-                                assertThat(when.getType().toString()).isEqualTo("Generic{kotlin.Comparable<Generic{*}> & java.io.Serializable}");
+                                assertThat(when.getType().toString()).isEqualTo("Generic{kotlin.Comparable<Generic{?}> & java.io.Serializable}");
                                 found.set(true);
                             }
                             return super.visitWhen(when, found);
@@ -530,8 +529,8 @@ public class KotlinTypeMappingTest {
                         @Override
                         public J.NewClass visitNewClass(J.NewClass newClass, AtomicBoolean found) {
                             if ("Triple".equals(((J.Identifier) newClass.getClazz()).getSimpleName())) {
-                                assertThat(newClass.getClazz().getType().toString()).isEqualTo("kotlin.Triple<Generic{A}, Generic{B}, Generic{C}>");
-                                assertThat(newClass.getConstructorType().toString()).isEqualTo("kotlin.Triple{name=<constructor>,return=kotlin.Triple,parameters=[Generic{A},Generic{B},Generic{C}]}");
+                                assertThat(newClass.getClazz().getType().toString()).isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>");
+                                assertThat(newClass.getConstructorType().toString()).isEqualTo("kotlin.Triple{name=<constructor>,return=kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>,parameters=[kotlin.Int,kotlin.Int,kotlin.Int]}");
                             }
                             return super.visitNewClass(newClass, found);
                         }
@@ -546,21 +545,21 @@ public class KotlinTypeMappingTest {
                                       .isEqualTo("openRewriteFile0Kt{name=a,type=kotlin.Int}");
                                     assertThat(variable.getInitializer()).isInstanceOf(J.MethodInvocation.class);
                                     assertThat(((J.MethodInvocation) variable.getInitializer()).getMethodType().toString())
-                                      .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=component1,return=kotlin.Int,parameters=[]}");
+                                      .isEqualTo("kotlin.Triple{name=component1,return=kotlin.Int,parameters=[]}");
                                 }
                                 case "b" -> {
                                     assertThat(variable.getVariableType().toString())
                                       .isEqualTo("openRewriteFile0Kt{name=b,type=kotlin.Int}");
                                     assertThat(variable.getInitializer()).isInstanceOf(J.MethodInvocation.class);
                                     assertThat(((J.MethodInvocation) variable.getInitializer()).getMethodType().toString())
-                                      .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=component2,return=kotlin.Int,parameters=[]}");
+                                      .isEqualTo("kotlin.Triple{name=component2,return=kotlin.Int,parameters=[]}");
                                 }
                                 case "c" -> {
                                     assertThat(variable.getVariableType().toString())
                                       .isEqualTo("openRewriteFile0Kt{name=c,type=kotlin.Int}");
                                     assertThat(variable.getInitializer()).isInstanceOf(J.MethodInvocation.class);
                                     assertThat(((J.MethodInvocation) variable.getInitializer()).getMethodType().toString())
-                                      .isEqualTo("kotlin.Triple<kotlin.Int, kotlin.Int, kotlin.Int>{name=component3,return=kotlin.Int,parameters=[]}");
+                                      .isEqualTo("kotlin.Triple{name=component3,return=kotlin.Int,parameters=[]}");
                                 }
                             }
                             return super.visitVariable(variable, found);

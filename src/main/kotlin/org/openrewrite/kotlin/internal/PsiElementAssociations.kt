@@ -19,8 +19,11 @@ import org.jetbrains.kotlin.KtFakeSourceElement
 import org.jetbrains.kotlin.KtRealPsiSourceElement
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.fir.FirElement
+import org.jetbrains.kotlin.fir.FirPackageDirective
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFile
+import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirVariable
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.impl.FirElseIfTrueCondition
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
@@ -29,19 +32,15 @@ import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.resolved
 import org.jetbrains.kotlin.fir.resolve.dfa.DfaInternals
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
+import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor
 import org.jetbrains.kotlin.psi
-import org.jetbrains.kotlin.psi.KtArrayAccessExpression
-import org.jetbrains.kotlin.psi.KtBinaryExpression
-import org.jetbrains.kotlin.psi.KtDeclaration
-import org.jetbrains.kotlin.psi.KtExpression
-import org.jetbrains.kotlin.psi.KtPackageDirective
-import org.jetbrains.kotlin.psi.KtPostfixExpression
-import org.jetbrains.kotlin.psi.KtPrefixExpression
-import org.jetbrains.kotlin.psi.KtWhenConditionInRange
+import org.jetbrains.kotlin.psi.*
 import org.openrewrite.java.tree.JavaType
 import org.openrewrite.kotlin.KotlinTypeMapping
 
@@ -136,26 +135,88 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
         }
     }
 
-    fun type(psiElement: PsiElement, ownerFallBack: FirBasedSymbol<*>?): JavaType? {
+    fun type(psiElement: PsiElement, owner: FirElement?): JavaType? {
         val fir = primary(psiElement)
-        return if (fir != null) typeMapping.type(fir, ownerFallBack) else JavaType.Unknown.getInstance()
-    }
-
-    fun symbol(psi: KtDeclaration?): FirBasedSymbol<*>? {
-        val fir = fir(psi) { it is FirDeclaration }
-        return if (fir != null) (fir as FirDeclaration).symbol else null
-    }
-
-    fun symbol(psi: KtExpression?): FirBasedSymbol<*>? {
-        val fir = fir(psi) { it is FirResolvedNamedReference }
-        return if (fir is FirResolvedNamedReference) fir.resolvedSymbol else null
+        return if (fir != null) typeMapping.type(fir, owner) else null
     }
 
     fun primary(psiElement: PsiElement) =
         fir(psiElement) { it.source is KtRealPsiSourceElement }
 
-    fun component(psiElement: PsiElement) =
-        fir(psiElement) { it is FirFunctionCall}
+    fun methodDeclarationType(psi: PsiElement): JavaType.Method? {
+        return when (val fir = primary(psi)) {
+            is FirFunction -> typeMapping.methodDeclarationType(fir, null)
+            is FirAnonymousFunctionExpression -> typeMapping.methodDeclarationType(fir.anonymousFunction, null)
+            else -> null
+        }
+    }
+
+    @OptIn(SymbolInternals::class)
+    fun methodInvocationType(psi: PsiElement): JavaType.Method? {
+        return when (psi) {
+            is KtDestructuringDeclarationEntry -> {
+                val fir = fir(psi) { it is FirComponentCall }
+                when (fir) {
+                    is FirFunctionCall -> typeMapping.methodInvocationType(fir)
+                    else -> null
+                }
+            }
+            else -> {
+                when (val fir = primary(psi)) {
+                    is FirResolvedNamedReference -> {
+                        when (val sym = fir.resolvedSymbol) {
+                            is FirFunctionSymbol<*> -> typeMapping.methodDeclarationType(sym.fir, null)
+                            else -> null
+                        }
+                    }
+
+                    is FirFunctionCall -> {
+                        typeMapping.methodInvocationType(fir)
+                    }
+
+                    is FirSafeCallExpression -> {
+                        when (val selector = fir.selector) {
+                            is FirFunctionCall -> typeMapping.methodInvocationType(selector)
+                            else -> null
+                        }
+                    }
+
+                    else -> null
+                }
+            }
+        }
+    }
+
+    fun primitiveType(psi: PsiElement): JavaType.Primitive {
+        return when (val fir = primary(psi)) {
+            is FirConstExpression<*> -> {
+                typeMapping.primitive(fir)
+            }
+            else -> JavaType.Primitive.None
+        }
+    }
+
+    @OptIn(SymbolInternals::class)
+    fun variableType(psi: PsiElement, parent: FirElement?): JavaType.Variable? {
+        return when (val fir = primary(psi)) {
+            is FirVariable -> typeMapping.variableType(fir, parent)
+            is FirResolvedNamedReference -> {
+                when (val sym = fir.resolvedSymbol) {
+                    is FirVariableSymbol<*> -> typeMapping.variableType(sym.fir, null)
+                    else -> null
+                }
+            }
+            is FirErrorNamedReference, is FirPackageDirective -> null
+            is FirResolvedQualifier -> {
+                // TODO.
+                if (fir.classId != null) {
+                    println()
+                }
+                null
+            }
+            else -> null
+        }
+    }
 
     fun fir(psi: PsiElement?, filter: (FirElement) -> Boolean) : FirElement? {
         var p = psi
