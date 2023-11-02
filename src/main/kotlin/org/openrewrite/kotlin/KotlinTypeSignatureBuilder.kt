@@ -74,7 +74,10 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
             }
             is FirBlock -> {
                 // AssignmentOperationTest#augmentedAssignmentAnnotation
-                TODO("There is an issue in either the KotlinTreeParserVisitor or the PSI -> FIR relationship.")
+                // There is an issue in the KotlinTreeParserVisitor, PsiElementVisitor,
+                // or no FIR element associated to the Kt that requested a type.
+                // Example: AssignmentOperationTest#augmentedAssignmentAnnotation
+                "{undefined}"
             }
             is FirClass -> {
                 if (type.typeParameters.isNotEmpty()) parameterizedSignature(type) else classSignature(type)

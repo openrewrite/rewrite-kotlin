@@ -873,7 +873,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         if (constructor.getModifierList() != null) {
             KtModifierList ktModifierList = constructor.getModifierList();
-            modifiers.addAll(mapModifiers(ktModifierList, emptyList(), emptyList(), data));
+            modifiers.addAll(mapModifiers(ktModifierList, leadingAnnotations, emptyList(), data));
         }
 
         if (constructor.getConstructorKeyword() != null) {

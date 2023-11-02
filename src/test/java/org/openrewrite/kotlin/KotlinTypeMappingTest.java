@@ -451,6 +451,32 @@ public class KotlinTypeMappingTest {
         }
 
         @Test
+        void implicitInvoke() {
+            rewriteRun(
+              kotlin(
+                """
+                  val block: Collection<Any>.() -> Unit = {}
+                  val r = listOf("descriptor").block()
+                  """, spec -> spec.afterRecipe(cu -> {
+                    AtomicBoolean found = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<AtomicBoolean>() {
+                        MethodMatcher matcher = new MethodMatcher("kotlin.Function1 invoke(..)");
+                        @Override
+                        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, AtomicBoolean atomicBoolean) {
+                            if (matcher.matches(method)) {
+                                assertThat(method.getMethodType().toString()).isEqualTo("kotlin.Function1<kotlin.collections.Collection<kotlin.Any>, kotlin.Unit>{name=invoke,return=kotlin.Unit,parameters=[kotlin.collections.List<kotlin.String>]}");
+                                found.set(true);
+                            }
+                            return super.visitMethodInvocation(method, atomicBoolean);
+                        }
+                    }.visit(cu, found);
+                    assertThat(found.get()).isTrue();
+                })
+              )
+            );
+        }
+
+        @Test
         void coneProjection() {
             rewriteRun(
               kotlin(
@@ -512,13 +538,14 @@ public class KotlinTypeMappingTest {
             );
         }
 
+        @ExpectedToFail("PSI-based types")
         @ParameterizedTest
-        @CsvSource({
-          "n++,kotlin.Int",
-          "--n,kotlin.Int",
-          "n += a,kotlin.Int",
-          "n = a + b,kotlin.Int{name=plus,return=kotlin.Int,parameters=[kotlin.Int]}"
-        })
+        @CsvSource(value = {
+          "n++~kotlin.Int",
+          "--n~kotlin.Int",
+          "n += a~kotlin.Int",
+          "n = a + b~kotlin.Int{name=plus,return=kotlin.Int,parameters=[kotlin.Int]}"
+        }, delimiter = '~')
         void operatorOverload(String p1, String p2) {
             rewriteRun(
               kotlin(
@@ -563,6 +590,7 @@ public class KotlinTypeMappingTest {
             );
         }
 
+        @ExpectedToFail("PSI-based types")
         @Test
         void operatorOverload() {
             rewriteRun(

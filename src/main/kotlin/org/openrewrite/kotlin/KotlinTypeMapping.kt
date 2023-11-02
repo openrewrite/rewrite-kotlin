@@ -111,7 +111,13 @@ class KotlinTypeMapping(
                 type(type.anonymousFunction, parent, signature)
             }
 
-            is FirBlock -> TODO("This is likely an issue in the KotlinTreeParserVisitor or the PSI to FIR relationship.")
+            is FirBlock -> {
+                // There is an issue in the KotlinTreeParserVisitor, PsiElementVisitor,
+                // or no FIR element associated to the Kt that requested a type.
+                // Example: AssignmentOperationTest#augmentedAssignmentAnnotation
+                JavaType.Unknown.getInstance()
+            }
+
             is FirErrorNamedReference -> {
                 JavaType.Unknown.getInstance()
             }

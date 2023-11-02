@@ -20,10 +20,7 @@ import org.jetbrains.kotlin.KtRealPsiSourceElement
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirPackageDirective
-import org.jetbrains.kotlin.fir.declarations.FirDeclaration
-import org.jetbrains.kotlin.fir.declarations.FirFile
-import org.jetbrains.kotlin.fir.declarations.FirFunction
-import org.jetbrains.kotlin.fir.declarations.FirVariable
+import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.impl.FirElseIfTrueCondition
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
@@ -31,7 +28,6 @@ import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.resolved
 import org.jetbrains.kotlin.fir.resolve.dfa.DfaInternals
-import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
@@ -147,7 +143,9 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
         return when (val fir = primary(psi)) {
             is FirFunction -> typeMapping.methodDeclarationType(fir, null)
             is FirAnonymousFunctionExpression -> typeMapping.methodDeclarationType(fir.anonymousFunction, null)
-            else -> null
+            else -> {
+                null
+            }
         }
     }
 
@@ -158,7 +156,9 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                 val fir = fir(psi) { it is FirComponentCall }
                 when (fir) {
                     is FirFunctionCall -> typeMapping.methodInvocationType(fir)
-                    else -> null
+                    else -> {
+                        null
+                    }
                 }
             }
             else -> {
@@ -166,7 +166,9 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                     is FirResolvedNamedReference -> {
                         when (val sym = fir.resolvedSymbol) {
                             is FirFunctionSymbol<*> -> typeMapping.methodDeclarationType(sym.fir, null)
-                            else -> null
+                            else -> {
+                                null
+                            }
                         }
                     }
 
@@ -177,11 +179,15 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                     is FirSafeCallExpression -> {
                         when (val selector = fir.selector) {
                             is FirFunctionCall -> typeMapping.methodInvocationType(selector)
-                            else -> null
+                            else -> {
+                                null
+                            }
                         }
                     }
 
-                    else -> null
+                    else -> {
+                        null
+                    }
                 }
             }
         }
@@ -207,13 +213,6 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                 }
             }
             is FirErrorNamedReference, is FirPackageDirective -> null
-            is FirResolvedQualifier -> {
-                // TODO.
-                if (fir.classId != null) {
-                    println()
-                }
-                null
-            }
             else -> null
         }
     }
@@ -231,15 +230,19 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
         val allFirInfos = elementMap[p]!!
         val directFirInfos = allFirInfos.filter { filter.invoke(it.fir) }
         return if (directFirInfos.isNotEmpty())
+            // It might be more reliable to have explicit mappings in case something changes.
             directFirInfos[0].fir
         else if (allFirInfos.isNotEmpty()) {
-            return when (psi) {
-                is KtPrefixExpression -> allFirInfos.first { it.fir is FirVariableAssignment }.fir
-                is KtPostfixExpression -> allFirInfos.first { it.fir is FirResolvedTypeRef }.fir
-                is KtArrayAccessExpression -> allFirInfos.firstOrNull { it.fir is FirResolvedNamedReference && (it.fir.name.asString() == "get" || it.fir.name.asString() == "set") }?.fir
-                is KtWhenConditionInRange, is KtBinaryExpression -> allFirInfos.first { it.fir is FirFunctionCall }.fir
+            return when {
+                allFirInfos.size == 1 -> allFirInfos[0].fir
+                // There isn't a RealPsiElement associated to the KT, so, we find the associated FIR element.
+                p is KtArrayAccessExpression -> allFirInfos.firstOrNull { it.fir is FirResolvedNamedReference && (it.fir.name.asString() == "get" || it.fir.name.asString() == "set") }?.fir
+                p is KtPrefixExpression -> allFirInfos.first { it.fir is FirVariableAssignment }.fir
+                p is KtPostfixExpression -> allFirInfos.first { it.fir is FirResolvedTypeRef }.fir
+                p is KtTypeReference -> allFirInfos.first { it.fir is FirResolvedTypeRef }.fir
+                p is KtWhenConditionInRange || p is KtBinaryExpression -> allFirInfos.first { it.fir is FirFunctionCall }.fir
                 else -> {
-                    allFirInfos[0].fir
+                    throw IllegalStateException("Unable to determine the FIR element associated to the PSI." + if (psi == null) "null element" else "original PSI: ${psi.javaClass.name}, mapped PSI: ${p.javaClass.name}")
                 }
             }
         }
@@ -325,10 +328,10 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
             if (firElement is FirSingleExpressionBlock) {
                 return PsiTreePrinter.firElementToString(firElement.statement)
             } else  if (firElement is FirElseIfTrueCondition) {
-                return "true";
+                return "true"
             }
 
-            return "";
+            return ""
         }
     }
 }
