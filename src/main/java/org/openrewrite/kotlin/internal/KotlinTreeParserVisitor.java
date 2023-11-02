@@ -18,7 +18,6 @@ package org.openrewrite.kotlin.internal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.KtNodeTypes;
 import org.jetbrains.kotlin.com.intellij.lang.ASTNode;
-import org.jetbrains.kotlin.com.intellij.openapi.util.Pair;
 import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange;
 import org.jetbrains.kotlin.com.intellij.psi.*;
 import org.jetbrains.kotlin.com.intellij.psi.impl.source.tree.LeafPsiElement;
