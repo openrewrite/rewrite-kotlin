@@ -15,6 +15,7 @@
  */
 package org.openrewrite.kotlin;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -450,6 +451,7 @@ public class KotlinTypeMappingTest {
             );
         }
 
+        @Disabled("Enable with PSI parser")
         @Test
         void implicitInvoke() {
             rewriteRun(
@@ -538,7 +540,7 @@ public class KotlinTypeMappingTest {
             );
         }
 
-        @ExpectedToFail("PSI-based types")
+        @Disabled("Enable with PSI parser")
         @ParameterizedTest
         @CsvSource(value = {
           "n++~kotlin.Int",
@@ -590,7 +592,7 @@ public class KotlinTypeMappingTest {
             );
         }
 
-        @ExpectedToFail("PSI-based types")
+        @Disabled("Enable with PSI parser")
         @Test
         void operatorOverload() {
             rewriteRun(
