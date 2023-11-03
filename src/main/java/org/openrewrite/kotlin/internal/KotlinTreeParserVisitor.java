@@ -536,8 +536,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
             J.Lambda.Parameters params = new J.Lambda.Parameters(randomId(), prefix(ktFunctionLiteral.getValueParameterList()), Markers.EMPTY, false, valueParams);
 
-            J.Block body = requireNonNull(ktFunctionLiteral.getBodyExpression()).accept(this, data)
-                    .withPrefix(prefix(ktFunctionLiteral.getBodyExpression()));
+            J.Block body = (J.Block) requireNonNull(ktFunctionLiteral.getBodyExpression()).accept(this, data);
             body = body.withEnd(prefix(ktFunctionLiteral.getRBrace()));
 
             return new J.Lambda(
@@ -1625,7 +1624,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         for (int i = 0; i < declarations.size(); i++) {
             boolean last = i == declarations.size() - 1;
             KtDeclaration declaration = declarations.get(i);
-            Statement statement = convertToStatement(declaration.accept(this, data));
+            Statement statement = convertToStatement(declaration.accept(this, data).withPrefix(deepPrefix(declaration)));
             if (last) {
                 eof = endFixAndSuffix(declaration);
             }
@@ -1801,18 +1800,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<JRightPadded<Statement>> statements = new ArrayList<>();
         for (KtExpression stmt : expression.getStatements()) {
             J exp = stmt.accept(this, data);
-            Statement statement = convertToStatement(exp);
+            Statement statement = convertToStatement(exp).withPrefix(deepPrefix(stmt));
 
             JRightPadded<Statement> build = maybeSemicolon(statement, stmt);
             statements.add(build);
         }
 
         boolean hasBraces = expression.getLBrace() != null;
-        Space end = expression.getLBrace() != null ? prefix(expression.getRBrace()) : suffix(expression);
+        Space end = hasBraces ? deepPrefix(expression.getRBrace()) : suffix(expression);
 
         return new J.Block(
                 randomId(),
-                prefix(expression),
+                hasBraces || expression.getStatements().isEmpty() ? prefix(expression) : Space.EMPTY,
                 hasBraces ? Markers.EMPTY : Markers.EMPTY.addIfAbsent(new OmitBraces(randomId())),
                 JRightPadded.build(false),
                 statements,
@@ -2135,7 +2134,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (d instanceof KtEnumEntry) {
                 continue;
             }
-            list.add(maybeSemicolon(convertToStatement(d.accept(this, data)), d));
+            list.add(maybeSemicolon(convertToStatement(d.accept(this, data)).withPrefix(deepPrefix(d)), d));
         }
 
         return new J.Block(
@@ -2830,7 +2829,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         J.VariableDeclarations variableDeclarations = new J.VariableDeclarations(
                 Tree.randomId(),
-                prefixAndInfix(property), // overlaps with right-padding of previous statement
+                prefix(property), // overlaps with right-padding of previous statement
                 markers,
                 leadingAnnotations,
                 modifiers,
@@ -3341,7 +3340,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return new JRightPadded<>(j, prefix(maybeSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
         }
 
-        return JRightPadded.build(j);
+        return new JRightPadded<>(j, Space.EMPTY, Markers.EMPTY);
     }
 
     private <T> JLeftPadded<T> padLeft(Space left, T tree) {
@@ -3378,7 +3377,31 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         return prefix(element, null);
     }
 
-    @NotNull
+    private Space deepPrefix(@Nullable PsiElement element) {
+        if (element == null) {
+            return Space.EMPTY;
+        }
+
+        PsiElement prev = element;
+        element = PsiTreeUtil.prevLeaf(prev);
+        while (element != null && isSpace(element.getNode())) {
+            prev = element;
+            element = PsiTreeUtil.prevLeaf(prev);
+        }
+        if (!isSpace(prev.getNode())) {
+            element = prev;
+            while (element != null && !(element instanceof LeafPsiElement) && !(element instanceof PsiComment)) {
+                if (element.getFirstChild() != null) {
+                    element = element.getFirstChild();
+                } else {
+                    element = PsiTreeUtil.nextLeaf(element);
+                }
+            }
+            prev = element;
+        }
+        return deepSpace(prev);
+    }
+
     private Space prefix(@Nullable PsiElement element, @Nullable Set<PsiElement> consumedSpaces) {
         if (element == null) {
             return Space.EMPTY;
@@ -3811,9 +3834,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         return space;
     }
 
-    @Nullable
-    private PsiElement next(PsiElement node) {
-        return node.getNextSibling();
+    private Space deepSpace(@Nullable PsiElement node) {
+        Space space = Space.EMPTY;
+        while (node != null) {
+            if (isSpace(node.getNode())) {
+                space = merge(space, toSpace(node));
+            } else {
+                break;
+            }
+            node = PsiTreeUtil.nextLeaf(node);
+        }
+        return space;
     }
 
     private Space merge(@Nullable Space s1, @Nullable Space s2) {
