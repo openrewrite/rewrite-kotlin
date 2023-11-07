@@ -309,7 +309,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         randomId(),
                         prefix(catchClause.getParameterList()),
                         Markers.EMPTY,
-                        padRight(paramDecl, prefix(requireNonNull(catchClause.getParameterList()).getRightParenthesis()))
+                        padRight(paramDecl, endFixAndSuffix(catchClause.getCatchParameter()))
                 ),
                 body
         );
@@ -545,7 +545,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             J.Lambda.Parameters params = new J.Lambda.Parameters(randomId(), prefix(ktFunctionLiteral.getValueParameterList()), Markers.EMPTY, false, valueParams);
 
             J.Block body = (J.Block) requireNonNull(ktFunctionLiteral.getBodyExpression()).accept(this, data);
-            body = body.withEnd(prefix(ktFunctionLiteral.getRBrace()));
+            body = body.withEnd(endFixAndSuffix(ktFunctionLiteral.getBodyExpression()));
 
             return new J.Lambda(
                     randomId(),
@@ -1634,6 +1634,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             boolean last = i == declarations.size() - 1;
             KtDeclaration declaration = declarations.get(i);
             Statement statement = convertToStatement(declaration.accept(this, data));
+            if (i == 0 && file.getImportList() != null) {
+                statement = statement.withPrefix(merge(endFix(file.getImportList().getLastChild()), statement.getPrefix()));
+            }
             if (last) {
                 eof = endFixAndSuffix(declaration);
             }
@@ -1650,7 +1653,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 charsetBomMarked,
                 null,
                 annotations,
-                pkg,
+                pkg != null && imports.isEmpty() && statements.isEmpty() ? pkg.withAfter(endFix(file)) : pkg,
                 imports,
                 statements,
                 eof
@@ -1798,14 +1801,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<JRightPadded<Statement>> statements = new ArrayList<>();
         for (KtExpression stmt : expression.getStatements()) {
             J exp = stmt.accept(this, data);
-            Statement statement = convertToStatement(exp);
+            Statement statement = convertToStatement(exp).withPrefix(endFixPrefixAndInfix(stmt));
 
             JRightPadded<Statement> build = maybeSemicolon(statement, stmt);
             statements.add(build);
         }
 
         boolean hasBraces = expression.getLBrace() != null;
-        Space end = hasBraces ? endFixPrefixAndInfix(expression.getRBrace()) : suffix(expression);
+        Space end = hasBraces ? endFixPrefixAndInfix(expression.getRBrace()) : endFix(expression);
 
         Space prefix = prefix(expression);
         Space blockPrefix = prefix;
@@ -2473,7 +2476,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         } else {
             List<JRightPadded<Statement>> rps = new ArrayList<>();
             for (KtParameter param : ktParameters) {
-                rps.add(padRight(convertToStatement(param.accept(this, data)), suffix(param)));
+                rps.add(padRight(convertToStatement(param.accept(this, data)), endFixAndSuffix(param)));
             }
             params = JContainer.build(prefix(function.getValueParameterList()), rps, Markers.EMPTY);
         }
