@@ -38,6 +38,7 @@ class AnonymousFunctionTest implements RewriteTest {
             """
               val alwaysTrue =  fun   (    ) =  true
               """
+//            , spec -> spec.afterRecipe(spaceConscious(spec))
           )
         );
     }
