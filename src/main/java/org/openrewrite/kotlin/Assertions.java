@@ -32,6 +32,7 @@ import org.openrewrite.kotlin.tree.KSpace;
 import org.openrewrite.marker.Markers;
 import org.openrewrite.test.SourceSpec;
 import org.openrewrite.test.SourceSpecs;
+import org.openrewrite.test.UncheckedConsumer;
 import org.opentest4j.AssertionFailedError;
 
 import java.util.Collections;
@@ -181,13 +182,19 @@ public final class Assertions {
         };
     }
 
+    public static UncheckedConsumer<SourceSpec<?>> spaceConscious() {
+        return source -> {
+            if (source.getSourceFileType() == K.CompilationUnit.class) {
+                SourceSpec<K.CompilationUnit> kotlinSourceSpec = (SourceSpec<K.CompilationUnit>) source;
+                kotlinSourceSpec.afterRecipe(spaceConscious(kotlinSourceSpec));
+            }
+        };
+    }
+
     public static ThrowingConsumer<K.CompilationUnit> spaceConscious(SourceSpec<K.CompilationUnit> spec) {
         return cu -> {
             K.CompilationUnit visited = (K.CompilationUnit) new KotlinIsoVisitor<Integer>() {
-                final int max = 20;
-                final String buf = "\n                     ";
                 int id = 0;
-
 
                 @Override
                 public Space visitSpace(Space space, KSpace.Location loc, Integer integer) {
@@ -200,9 +207,6 @@ public final class Assertions {
                         return space;
                     }
                     return space.withComments(Collections.singletonList(new TextComment(true, Integer.toString(id++), "", Markers.EMPTY)));
-//                    boolean nl = space.getWhitespace().indexOf('\n') >= 0;
-//                    String ws = buf.substring(nl ? 0 : 1, (id++ % max) + 2);
-//                    return space.withWhitespace(ws);
                 }
 
                 @Override
@@ -223,7 +227,6 @@ public final class Assertions {
                     } else if (getCursor().firstEnclosing(J.Package.class) != null) {
                         return space;
                     }
-//                    return space.withComments(Collections.singletonList(new TextComment(true, Integer.toString(id++), "", Markers.EMPTY)));
                     return next(space);
                 }
             }.visit(cu, 0);
@@ -233,7 +236,7 @@ public final class Assertions {
                 ctx.putMessage(ExecutionContext.REQUIRE_PRINT_EQUALS_INPUT, false);
                 SourceFile cu2 = spec.getParser().build().parse(ctx, s).findFirst().get();
                 String s1 = cu2.printAll();
-                assertEquals(s, s1, "Parser is not space print idempotent");
+                assertEquals(s, s1, "Parser is not whitespace print idempotent");
             } catch (Exception e) {
                 fail(e);
             }

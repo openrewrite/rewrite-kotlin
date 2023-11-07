@@ -23,6 +23,13 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class AnonymousFunctionTest implements RewriteTest {
 
+//    @Override
+//    public void defaults(RecipeSpec spec) {
+//        spec
+//          .recipe(Recipe.noop())
+//          .allSources(spaceConscious());
+//    }
+
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/287")
     void noArgs() {
