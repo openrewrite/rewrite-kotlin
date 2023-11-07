@@ -466,7 +466,7 @@ class AnnotationTest implements RewriteTest {
     }
 
     @Test
-    void AnntationEntryTrailingComma() {
+    void AnnotationEntryTrailingComma() {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder().classpath("jackson-annotations")),
           kotlin(
@@ -487,6 +487,46 @@ class AnnotationTest implements RewriteTest {
                   @Suppress("INAPPLICABLE_JVM_NAME")
                   @get :  JvmName("getSeeds")
                   public val seeds: List<Int?>?
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void collectionLiteralExpression() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder().classpath("jackson-annotations")),
+          kotlin(
+            """
+              import com.fasterxml.jackson.`annotation`.JsonSubTypes
+
+              @JsonSubTypes(value = [
+                JsonSubTypes .  Type(value = Employee::class, name = "Employee")
+              ])
+              public sealed interface Person {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void commentBeforeGetter() {
+        rewriteRun(
+          kotlin(
+            """
+              public class Movie(
+                  title: () -> String? = { throw IllegalStateException("Field `title` was not requested") }
+              ) {
+                  private val _title: () -> String? = title
+
+                  /**
+                   * The original, non localized title with some specials characters : %!({[*$,.:;.
+                   */
+                  @get:JvmName("getTitle")
+                  public val title: String?
+                      get() = _title.invoke()
               }
               """
           )

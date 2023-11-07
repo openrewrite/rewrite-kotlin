@@ -16,36 +16,32 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.Issue;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-class ExtensionFunctionTest implements RewriteTest {
+class ParenthesesTest implements RewriteTest {
 
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/129")
+    @ExpectedToFail
     @Test
-    void extensionFunction() {
+    void variableTypeInParentheses() {
         rewriteRun(
           kotlin(
             """
-              fun String . escape ( ) = this . replace ( "a" , "b" )
-              fun String . escape2 ( ) =  replace ( "a" , "b" )
+              class A {
+                  internal fun <T> parseMappedType(
+                      mappedType: (String),
+                      toTypeName: (String.(isGenericParam: Boolean) -> T),
+                      parameterize: ((current: Pair<T, MutableList<T>>) -> T),
+                      onCloseBracketCallBack: ((current: Pair<T, MutableList<T>>, typeString: String) -> Unit)
+                  ): T? {
+                      return null
+                  }
+              }
               """
           )
         );
     }
 
-    @Test
-    void extensionFunctionCall() {
-        rewriteRun(
-          kotlin(
-            """
-              fun String.foo(f: String, b: (String /*c*/ ) -> Unit) = b(this.replace("a", f))
-
-              val x = "a".foo("b") { s -> println(s) }
-              """
-          )
-        );
-    }
 }
