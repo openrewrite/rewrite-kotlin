@@ -601,7 +601,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 } else {
                     typeTree = (TypeTree) requireNonNull(ktParameter.getTypeReference()).accept(this, data);
                 }
-                params.add(maybeTrailingComma(ktParameter, padRight(typeTree.withPrefix(prefix(ktParameter)), suffix(ktParameter)), i == parameters.size() - 1));
+                params.add(maybeTrailingComma(ktParameter, padRight(typeTree.withPrefix(prefix(ktParameter)), endFixAndSuffix(ktParameter)), i == parameters.size() - 1));
             }
         }
 
@@ -3894,17 +3894,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return null;
         }
 
-        List<PsiElement> allChildren = new ArrayList<>();
-        Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(parent).iterator();
-        while (iterator.hasNext()) {
-            PsiElement it = iterator.next();
-            allChildren.add(it);
-        }
-
-        for (int i = allChildren.size() - 1; i > 0; i--) {
-            PsiElement element = allChildren.get(i);
-            if (isSpace(element.getNode())) {
-                ret = element;
+        for (PsiElement child = parent.getLastChild(); child != null; child = child.getPrevSibling()) {
+            if (isSpace(child.getNode())) {
+                ret = child;
             } else {
                 break;
             }
