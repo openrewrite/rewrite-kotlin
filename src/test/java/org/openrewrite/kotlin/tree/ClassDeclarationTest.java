@@ -18,7 +18,6 @@ package org.openrewrite.kotlin.tree;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
@@ -29,24 +28,6 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("ALL")
 class ClassDeclarationTest implements RewriteTest {
-
-    @Test
-    void crlf() {
-        rewriteRun(
-          kotlin(
-            "package some.other.name\r\n" + "class A { }\r\n" + "class B { }"
-          )
-        );
-    }
-
-    @Test
-    void consecutiveCRLF() {
-        rewriteRun(
-          kotlin(
-            "package some.other.name\r\n\r\n\r\n" + "class A { }\r\n\r\n\r\n" + "class B { }"
-          )
-        );
-    }
 
     @Test
     void whitespaceInPackage() {
@@ -66,6 +47,20 @@ class ClassDeclarationTest implements RewriteTest {
               import java . io . *
               
               class A
+              """
+          )
+        );
+    }
+
+    @Test
+    void annotatedConstructor() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {
+                  @Suppress("ALL") @Deprecated("",ReplaceWith("Any()")) constructor() {
+                  }
+              }
               """
           )
         );
@@ -162,7 +157,6 @@ class ClassDeclarationTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Fixed by PSI-based-parser")
     @Test
     void annotationClass() {
         rewriteRun(

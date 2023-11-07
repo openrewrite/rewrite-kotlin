@@ -21,12 +21,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.Statement;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -463,6 +461,34 @@ class AnnotationTest implements RewriteTest {
 
               %s
               """.formatted(input)
+          )
+        );
+    }
+
+    @Test
+    void AnntationEntryTrailingComma() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder().classpath("jackson-annotations")),
+          kotlin(
+            """
+              package org.openrewrite.kotlin
+
+              import com.fasterxml.jackson.`annotation`.JsonTypeInfo
+              import kotlin.Suppress
+              import kotlin.collections.List
+              import kotlin.jvm.JvmName
+
+              @JsonTypeInfo(
+                  use = JsonTypeInfo.Id.NAME,
+                  include = JsonTypeInfo.As.PROPERTY,
+                  property =  "__typename"   , // Trailing comma HERE
+              )
+              public sealed interface Fruit {
+                  @Suppress("INAPPLICABLE_JVM_NAME")
+                  @get :  JvmName("getSeeds")
+                  public val seeds: List<Int?>?
+              }
+              """
           )
         );
     }

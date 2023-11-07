@@ -16,12 +16,14 @@
 package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
@@ -55,6 +57,18 @@ public class AssertionsTest implements RewriteTest {
                 val b = 1
             }
             """
+          )
+        );
+    }
+
+    @ExpectedToFail
+    @Test
+    void invalidSyntax() {
+        rewriteRun(
+          kotlin(
+            """
+              a++
+              """
           )
         );
     }

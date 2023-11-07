@@ -16,41 +16,52 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.Issue;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-class ObjectExpressionTest implements RewriteTest {
+class CRLFTest implements RewriteTest {
 
     @Test
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/274")
-    void referenceToObjectField() {
+    void crlf() {
         rewriteRun(
           kotlin(
-            """
-              val x = object : Iterator<Any> {
-                  var elementsLeft = 1
-                  override fun hasNext(): Boolean = elementsLeft > 0
-                  override fun next(): String = "x"
-              }
-              """
+            "package some.other.name\r\n" + "class A { }\r\n" + "class B { }"
           )
         );
     }
 
     @Test
-    void objectInMethod() {
+    void consecutiveCRLF() {
         rewriteRun(
           kotlin(
-            """
-              fun test() {
-                  object : Runnable {
-                      override fun run() {
-                      }
-                  }
-              }
-              """
+            "package some.other.name\r\n\r\n\r\n" + "class A { }\r\n\r\n\r\n" + "class B { }"
+          )
+        );
+    }
+
+    @Test
+    void crlfAfterComment() {
+        rewriteRun(
+          kotlin(
+            "class Test \r\n {//some comment\r\n}"
+          )
+        );
+    }
+
+    @Test
+    void crlfInKdoc() {
+        String windowsJavadoc =
+          "/**\r\n" +
+          " *\r\n" +
+          " */\r\n" +
+          "class Test {\r\n" +
+          "}";
+
+        rewriteRun(
+          kotlin(
+            windowsJavadoc
           )
         );
     }

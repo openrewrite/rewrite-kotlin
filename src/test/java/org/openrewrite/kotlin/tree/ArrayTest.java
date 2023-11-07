@@ -16,7 +16,6 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
-import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
@@ -94,7 +93,6 @@ class ArrayTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Fixed by PSI-based-parser")
     @Test
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/291")
     void incrementArrayElement() {
@@ -108,7 +106,6 @@ class ArrayTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Fixed by PSI-based-parser")
     @Test
     void IndexedAccessOperator2D() {
         rewriteRun(
@@ -129,7 +126,6 @@ class ArrayTest implements RewriteTest {
         );
     }
 
-    @ExpectedToFail("Fixed by PSI-based-parser")
     @Test
     void IndexAccessOperatorMulD() {
         rewriteRun(

@@ -16,42 +16,24 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-class ObjectExpressionTest implements RewriteTest {
+class KDocTest implements RewriteTest {
 
     @Test
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/274")
-    void referenceToObjectField() {
+    void kdoc() {
         rewriteRun(
           kotlin(
             """
-              val x = object : Iterator<Any> {
-                  var elementsLeft = 1
-                  override fun hasNext(): Boolean = elementsLeft > 0
-                  override fun next(): String = "x"
-              }
+              /**
+               * comment
+               */
+               class Test
               """
           )
         );
     }
 
-    @Test
-    void objectInMethod() {
-        rewriteRun(
-          kotlin(
-            """
-              fun test() {
-                  object : Runnable {
-                      override fun run() {
-                      }
-                  }
-              }
-              """
-          )
-        );
-    }
 }

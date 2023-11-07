@@ -577,9 +577,24 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public K.WhenBranch visitWhenBranch(K.WhenBranch whenBranch, P p) {
         K.WhenBranch wb = super.visitWhenBranch(whenBranch, p);
+        List<JRightPadded<Expression>> rps = wb.getPadding().getExpressions().getPadding().getElements();
+
+        // handle space between multiple cases
+        if (rps.size() > 1) {
+            int count = rps.size();
+            rps = ListUtils.map(rps, (i, exp) -> {
+                if (i > 0) {
+                    exp = exp.withElement(spaceBefore(exp.getElement(), style.getOther().getAfterComma()));
+                }
+
+                if (i < (count - 1)) {
+                    exp = spaceAfter(exp, style.getOther().getBeforeComma());
+                }
+                return exp;
+            });
+        }
 
         // handle space before arrow
-        List<JRightPadded<Expression>> rps = wb.getPadding().getExpressions().getPadding().getElements();
         rps = ListUtils.mapLast(rps, exp -> spaceAfter(exp, style.getOther().getAroundArrowInWhenClause()));
         wb = wb.getPadding().withExpressions(wb.getPadding().getExpressions().getPadding().withElements(rps));
 
@@ -964,27 +979,38 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         boolean lastParamHasSpace = false;
         boolean trailingComma = false;
         List<JRightPadded<J>> parameters = l.getParameters().getPadding().getParams();
-        if (!parameters.isEmpty()) {
+        boolean hasArrow = !parameters.isEmpty();
+        if (hasArrow) {
             JRightPadded<J> lastParam = parameters.get(parameters.size() - 1);
             Space after = lastParam.getAfter();
             trailingComma = lastParam.getMarkers().findFirst(TrailingComma.class).isPresent();
             lastParamHasSpace = after.getComments().isEmpty() && onlySpacesAndNotEmpty(after.getWhitespace())
                     || lastParam.getMarkers().findFirst(TrailingComma.class).map(t -> onlySpacesAndNotEmpty(t.getSuffix().getWhitespace())).orElse(false);
             useSpaceBeforeLambdaArrow &= !trailingComma;
+        } else {
+            l = l.withArrow(Space.EMPTY);
+            l = l.withParameters(l.getParameters().withPrefix(Space.EMPTY));
         }
 
         if (lastParamHasSpace) {
             boolean useSpace = useSpaceBeforeLambdaArrow;
             parameters = ListUtils.mapLast(parameters, rp -> spaceAfter(rp, useSpace));
             l = l.withParameters(l.getParameters().getPadding().withParams(parameters));
-        } else if (!parameters.isEmpty()) {
+        } else if (hasArrow) {
             l = l.withArrow(updateSpace(l.getArrow(), useSpaceBeforeLambdaArrow));
         }
 
         // handle space after Lambda arrow
         // Intellij has a specific setting for Space before Lambda arrow, but no setting for space after Lambda arrow
-        // presumably handled as prefix space for body
+        // presumably handled as around the Lambda arrow for the same
         l = l.withBody(spaceBefore(l.getBody(), false));
+
+        if (l.getBody() instanceof J.Block ) {
+            J.Block body = (J.Block) l.getBody();
+            boolean t = useSpaceBeforeLambdaArrow;
+            body = body.withStatements(ListUtils.mapFirst(body.getStatements(), s -> spaceBefore(s, t)));
+            l = l.withBody(body);
+        }
 
         if (!(l.getParameters().getParameters().isEmpty() || l.getParameters().getParameters().get(0) instanceof J.Empty)) {
             int parametersSize = l.getParameters().getParameters().size();
@@ -1016,10 +1042,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
 
             if (singleLine && !l.getParameters().getParameters().isEmpty()) {
                 // handle leading spaces
-                List<J> params = ListUtils.mapFirst(l.getParameters().getParameters(), x ->
-                        spaceBefore(x, style.getOther().getInSimpleOneLineMethods())
-                );
-                l = l.withParameters(l.getParameters().withParameters(params));
+                l = l.withParameters(spaceBefore(l.getParameters(), style.getOther().getInSimpleOneLineMethods()));
 
                 // handle trailing spaces
                 if (l.getBody() instanceof J.Block) {

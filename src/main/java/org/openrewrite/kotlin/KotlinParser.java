@@ -22,8 +22,9 @@ import kotlin.jvm.functions.Function1;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.intellij.lang.annotations.Language;
-import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension;
+import org.jetbrains.kotlin.KtRealPsiSourceElement;
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments;
+import org.jetbrains.kotlin.cli.common.messages.AnalyzerWithCompilerReport;
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector;
 import org.jetbrains.kotlin.cli.common.messages.PrintingMessageCollector;
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles;
@@ -37,18 +38,16 @@ import org.jetbrains.kotlin.com.intellij.openapi.vfs.StandardFileSystems;
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager;
 import org.jetbrains.kotlin.com.intellij.psi.FileViewProvider;
+import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.PsiManager;
 import org.jetbrains.kotlin.com.intellij.psi.SingleRootFileViewProvider;
 import org.jetbrains.kotlin.com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.kotlin.com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.kotlin.config.*;
-import org.jetbrains.kotlin.constant.EvaluatedConstTracker;
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory;
 import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector;
 import org.jetbrains.kotlin.fir.DependencyListForCliModule;
 import org.jetbrains.kotlin.fir.FirSession;
-import org.jetbrains.kotlin.fir.backend.Fir2IrConfiguration;
-import org.jetbrains.kotlin.fir.backend.Fir2IrExtensions;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.fir.java.FirProjectSessionProvider;
 import org.jetbrains.kotlin.fir.pipeline.*;
@@ -90,7 +89,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.jetbrains.kotlin.cli.common.CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY;
 import static org.jetbrains.kotlin.cli.common.messages.MessageRenderer.PLAIN_FULL_PATHS;
@@ -100,9 +98,7 @@ import static org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt.*;
 import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.LINK_VIA_SIGNATURES;
-import static org.jetbrains.kotlin.fir.pipeline.ConvertToIrKt.convertToIrAndActualizeForJvm;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class KotlinParser implements Parser {
@@ -174,64 +170,23 @@ public class KotlinParser implements Parser {
                         compilerCus.getSources().stream()
                                 .map(kotlinSource -> {
                                     try {
-                                        KotlinParserVisitor firParserVisitor = new KotlinParserVisitor(
-                                                kotlinSource,
-                                                relativeTo,
-                                                styles,
-                                                typeCache,
-                                                firSession,
-                                                ctx
-                                        );
-
                                         assert kotlinSource.getFirFile() != null;
-                                        SourceFile kcuFir = (SourceFile) firParserVisitor.visitFile(kotlinSource.getFirFile(), ctx);
-                                        SourceFile kcu = kcuFir;
-
-                                        // Turn this flag on locally only to develop psi-based-parser
-                                        boolean switchToPsiParser = false;
-                                        if (switchToPsiParser) {
-                                            // debug purpose only, to be removed
-//                                            System.out.println(PsiTreePrinter.print(kotlinSource.getInput()));
-//                                            System.out.println(PsiTreePrinter.print(kotlinSource.getKtFile()));
-//                                            System.out.println(PsiTreePrinter.print(kotlinSource.getFirFile()));
-//                                            System.out.println(PsiTreePrinter.print(kotlinSource.getIrFile()));
-
-                                            // PSI based parser
-                                            SourceFile kcuPsi = null;
-                                            // TODO replace JavaTypeCache.
-                                            KotlinTypeMapping typeMapping = new KotlinTypeMapping(new JavaTypeCache(), firSession, kotlinSource.getFirFile().getSymbol());
-                                            PsiElementAssociations associations = new PsiElementAssociations(typeMapping, kotlinSource.getFirFile());
-                                            associations.initialize();
-                                            KotlinTreeParserVisitor psiParser = new KotlinTreeParserVisitor(kotlinSource, associations, styles, relativeTo, ctx);
-                                            try {
-                                                kcuPsi = psiParser.parse();
-                                            } catch (UnsupportedOperationException ignore) {
-                                                throw ignore;
-                                            }
-
-                                            if (kcuPsi == null) {
-                                                kcuPsi = kcuFir;
-                                                System.out.println("=========\n LST and types from FIR-based-parser");
-                                                System.out.println(PsiTreePrinter.print(kcuFir));
-                                            } else {
-                                                // compare kcuPsi and kcuFir LST structure and all types
-                                                String treeFir = PsiTreePrinter.print(kcuFir);
-                                                String treePsi = PsiTreePrinter.print(kcuPsi);
-
-                                                // Debug purpose only, to be removed
-                                                System.out.println("=========\n LST and types from FIR-based-parser");
-                                                System.out.println(treeFir);
-                                                System.out.println("=========\n LST and types from PSI-based-parser");
-                                                System.out.println(treePsi);
-
-                                                // assertEquals(treeFir, treePsi);
-                                            }
-
-                                            kcu = kcuPsi;
+                                        assert kotlinSource.getFirFile().getSource() != null;
+                                        PsiElement psi = ((KtRealPsiSourceElement) kotlinSource.getFirFile().getSource()).getPsi();
+                                        AnalyzerWithCompilerReport.SyntaxErrorReport report =
+                                                AnalyzerWithCompilerReport.Companion.reportSyntaxErrors(psi, MessageCollector.Companion.getNONE());
+                                        if (report.isHasErrors()) {
+                                            return ParseError.build(KotlinParser.this, kotlinSource.getInput(), relativeTo, ctx, new RuntimeException());
                                         }
 
-                                        parsingListener.parsed(kotlinSource.getInput(), kcu);
-                                        return requirePrintEqualsInput(kcu, kotlinSource.getInput(), relativeTo, ctx);
+                                        KotlinTypeMapping typeMapping = new KotlinTypeMapping(typeCache, firSession, kotlinSource.getFirFile());
+                                        PsiElementAssociations associations = new PsiElementAssociations(typeMapping, kotlinSource.getFirFile());
+                                        associations.initialize();
+                                        KotlinTreeParserVisitor psiParser = new KotlinTreeParserVisitor(kotlinSource, associations, styles, relativeTo, ctx);
+                                        SourceFile cu = psiParser.parse();
+
+                                        parsingListener.parsed(kotlinSource.getInput(), cu);
+                                        return requirePrintEqualsInput(cu, kotlinSource.getInput(), relativeTo, ctx);
                                     } catch (Throwable t) {
                                         ctx.getOnError().accept(t);
                                         return ParseError.build(this, kotlinSource.getInput(), relativeTo, ctx, t);
@@ -493,36 +448,37 @@ public class KotlinParser implements Parser {
 
         List<FirFile> rawFir = FirUtilsKt.buildFirFromKtFiles(firSession, ktFiles);
         Pair<ScopeSession, List<FirFile>> result = AnalyseKt.runResolution(firSession, rawFir);
-
-        // TODO: replace FIR results with IR.
         assert kotlinSources.size() == result.getSecond().size();
-
-        AnalyseKt.runCheckers(firSession, result.getFirst(), result.getSecond(), diagnosticsReporter);
-        ModuleCompilerAnalyzedOutput analyzedOutput = new ModuleCompilerAnalyzedOutput(firSession, result.getFirst(), result.getSecond());
-        FirResult firResult = new FirResult(singletonList(analyzedOutput));
-
-        Fir2IrExtensions extensions = Fir2IrExtensions.Default.INSTANCE;
-        Fir2IrConfiguration irConfiguration = new Fir2IrConfiguration(
-                languageVersionSettings,
-                compilerConfiguration.getBoolean(JVMConfigurationKeys.LINK_VIA_SIGNATURES),
-                compilerConfiguration.putIfAbsent(EVALUATED_CONST_TRACKER, EvaluatedConstTracker.Companion.create())
-        );
-
-        List<IrGenerationExtension> irGenerationExtensions = IrGenerationExtension.Companion.getInstances(projectEnvironment.getProject());
-        Fir2IrActualizedResult actualizedResult = null;
-        try {
-            actualizedResult = convertToIrAndActualizeForJvm(firResult, extensions, irConfiguration, irGenerationExtensions, diagnosticsReporter);
-            assert kotlinSources.size() == actualizedResult.getIrModuleFragment().getFiles().size();
-        } catch (Exception ignored) {
-        }
-
         for (int i = 0; i < kotlinSources.size(); i++) {
             kotlinSources.get(i).setFirFile(result.getSecond().get(i));
-            if (actualizedResult != null) {
-                kotlinSources.get(i).setIrFile(actualizedResult.getIrModuleFragment().getFiles().get(i));
-            }
-//            new KotlinIrTypeMapping(new JavaTypeCache()).type(files.get(i));
         }
+        // IR generation.
+//        AnalyseKt.runCheckers(firSession, result.getFirst(), result.getSecond(), diagnosticsReporter);
+//        ModuleCompilerAnalyzedOutput analyzedOutput = new ModuleCompilerAnalyzedOutput(firSession, result.getFirst(), result.getSecond());
+//        FirResult firResult = new FirResult(singletonList(analyzedOutput));
+
+//        Fir2IrExtensions extensions = Fir2IrExtensions.Default.INSTANCE;
+//        Fir2IrConfiguration irConfiguration = new Fir2IrConfiguration(
+//                languageVersionSettings,
+//                compilerConfiguration.getBoolean(JVMConfigurationKeys.LINK_VIA_SIGNATURES),
+//                compilerConfiguration.putIfAbsent(EVALUATED_CONST_TRACKER, EvaluatedConstTracker.Companion.create())
+//        );
+//
+//        List<IrGenerationExtension> irGenerationExtensions = IrGenerationExtension.Companion.getInstances(projectEnvironment.getProject());
+//        Fir2IrActualizedResult actualizedResult = null;
+//        try {
+//            actualizedResult = convertToIrAndActualizeForJvm(firResult, extensions, irConfiguration, irGenerationExtensions, diagnosticsReporter);
+//            assert kotlinSources.size() == actualizedResult.getIrModuleFragment().getFiles().size();
+//        } catch (Exception ignored) {
+//        }
+//
+//        for (int i = 0; i < kotlinSources.size(); i++) {
+//            kotlinSources.get(i).setFirFile(result.getSecond().get(i));
+//            if (actualizedResult != null) {
+//                kotlinSources.get(i).setIrFile(actualizedResult.getIrModuleFragment().getFiles().get(i));
+//            }
+////            new KotlinIrTypeMapping(new JavaTypeCache()).type(files.get(i));
+//        }
 
         return new CompiledSource(firSession, kotlinSources);
     }
