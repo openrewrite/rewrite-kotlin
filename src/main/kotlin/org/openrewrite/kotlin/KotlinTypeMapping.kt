@@ -982,7 +982,7 @@ class KotlinTypeMapping(
         clazz = if (type.classifier != null) {
             TypeUtils.asFullyQualified(type(type.classifier!!))
         } else {
-            ShallowClass.build(type.classifierQualifiedName) as FullyQualified
+            createShallowClass(type.classifierQualifiedName)
         }
 
         if (type.typeArguments.isNotEmpty()) {
