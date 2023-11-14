@@ -1436,7 +1436,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
             default: {
                 name = convertToExpression(requireNonNull(typeProjection.getTypeReference()).accept(this, data));
-                name = name.withPrefix(merge(prefix(typeProjection), name.getPrefix()));
+                if (name instanceof J.Identifier) {
+                    J.Identifier id = (J.Identifier) name;
+                    if (!id.getAnnotations().isEmpty()) {
+                        name = id.withAnnotations(ListUtils.mapFirst(id.getAnnotations(), anno -> anno.withPrefix(merge(prefix(typeProjection), anno.getPrefix()))));
+                    } else {
+                        name = name.withPrefix(merge(prefix(typeProjection), name.getPrefix()));
+                    }
+                } else {
+                    name = name.withPrefix(merge(prefix(typeProjection), name.getPrefix()));
+                }
             }
         }
 
