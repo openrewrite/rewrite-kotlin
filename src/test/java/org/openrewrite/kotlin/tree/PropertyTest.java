@@ -86,4 +86,15 @@ class PropertyTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void annotatedTypeParameter() {
+        rewriteRun(
+          kotlin(
+            """
+              val releaseDates: List</*c*/@Suppress Date> = emptyList()
+              """
+          )
+        );
+    }
 }
