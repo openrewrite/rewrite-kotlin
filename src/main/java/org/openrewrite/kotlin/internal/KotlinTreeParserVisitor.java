@@ -1892,7 +1892,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     mt
             );
         } else if (type == null || type == PsiElementAssociations.ExpressionType.METHOD_INVOCATION) {
-            J.Identifier name = (J.Identifier) expression.getCalleeExpression().accept(this, data);
+            J j = expression.getCalleeExpression().accept(this, data);
+            J.Identifier name;
+            if (j instanceof J.Identifier) {
+                name = (J.Identifier) j;
+            } else {
+                throw new UnsupportedOperationException(String.format("Unexpected type: %s with code %s", j.getClass().getName(), expression.getText()));
+            }
             JContainer<Expression> typeParams = mapTypeArguments(expression.getTypeArgumentList(), data);
             JContainer<Expression> args = mapFunctionCallArguments(expression.getValueArgumentList(), expression.getValueArguments(), data);
 
