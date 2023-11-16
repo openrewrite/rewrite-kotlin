@@ -1075,17 +1075,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         public J visitTypeParameter(J.TypeParameter typeParam, PrintOutputCapture<P> p) {
             beforeSyntax(typeParam, Space.Location.TYPE_PARAMETERS_PREFIX, p);
             visit(typeParam.getAnnotations(), p);
-
-            Optional<GenericType> bounds = typeParam.getMarkers().findFirst(GenericType.class);
-            String delimiter = "";
-            if (bounds.isPresent()) {
-                if (GenericType.Variance.COVARIANT == bounds.get().getVariance()) {
-                    p.append("out");
-                } else if (GenericType.Variance.CONTRAVARIANT == bounds.get().getVariance()) {
-                    p.append("in");
-                }
+            for (J.Modifier m : typeParam.getModifiers()) {
+                visitModifier(m, p);
             }
 
+            String delimiter = "";
             visit(typeParam.getName(), p);
             if (typeParam.getBounds() != null && !typeParam.getBounds().isEmpty()) {
                 Optional<TypeReferencePrefix> maybeTypeReferencePrefix = typeParam.getMarkers().findFirst(TypeReferencePrefix.class);
