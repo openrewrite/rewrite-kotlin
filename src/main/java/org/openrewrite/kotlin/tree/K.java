@@ -836,7 +836,7 @@ public interface K extends J {
         }
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "DeprecatedIsStillUsed"})
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

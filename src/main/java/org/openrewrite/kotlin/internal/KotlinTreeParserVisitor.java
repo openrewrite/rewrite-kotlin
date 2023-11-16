@@ -2302,29 +2302,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         );
     }
 
-    private J.MethodInvocation buildSyntheticDestructInitializer(int id) {
-        J.Identifier name = new J.Identifier(
-                randomId(),
-                Space.SINGLE_SPACE,
-                Markers.EMPTY,
-                emptyList(),
-                "component" + id,
-                null,
-                null
-        );
-
-        return new J.MethodInvocation(
-                randomId(),
-                Space.EMPTY,
-                Markers.EMPTY,
-                null,
-                null,
-                name,
-                JContainer.empty(),
-                null
-        );
-    }
-
     @Override
     public J visitDotQualifiedExpression(KtDotQualifiedExpression expression, ExecutionContext data) {
         assert expression.getSelectorExpression() != null;
