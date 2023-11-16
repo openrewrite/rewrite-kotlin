@@ -265,7 +265,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitCallableReferenceExpression(KtCallableReferenceExpression expression, ExecutionContext data) {
-        FirResolvedCallableReference reference = (FirResolvedCallableReference) psiElementAssociations.primary(expression.getCallableReference());
+        FirElement firElement = psiElementAssociations.primary(expression.getCallableReference());
+        FirResolvedCallableReference reference;
+        if (!(firElement instanceof FirResolvedCallableReference)) {
+            throw new UnsupportedOperationException(String.format("Unsupported callable reference: %s with code: %s", expression.getClass().getName(), expression.getText()));
+        } else {
+            reference = (FirResolvedCallableReference) psiElementAssociations.primary(expression.getCallableReference());
+        }
         JavaType.Method methodReferenceType = null;
         if (reference != null && reference.getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
             methodReferenceType = psiElementAssociations.getTypeMapping().methodDeclarationType(
