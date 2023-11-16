@@ -928,6 +928,7 @@ public interface K extends J {
             private final K.DestructuringDeclaration t;
 
             @Deprecated
+            @Nullable
             public JContainer<J.VariableDeclarations.NamedVariable> getAssignments() {
                 return t.assignments;
             }
