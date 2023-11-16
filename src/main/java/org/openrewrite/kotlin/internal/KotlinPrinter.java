@@ -1074,20 +1074,24 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         public J visitTypeParameter(J.TypeParameter typeParam, PrintOutputCapture<P> p) {
             beforeSyntax(typeParam, Space.Location.TYPE_PARAMETERS_PREFIX, p);
             visit(typeParam.getAnnotations(), p);
-            visit(typeParam.getName(), p);
+
             Optional<GenericType> bounds = typeParam.getMarkers().findFirst(GenericType.class);
             String delimiter = "";
             if (bounds.isPresent()) {
                 if (GenericType.Variance.COVARIANT == bounds.get().getVariance()) {
-                    delimiter = "out";
+                    p.append("out");
                 } else if (GenericType.Variance.CONTRAVARIANT == bounds.get().getVariance()) {
-                    delimiter = "in";
+                    p.append("in");
                 }
-            } else if (typeParam.getBounds() != null && !typeParam.getBounds().isEmpty()) {
-                typeParam.getMarkers().findFirst(TypeReferencePrefix.class).ifPresent(prefix ->
-                        kotlinPrinter.visitSpace(prefix.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p)
-                );
-                delimiter = ":";
+            }
+
+            visit(typeParam.getName(), p);
+            if (typeParam.getBounds() != null && !typeParam.getBounds().isEmpty()) {
+                Optional<TypeReferencePrefix> maybeTypeReferencePrefix = typeParam.getMarkers().findFirst(TypeReferencePrefix.class);
+                if (maybeTypeReferencePrefix.isPresent()) {
+                    delimiter = ":";
+                    kotlinPrinter.visitSpace(maybeTypeReferencePrefix.get().getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p);
+                }
             }
             visitContainer(delimiter, typeParam.getPadding().getBounds(), JContainer.Location.TYPE_BOUNDS, "&", "", p);
             afterSyntax(typeParam, p);

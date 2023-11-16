@@ -1353,25 +1353,41 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
             if (parameter.getExtendsBound() != null) {
                 bounds = JContainer.build(suffix(parameter.getNameIdentifier()),
-                        singletonList(padRight(parameter.getExtendsBound().accept(this, data).withPrefix(prefix(parameter.getExtendsBound())),
+                        singletonList(padRight((TypeTree) parameter.getExtendsBound().accept(this, data),
                                 Space.EMPTY)),
                         Markers.EMPTY);
+                markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), Space.EMPTY));
             }
         } else if (parameter.getVariance() == Variance.IN_VARIANCE ||
                 parameter.getVariance() == Variance.OUT_VARIANCE) {
             GenericType.Variance variance = parameter.getVariance() == Variance.IN_VARIANCE ?
                     GenericType.Variance.CONTRAVARIANT : GenericType.Variance.COVARIANT;
             markers = markers.addIfAbsent(new GenericType(randomId(), variance));
-            name = createIdentifier("<Any>", Space.EMPTY, null).withMarkers(Markers.build(singletonList(new Implicit(randomId()))));
+            name = createIdentifier(parameter.getNameIdentifier(), type(parameter));
 
             KtModifierKeywordToken varianceKeyword = parameter.getVariance() == Variance.IN_VARIANCE ? KtTokens.IN_KEYWORD : KtTokens.OUT_KEYWORD;
             PsiElement varianceKeywordPsi = requireNonNull(parameter.getModifierList()).getModifier(varianceKeyword);
 
-            bounds = JContainer.build(
-                    prefix(varianceKeywordPsi),
-                    singletonList(padRight(
-                            createIdentifier(parameter.getNameIdentifier(), type(parameter)), Space.EMPTY)),
-                    Markers.EMPTY);
+
+            if (parameter.getExtendsBound() != null) {
+                bounds = JContainer.build(suffix(parameter.getNameIdentifier()),
+                        singletonList(padRight((TypeTree) parameter.getExtendsBound().accept(this, data),
+                                Space.EMPTY)),
+                        Markers.EMPTY);
+                markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), Space.EMPTY));
+            }
+
+
+//
+//
+//            bounds = JContainer.build(
+//                    prefix(varianceKeywordPsi),
+//                    singletonList(padRight(
+//                            createIdentifier(parameter.getNameIdentifier(), type(parameter)), Space.EMPTY)),
+//                    Markers.EMPTY);
+
+
+
         } else {
             throw new UnsupportedOperationException("TODO");
         }
@@ -2611,7 +2627,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         for (int i = 0; i < ktTypeParameters.size(); i++) {
             KtTypeParameter ktTypeParameter = ktTypeParameters.get(i);
-            J.TypeParameter typeParameter = ktTypeParameter.accept(this, data).withPrefix(prefix(ktTypeParameter));
+            J.TypeParameter typeParameter = (J.TypeParameter) ktTypeParameter.accept(this, data);
             params.add(maybeTrailingComma(ktTypeParameter, padRight(typeParameter, suffix(ktTypeParameter)), i == ktTypeParameters.size() - 1) );
         }
 
