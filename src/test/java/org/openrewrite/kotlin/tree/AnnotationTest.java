@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.intellij.lang.annotations.Language;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -557,4 +558,26 @@ class AnnotationTest implements RewriteTest {
           )
         );
     }
+
+    @Disabled("TODO")
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/397")
+    @Test
+    void fieldUseSiteInjection() {
+        rewriteRun(
+          kotlin(
+            """
+              import javax.inject.Inject
+              import javax.inject.Named
+              
+              class Test {
+              
+                  @field:[Inject Named("numberfield ")]
+                  var field: Long = 0
+              
+              }
+              """
+          )
+        );
+    }
+
 }

@@ -1686,7 +1686,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitAnnotation(KtAnnotation annotation, ExecutionContext data) {
-        throw new UnsupportedOperationException("KtAnnotation");
+
+
+        throw new UnsupportedOperationException("TOTO, support KtAnnotation");
     }
 
     @Override
@@ -2887,10 +2889,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 continue;
             }
 
-            boolean isAnnotation = child instanceof KtAnnotationEntry;
+            boolean isAnnotationEntry = child instanceof KtAnnotationEntry;
             boolean isKeyword = child instanceof LeafPsiElement && child.getNode().getElementType() instanceof KtModifierKeywordToken;
+            boolean isAnnotation = child instanceof KtAnnotation;
 
-            if (isAnnotation) {
+            if (isAnnotationEntry) {
                 KtAnnotationEntry ktAnnotationEntry = (KtAnnotationEntry) child;
                 J.Annotation annotation = (J.Annotation) ktAnnotationEntry.accept(this, data);
                 if (isLeadingAnnotation) {
@@ -2900,9 +2903,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 }
             } else if (isKeyword) {
                 isLeadingAnnotation = false;
-
                 modifiers.add(mapModifier(child, new ArrayList<>(annotations), null));
                 annotations.clear();
+            } else if (isAnnotation) {
+                KtAnnotation ktAnnotation = (KtAnnotation) child;
+                J.Annotation annotation = (J.Annotation) ktAnnotation.accept(this, data);
+                if (isLeadingAnnotation) {
+                    leadingAnnotations.add(annotation);
+                } else {
+                    annotations.add(annotation);
+                }
             }
         }
 
