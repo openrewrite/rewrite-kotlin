@@ -419,8 +419,8 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
     @Override
     public <M extends Marker> M visitMarker(Marker marker, P p) {
         Marker m = super.visitMarker(marker, p);
-        if (m instanceof AnnotationCallSite) {
-            AnnotationCallSite acs = (AnnotationCallSite) marker;
+        if (m instanceof AnnotationUseSite) {
+            AnnotationUseSite acs = (AnnotationUseSite) marker;
             m = acs.withPrefix(visitSpace(acs.getPrefix(), KSpace.Location.ANNOTATION_CALL_SITE_PREFIX, p));
         } else if (marker instanceof IsNullable) {
             IsNullable isn = (IsNullable) marker;

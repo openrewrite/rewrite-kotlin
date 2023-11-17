@@ -492,7 +492,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             String afterArgs = ")";
             String delimiter = ",";
 
-            AnnotationCallSite useSite = annotation.getMarkers().findFirst(AnnotationCallSite.class).orElse(null);
+            AnnotationUseSite useSite = annotation.getMarkers().findFirst(AnnotationUseSite.class).orElse(null);
             if (useSite != null) {
                 kotlinPrinter.visitSpace(useSite.getPrefix(), KSpace.Location.ANNOTATION_CALL_SITE_PREFIX, p);
                 p.append(":");

@@ -1690,7 +1690,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         return new J.Annotation(randomId(),
                 Space.EMPTY,
-                Markers.EMPTY.addIfAbsent(new AnnotationCallSite(randomId(), suffix(annotation.getUseSiteTarget()), isImplicitBracket)),
+                Markers.EMPTY.addIfAbsent(new AnnotationUseSite(randomId(), suffix(annotation.getUseSiteTarget()), isImplicitBracket)),
                 (NameTree) annotation.getUseSiteTarget().accept(this, data),
                 JContainer.build(beforeLBracket, rpAnnotations, Markers.EMPTY)
                 );
@@ -1709,7 +1709,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         if (isUseSite) {
             nameTree = (NameTree) annotationEntry.getUseSiteTarget().accept(this, data);
-            markers = markers.addIfAbsent(new AnnotationCallSite(randomId(), prefix(findFirstChild(annotationEntry, p -> p.getNode().getElementType() == KtTokens.COLON)), true));
+            markers = markers.addIfAbsent(new AnnotationUseSite(randomId(), prefix(findFirstChild(annotationEntry, p -> p.getNode().getElementType() == KtTokens.COLON)), true));
             J.Annotation argAnno = new J.Annotation(
                     randomId(),
                     Space.EMPTY,
