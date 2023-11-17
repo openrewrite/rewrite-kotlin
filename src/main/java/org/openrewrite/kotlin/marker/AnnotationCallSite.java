@@ -26,13 +26,13 @@ import java.util.UUID;
 @With
 public class AnnotationCallSite implements Marker {
     UUID id;
-    String name;
-    Space suffix;
+    // Space before colon
+    Space prefix;
+    boolean implicitBracket;
 
-
-    public AnnotationCallSite(UUID id, String name, Space suffix) {
+    public AnnotationCallSite(UUID id, Space prefix, boolean implicitBracket) {
         this.id = id;
-        this.name = name;
-        this.suffix = suffix;
+        this.prefix = prefix;
+        this.implicitBracket = implicitBracket;
     }
 }
