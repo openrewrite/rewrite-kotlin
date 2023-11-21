@@ -698,7 +698,28 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitIntersectionType(KtIntersectionType definitelyNotNullType, ExecutionContext data) {
-        throw new UnsupportedOperationException("TODO");
+        List<J.Annotation> annotations = new ArrayList<>();
+        List<JRightPadded<TypeTree>> rps = new ArrayList<>(2);
+        TypeTree left = (TypeTree) requireNonNull(definitelyNotNullType.getLeftTypeRef()).accept(this, data);
+        rps.add(padRight(left, suffix(definitelyNotNullType.getLeftTypeRef())));
+        TypeTree right = (TypeTree) requireNonNull(definitelyNotNullType.getRightTypeRef()).accept(this, data);
+        rps.add(padRight(right, Space.EMPTY));
+
+        JContainer<TypeTree> bounds = JContainer.build(
+                Space.EMPTY,
+                rps,
+                Markers.EMPTY
+        );
+
+        return new J.TypeParameter(
+                randomId(),
+                deepPrefix(definitelyNotNullType),
+                Markers.EMPTY,
+                annotations,
+                emptyList(),
+                null,
+                bounds
+        );
     }
 
     @Override
@@ -1974,6 +1995,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         List<KtTypeProjection> ktTypeProjections = ktTypeArgumentList.getArguments();
         List<JRightPadded<Expression>> parameters = new ArrayList<>(ktTypeProjections.size());
+
         for (KtTypeProjection ktTypeProjection : ktTypeProjections) {
             parameters.add(padRight(convertToExpression(ktTypeProjection.accept(this, data)), suffix(ktTypeProjection)));
         }
