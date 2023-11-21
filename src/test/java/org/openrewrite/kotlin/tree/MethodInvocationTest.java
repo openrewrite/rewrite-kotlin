@@ -767,4 +767,158 @@ class MethodInvocationTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/448")
+    @Test
+    void indexAccessAsSelectOfAMethodCall() {
+        rewriteRun(
+          kotlin(
+            """
+              var l1: List<() -> Unit> = emptyList()
+              var l2: List<(Int) -> Unit> = emptyList()
+
+              fun test() {
+                  l1 [ 0  ]   (    )
+                  val x =  l2 [  1 ]   (    42 )
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/443")
+    @Test
+    void methodInvocationAsSelect() {
+        rewriteRun(
+          kotlin(
+            """
+              @Suppress("UNUSED_PARAMETER")
+              enum class Type {
+                  A, B, C;
+                  fun getType(type: Type): Type {
+                      return A
+                  }
+              }
+              fun Type.type(): Type {
+                  Type.values().forEach { type -> {
+                      val someType = getType(type)(this)
+                  }}
+                  return Type.A
+              }
+              @Suppress("UNUSED_PARAMETER")
+              operator fun Type.invoke(type: Type): Any {
+                  return Type.A
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/449")
+    @Test
+    void thisAsSelect() {
+        rewriteRun(
+          kotlin(
+            """
+              inline fun < reified T : Enum < T >, V> ( ( T ) -> V ). find ( value : V ): T ? {
+                  return enumValues < T > ( ) . firstOrNull { this ( it )  == value }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/450")
+    @Test
+    void unaryAsSelect() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test(foo: () -> Unit) {
+                private var foo: (() -> Unit)? = foo
+                fun method() {
+                  @Suppress("UNUSED_VARIABLE")
+                  val bar = foo!!()
+                }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/451")
+    @Test
+    void parenthesesAsSelect() {
+        rewriteRun(
+          kotlin(
+            """
+              open class A(
+                val foo : ( ( Any ) -> A) -> A
+              )
+              class B : A ( foo = { x -> ( :: A ) ( x ) } ) {
+                @Suppress("UNUSED_PARAMETER")
+                fun mRef(a: Any) {}
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/452")
+    @Test
+    void newClassAsSelect() {
+        rewriteRun(
+          kotlin(
+            """
+              class A
+              val a = A ( ) ( )
+
+              operator fun A.invoke() : A {
+                  return A()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void stringLiteralAsSelect() {
+        rewriteRun(
+          kotlin(
+            """
+              class A
+
+              operator fun String.invoke() : A {
+                  return A()
+              }
+
+              val a = "42" ( )
+              """
+          )
+        );
+    }
+
+    @Test
+    void stringLiteralAsSelectWithLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              operator fun String.invoke(action: () -> Unit)   {
+                  action()
+              }
+
+              val a = "42"
+
+              val b = "X" {
+                  // do something
+              }
+
+              val c = "${a}" {
+                  // do something
+              }
+              """
+          )
+        );
+    }
+
 }
