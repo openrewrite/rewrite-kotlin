@@ -706,4 +706,16 @@ class VariableDeclarationTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/455")
+    @Test
+    void starTypeProjection() {
+        rewriteRun(
+          kotlin(
+            """
+              val f = Enum<*>::name
+              """
+          )
+        );
+    }
 }
