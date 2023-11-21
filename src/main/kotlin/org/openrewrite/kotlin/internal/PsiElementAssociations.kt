@@ -123,7 +123,8 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                     }
 
                     is FirArrayOfCall -> {
-                        // todo, Didn't find a type from FirArrayOfCall
+                        // `FirArrayOfCall` is not a `FirFunctionCall`, so a `JavaType$Method` is impossible.
+                        // The expression contains a type ref of the parameterized type, but cannot be added to a `MethodInvocation`.
                         null
                     }
                     else -> {
