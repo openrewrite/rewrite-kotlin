@@ -122,6 +122,10 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                         }
                     }
 
+                    is FirArrayOfCall -> {
+                        // todo, Didn't find a type from FirArrayOfCall
+                        null
+                    }
                     else -> {
                         null
                     }
@@ -197,6 +201,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
         val fir = primary(psi) ?: return null
         return when (fir) {
             is FirResolvedQualifier -> ExpressionType.QUALIFIER
+            is FirArrayOfCall -> ExpressionType.METHOD_INVOCATION
             is FirFunctionCall -> {
                 if (fir.calleeReference is FirErrorNamedReference)
                     return null
