@@ -1739,13 +1739,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
         }
 
-        return new J.Annotation(
+        return mapType(new J.Annotation(
                 randomId(),
                 deepPrefix(annotationEntry),
                 markers,
                 nameTree,
                 args
-        );
+        ));
     }
 
     @Override
@@ -3357,6 +3357,25 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     /*====================================================================
      * Type related methods
      * ====================================================================*/
+    private <T extends J> T mapType(T tree) {
+        return mapType(tree, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends J> T mapType(T tree, @Nullable JavaType type) {
+        T updated = tree;
+        /* Java trees */
+        if (updated instanceof J.Annotation) {
+            J.Annotation a = (J.Annotation) updated;
+            if (a.getAnnotationType() instanceof J.Identifier && a.getAnnotationType().getType() instanceof JavaType.Method) {
+                a = a.withAnnotationType(((J.Identifier) a.getAnnotationType()).withType(((JavaType.Method) a.getAnnotationType().getType()).getReturnType()));
+            }
+            updated = (T) a;
+        }
+        /* Kotlin trees */
+        return updated;
+    }
+
     @Nullable
     private JavaType type(@Nullable KtElement psi) {
         if (psi == null) {
