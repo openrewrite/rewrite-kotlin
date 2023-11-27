@@ -68,7 +68,7 @@ import static org.openrewrite.Tree.randomId;
 /**
  * PSI based parser
  */
-@SuppressWarnings({"DataFlowIssue", "ConstantValue"})
+@SuppressWarnings("ConstantValue")
 public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     private final KotlinSource kotlinSource;
     private final PsiElementAssociations psiElementAssociations;
@@ -268,7 +268,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         FirResolvedCallableReference reference;
         if (!(firElement instanceof FirResolvedCallableReference)) {
             throw new UnsupportedOperationException(String.format("Unsupported callable reference: fir: %s, psi : %s with code: %s | sub-psi : %s | sub-fir : %s",
-                    firElement.getClass().getName(),
+                    firElement == null ? "null" : firElement.getClass().getName(),
                     expression.getClass().getName(),
                     expression.getText(),
                     PsiTreePrinter.print(expression),

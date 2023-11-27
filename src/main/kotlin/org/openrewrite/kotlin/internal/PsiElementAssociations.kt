@@ -67,12 +67,12 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
         }.visitFile(file, elementMap)
     }
 
-    fun type(psiElement: PsiElement, owner: FirElement?): JavaType? {
+    fun type(psiElement: PsiElement?, owner: FirElement?): JavaType? {
         val fir = primary(psiElement)
         return if (fir != null) typeMapping.type(fir, owner) else null
     }
 
-    fun primary(psiElement: PsiElement) =
+    fun primary(psiElement: PsiElement?) =
         fir(psiElement) { it.source is KtRealPsiSourceElement }
 
     fun methodDeclarationType(psi: PsiElement): JavaType.Method? {
