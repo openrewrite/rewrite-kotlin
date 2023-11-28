@@ -208,7 +208,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
             p = p.parent
         }
 
-        if (p == null || p is KtPackageDirective) {
+        if (p == null || p is KtPackageDirective || psi is KtAnnotationUseSiteTarget) {
             return null
         }
 
