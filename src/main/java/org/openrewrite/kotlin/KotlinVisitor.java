@@ -422,9 +422,6 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         if (m instanceof AnnotationUseSite) {
             AnnotationUseSite acs = (AnnotationUseSite) marker;
             m = acs.withPrefix(visitSpace(acs.getPrefix(), KSpace.Location.ANNOTATION_CALL_SITE_PREFIX, p));
-        } else if (marker instanceof IsNullable) {
-            IsNullable isn = (IsNullable) marker;
-            m = isn.withPrefix(visitSpace(isn.getPrefix(), KSpace.Location.IS_NULLABLE_PREFIX, p));
         } else if (marker instanceof IsNullSafe) {
             IsNullSafe ins = (IsNullSafe) marker;
             m = ins.withPrefix(visitSpace(ins.getPrefix(), KSpace.Location.IS_NULLABLE_PREFIX, p));
