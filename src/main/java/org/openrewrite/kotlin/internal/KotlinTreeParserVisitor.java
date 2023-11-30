@@ -800,7 +800,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitNullableType(KtNullableType nullableType, ExecutionContext data) {
-        TypeTree typeTree = (TypeTree) requireNonNull(nullableType.getInnerType()).accept(this, data);
+        KtTypeElement innerType = nullableType.getInnerType();
+        if (innerType == null) {
+            throw new UnsupportedOperationException("This should never happen");
+        }
+
+        TypeTree typeTree = (TypeTree) requireNonNull(innerType).accept(this, data);
+        Set<PsiElement> consumedSpaces = new HashSet<>();
+        if (innerType.getNextSibling() != null && isSpace(innerType.getNextSibling().getNode())) {
+            consumedSpaces.add(innerType.getNextSibling());
+        }
 
         if (typeTree instanceof K.FunctionType && nullableType.getModifierList() != null) {
             List<J.Annotation> leadingAnnotations = new ArrayList<>();
@@ -815,11 +824,43 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             typeTree = ((K.FunctionType) typeTree).withModifiers(modifiers).withLeadingAnnotations(leadingAnnotations);
         }
 
+        // Handle parentheses or potential nested parentheses
+        Stack<Pair<Integer, Integer>> parenPairs = new Stack<>();
+        List<PsiElement> allChildren = getAllChildren(nullableType);
+
+        TypeTree j = typeTree;
+        int l = 0;
+        int r = allChildren.size() - 1;
+        while (l < r) {
+            l = findFirstLPAR(allChildren, l);
+            r = findLastRPAR(allChildren, r);
+            if (l * r < 0) {
+                throw new UnsupportedOperationException("Unpaired parentheses!");
+            }
+            if (l < 0 || r < 0) {
+                break;
+            }
+            parenPairs.add(new Pair<>(l++, r--));
+        }
+
+        while (!parenPairs.empty()) {
+            Pair<Integer, Integer> parenPair = parenPairs.pop();
+            PsiElement lPAR = allChildren.get(parenPair.getFirst());
+            PsiElement rPAR = allChildren.get(parenPair.getSecond());
+            TypeTree tt = j instanceof K.FunctionType ? ((K.FunctionType) j).withReturnType(((K.FunctionType) j).getReturnType().withAfter(Space.EMPTY)) : j;
+            j = new J.ParenthesizedTypeTree(randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    emptyList(),
+                    new J.Parentheses<>(randomId(), prefix(lPAR), Markers.EMPTY, padRight(typeTree, prefix(rPAR, consumedSpaces)))
+            );
+        }
+
         return new K.Unary(randomId(),
                 merge(deepPrefix(nullableType), typeTree.getPrefix()),
                 Markers.EMPTY,
                 padLeft(prefix(findFirstChild(nullableType, c -> c.getNode().getElementType() == KtTokens.QUEST)), K.Unary.Type.Nullable),
-                convertToExpression(typeTree),
+                convertToExpression(j),
                 typeTree.getType());
     }
 

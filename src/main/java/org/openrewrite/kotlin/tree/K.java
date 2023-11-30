@@ -2174,7 +2174,7 @@ public interface K extends J {
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @RequiredArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    final class Unary implements K, Statement, Expression, TypedTree {
+    final class Unary implements K, Statement, Expression, TypeTree {
         @Nullable
         @NonFinal
         transient WeakReference<K.Unary.Padding> padding;
