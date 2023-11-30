@@ -39,7 +39,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-@SuppressWarnings("SwitchStatementWithTooFewBranches")
 public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     private final KotlinJavaPrinter<P> delegate;
 
@@ -417,10 +416,16 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         beforeSyntax(unary, Space.Location.UNARY_PREFIX, p);
         switch (unary.getOperator()) {
             case NotNull:
-            default:
                 visit(unary.getExpression(), p);
                 visitSpace(unary.getPadding().getOperator().getBefore(), Space.Location.UNARY_OPERATOR, p);
                 p.append("!!");
+                break;
+            case Nullable:
+                visit(unary.getExpression(), p);
+                visitSpace(unary.getPadding().getOperator().getBefore(), Space.Location.UNARY_OPERATOR, p);
+                p.append("?");
+                break;
+            default:
                 break;
         }
         afterSyntax(unary, p);

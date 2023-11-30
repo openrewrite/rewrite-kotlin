@@ -2234,11 +2234,13 @@ public interface K extends J {
 
         @SuppressWarnings("SwitchStatementWithTooFewBranches")
         public enum Type {
-            NotNull;
+            NotNull,
+            Nullable;
 
             public boolean isModifying() {
                 switch (this) {
                     case NotNull:
+                    case Nullable:
                     default:
                         return false;
                 }

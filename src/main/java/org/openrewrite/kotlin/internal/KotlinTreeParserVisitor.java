@@ -68,7 +68,7 @@ import static org.openrewrite.Tree.randomId;
 /**
  * PSI based parser
  */
-@SuppressWarnings("ConstantValue")
+@SuppressWarnings({"ConstantValue", "DataFlowIssue", "SameParameterValue", "unused"})
 public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     private final KotlinSource kotlinSource;
     private final PsiElementAssociations psiElementAssociations;
@@ -815,10 +815,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             typeTree = ((K.FunctionType) typeTree).withModifiers(modifiers).withLeadingAnnotations(leadingAnnotations);
         }
 
-        return typeTree.withPrefix(merge(deepPrefix(nullableType), typeTree.getPrefix()))
-                .withMarkers(typeTree.getMarkers().addIfAbsent(new IsNullable(randomId(),
-                        prefix((PsiElement) nullableType.getQuestionMarkNode())
-                )));
+        return new K.Unary(randomId(),
+                merge(deepPrefix(nullableType), typeTree.getPrefix()),
+                Markers.EMPTY,
+                padLeft(prefix(findFirstChild(nullableType, c -> c.getNode().getElementType() == KtTokens.QUEST)), K.Unary.Type.Nullable),
+                convertToExpression(typeTree),
+                typeTree.getType());
     }
 
     @Override
