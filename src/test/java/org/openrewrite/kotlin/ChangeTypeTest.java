@@ -17,6 +17,7 @@ package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.Issue;
 import org.openrewrite.java.ChangeType;
@@ -82,6 +83,34 @@ class ChangeTypeTest implements RewriteTest {
               
               class A {
                   val type : `Target` = Target()
+              }
+              """
+          )
+        );
+    }
+
+    @ExpectedToFail("Add import does not preserve escapes.")
+    @Test
+    void changeEscapedImport() {
+        rewriteRun(
+          kotlin(
+            """
+              package a.b
+              class Original
+              """),
+          kotlin(
+            """
+              import a.b.`Original`
+              
+              class A {
+                  val type : Original = Original()
+              }
+              """,
+            """
+              import x.y.`Target`
+              
+              class A {
+                  val type : Target = Target()
               }
               """
           )

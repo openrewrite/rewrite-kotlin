@@ -2478,7 +2478,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                                                                 psi.getNode().getElementType() != KtTokens.SEMICOLON);
 
         String text = nodeRangeText(getNodeOrNull(first), getNodeOrNull(last));
-        J reference = TypeTree.build(text); // FIXME: this creates a shallow class for a resolvable type.
+        J reference = buildImport(text);
         reference = reference.withPrefix(suffix(importPsi));
 
         if (reference instanceof J.Identifier) {
@@ -2488,19 +2488,97 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     Markers.EMPTY,
                     new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY),
                     padLeft(Space.EMPTY, (J.Identifier) reference),
-                    type(importDirective)
+                    null
             );
         }
 
+        JavaType type = type(importDirective);
+        if (type instanceof JavaType.Parameterized) {
+            type = ((JavaType.Parameterized) type).getType();
+        }
         return new J.Import(
                 randomId(),
                 deepPrefix(importDirective),
                 Markers.EMPTY,
                 rpStatic,
-                (J.FieldAccess) reference,
+                ((J.FieldAccess) reference).withType(type),
                 // Aliases contain Kotlin `Name` and do not resolve to a type. The aliases type is the import directive, so we set the type to match the import.
-                alias != null ? padLeft(prefix(alias), createIdentifier(requireNonNull(alias.getNameIdentifier()), type(importDirective))) : null
+                alias != null ? padLeft(prefix(alias), createIdentifier(requireNonNull(alias.getNameIdentifier()), type)) : null
         );
+    }
+
+    <T extends TypeTree & Expression> T buildImport(String fullyQualifiedName) {
+        Scanner scanner = new Scanner(fullyQualifiedName);
+        scanner.useDelimiter("[.$]");
+
+        StringBuilder fullName = new StringBuilder();
+        Expression expr = null;
+        String nextLeftPad = "";
+        for (int i = 0; scanner.hasNext(); i++) {
+            StringBuilder whitespaceBefore = new StringBuilder();
+            StringBuilder partBuilder = null;
+            StringBuilder whitespaceBeforeNext = new StringBuilder();
+
+            String segment = scanner.next();
+            for (int j = 0; j < segment.length(); j++) {
+                char c = segment.charAt(j);
+                if (!Character.isWhitespace(c)) {
+                    if (partBuilder == null) {
+                        partBuilder = new StringBuilder();
+                    }
+                    partBuilder.append(c);
+                } else {
+                    if (partBuilder == null) {
+                        whitespaceBefore.append(c);
+                    } else {
+                        whitespaceBeforeNext.append(c);
+                    }
+                }
+            }
+
+            assert partBuilder != null;
+            String part = partBuilder.toString();
+            boolean isEscaped = part.startsWith("`");
+            Markers markers = Markers.EMPTY;
+            if (isEscaped) {
+                part = part.substring(1, part.length() - 1);
+                markers = markers.addIfAbsent(new Quoted(randomId()));
+            }
+
+            if (i == 0) {
+                fullName.append(part);
+                expr = new J.Identifier(randomId(), Space.format(whitespaceBefore.toString()), markers, emptyList(), part, null, null);
+            } else {
+                fullName.append('.').append(part);
+                expr = new J.FieldAccess(
+                        randomId(),
+                        Space.EMPTY,
+                        Markers.EMPTY,
+                        expr,
+                        new JLeftPadded<>(
+                                Space.format(nextLeftPad),
+                                new J.Identifier(
+                                        randomId(),
+                                        Space.format(whitespaceBefore.toString()),
+                                        markers,
+                                        emptyList(),
+                                        part,
+                                        null,
+                                        null
+                                ),
+                                Markers.EMPTY
+                        ),
+                        null
+                );
+            }
+
+            nextLeftPad = whitespaceBeforeNext.toString();
+        }
+
+        assert expr != null;
+
+        //noinspection unchecked
+        return (T) expr;
     }
 
     @Nullable
