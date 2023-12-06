@@ -17,6 +17,7 @@ package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.Issue;
 import org.openrewrite.PathUtils;
 import org.openrewrite.java.ChangePackage;
 import org.openrewrite.java.tree.TypeUtils;
@@ -163,6 +164,39 @@ class ChangePackageTest implements RewriteTest {
                 assertThat(TypeUtils.isOfClassType(cu.getClasses().get(0).getType(), "org.b.Animal")).isTrue();
                 assertThat(TypeUtils.isOfClassType(cu.getClasses().get(1).getType(), "org.b.Dog")).isTrue();
             })
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/433")
+    @Test
+    void changePackageSecondaryConstructor() {
+        rewriteRun(
+          kotlin(
+            """
+              package a.b
+              class Original
+              """,
+            """
+              package x.y
+              class Original
+              """
+          ),
+          kotlin(
+            """
+              import a.b.Original
+              
+              class A() : Original() {
+                    constructor(s1: String): this()
+              }
+              """,
+            """
+              import x.y.Original
+              
+              class A() : Original() {
+                    constructor(s1: String): this()
+              }
+              """
           )
         );
     }

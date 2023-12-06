@@ -21,17 +21,31 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-class MethodReferenceTest implements RewriteTest {
+class PropertyTest implements RewriteTest {
 
     @Test
-    void fieldReference() {
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/270")
+    void genericTypeParameter() {
         rewriteRun(
           kotlin(
             """
-              class Test ( val answer : Int )
-              fun method ( ) {
-                  val l = listOf ( Test ( 42 ) )
-                  l . map { Test :: answer }
+              val <T : Any> Collection<T>.nullable: Collection<T?>
+                  /*c1*/ get() = this
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/325")
+    void interfaceWithEmptyGetter() {
+        rewriteRun(
+          kotlin(
+            """
+              interface Test {
+                  val foo: String
+                     /*c1*/ get
+                  fun bar() = 2
               }
               """
           )
@@ -39,14 +53,21 @@ class MethodReferenceTest implements RewriteTest {
     }
 
     @Test
-    void fieldReferenceWithTypeParameter() {
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/299")
+    void propertyAccessorsWithoutBody() {
         rewriteRun(
           kotlin(
             """
-              class Test < T: Number > ( val answer : T )
-              fun method ( ) {
-                  val l = listOf ( Test ( 42 ) )
-                  l . map { Test < Int > :: answer }
+              class Test {
+                  var foo: Long
+                      private   set
+                  var bar: Long
+                      @Suppress  get /*C1*/
+              
+                  init {
+                      foo = 1
+                      bar = 2
+                  }
               }
               """
           )
@@ -54,43 +75,13 @@ class MethodReferenceTest implements RewriteTest {
     }
 
     @Test
-    void methodReference() {
-        rewriteRun(
-          kotlin("val str = 42 :: toString ")
-        );
-    }
-
-    @Test
-    void getJavaClass() {
-        rewriteRun(
-          kotlin("val a = Integer :: class . java ")
-        );
-    }
-
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/64")
-    @Test
-    void noReceiver() {
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/160")
+    void multipleTypeConstraints() {
         rewriteRun(
           kotlin(
             """
-              fun method() {
-                  listOf ( 1 , 2 , 3 ) . map ( :: println )
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void conditionalFieldReference() {
-        rewriteRun(
-          kotlin(
-            """
-              class Test ( val a : Int , val b : Int )
-              fun method ( ) {
-                  val l = listOf ( Test ( 42 , 24 ) )
-                  l . map { if ( true ) Test :: a else Test :: b }
-              }
+              val <T> T.plus2: Int where  T   : CharSequence  ,   T : Comparable<T>
+                  get() = length + 2
               """
           )
         );

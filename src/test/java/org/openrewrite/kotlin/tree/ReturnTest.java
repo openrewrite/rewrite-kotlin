@@ -105,4 +105,47 @@ class ReturnTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void returnLabel() {
+        rewriteRun(
+          kotlin(
+            """
+              fun foo(ints: List<Int>) {
+                  ints.forEach {
+                      if (it == 0) return@forEach
+                      print(it)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void returnLabel_2() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = arrayOf(1)
+                  .single {
+                      return@single false
+                  }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingSemiColon() {
+        rewriteRun(
+          kotlin(
+            """
+              fun id(): Int {
+                  return 42   ;
+              }
+              """
+          )
+        );
+    }
 }

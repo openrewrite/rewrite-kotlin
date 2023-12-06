@@ -24,6 +24,7 @@ import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.JavadocVisitor;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
+import org.openrewrite.kotlin.marker.PrimaryConstructor;
 
 import java.util.List;
 
@@ -39,6 +40,7 @@ public class NormalizeFormatVisitor<P> extends KotlinIsoVisitor<P> {
         this.stopAfter = stopAfter;
     }
 
+    @SuppressWarnings("unused")
     public NormalizeFormatVisitor() {
         this(null);
     }
@@ -79,6 +81,10 @@ public class NormalizeFormatVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, P p) {
         J.MethodDeclaration m = super.visitMethodDeclaration(method, p);
+
+        if (m.getMarkers().findFirst(PrimaryConstructor.class).isPresent()) {
+            return m;
+        }
 
         if (!m.getLeadingAnnotations().isEmpty()) {
             m = concatenatePrefix(m, Space.firstPrefix(m.getLeadingAnnotations()));
@@ -127,12 +133,6 @@ public class NormalizeFormatVisitor<P> extends KotlinIsoVisitor<P> {
         if (!v.getModifiers().isEmpty()) {
             v = concatenatePrefix(v, Space.firstPrefix(v.getModifiers()));
             v = v.withModifiers(Space.formatFirstPrefix(v.getModifiers(), Space.EMPTY));
-            return v;
-        }
-
-        if (v.getTypeExpression() != null) {
-            v = concatenatePrefix(v, v.getTypeExpression().getPrefix());
-            v = v.withTypeExpression(v.getTypeExpression().withPrefix(Space.EMPTY));
             return v;
         }
 

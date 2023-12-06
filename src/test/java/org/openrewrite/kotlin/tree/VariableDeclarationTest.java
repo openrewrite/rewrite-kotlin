@@ -20,13 +20,18 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
+import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.marker.Implicit;
 import org.openrewrite.test.RewriteTest;
+
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-@SuppressWarnings({"UnusedReceiverParameter", "PropertyName", "RemoveCurlyBracesFromTemplate", "UnnecessaryStringEscape", "RedundantGetter", "ConstantConditionIf", "RedundantSetter"})
+@SuppressWarnings({"UnusedReceiverParameter", "PropertyName", "RemoveCurlyBracesFromTemplate", "UnnecessaryStringEscape", "RedundantGetter", "ConstantConditionIf", "RedundantSetter", "RedundantSemicolon"})
 class VariableDeclarationTest implements RewriteTest {
 
     @ParameterizedTest
@@ -48,17 +53,38 @@ class VariableDeclarationTest implements RewriteTest {
     }
 
     @Test
+    void deSugar() {
+        rewriteRun(
+          kotlin("""
+            val a = if (2 !in 1 .. 10) "X" else "Y"
+            """
+          )
+        );
+    }
+
+    @Test
+    void yikes() {
+        rewriteRun(
+          kotlin("val b =  !   (    (     1 .  plus   (    2     ) +  2   )    !in      1 ..  3   )    .     not( )")
+        );
+    }
+
+    @Test
     void singleVariableDeclarationWithTypeConstraint() {
         rewriteRun(
-          kotlin("val a : Int = 1")
+          kotlin("val a = ArrayList<String>()")
         );
     }
 
     @Test
     void anonymousObject() {
         rewriteRun(
-          kotlin("open class Test"),
-          kotlin("val o : Test = object : Test ( ) { }")
+          kotlin(
+            """
+              open class Test
+              val o  : Test   =  object   :     Test  (   )     {    }
+              """
+          )
         );
     }
 
@@ -80,15 +106,18 @@ class VariableDeclarationTest implements RewriteTest {
     @Test
     void inline() {
         rewriteRun(
-          kotlin("class Spec"),
-          kotlin("inline val Spec . `java-base` : String get ( ) = \"  \"")
+          kotlin(
+            """
+              class Spec
+              inline val  Spec   .    `java-base`     : String  get   (    )   =  "  "
+              """
+          )
         );
     }
 
     @Test
     void getter() {
         rewriteRun(
-          kotlin("class Spec"),
           kotlin(
             """
               val isEmpty : Boolean
@@ -204,7 +233,7 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              val map = mapOf ( 1 to "one" , 2 to "two" , 3 to "three" )
+              val map =   mapOf ( 1 to "one" , 2 to "two" , 3 to "three" )
               """
           )
         );
@@ -216,14 +245,8 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              package org.foo
-              class Test < T >
-              """
-          ),
-          kotlin(
-            """
-              import org.foo.Test
-              val a : Test < * > = null
+              class Test<T>
+              val a : Test  <   *    >?     = null
               """
           )
         );
@@ -246,8 +269,9 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              fun example ( ) {
-                val ( a , b , c ) = Triple ( 1 , 2 , 3 )
+              @file:Suppress("UNUSED_VARIABLE")
+              fun example  (   )    {
+                val   (    a     , b  ,   c    )     = Triple  (   1    ,     "Two" ,  3   )
               }
               """
           )
@@ -262,6 +286,88 @@ class VariableDeclarationTest implements RewriteTest {
             """
               class Test {
                   val value by lazy { 10 }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/264")
+    @Test
+    void delegationByLazyWithType() {
+        rewriteRun(
+          kotlin(
+            """
+              class User {
+                  val value  :   Int    by     lazy {  10   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void delegatedProperty() {
+        rewriteRun(
+          kotlin(
+            """
+              import kotlin.reflect.KProperty
+
+              class IntDelegate {
+                  private var storedValue: Int = 0
+
+                  operator fun getValue(thisRef: Any?, property: KProperty<*>): Int {
+                      println("Getting value of property ${property.name}")
+                      return storedValue
+                  }
+
+                  operator fun setValue(thisRef: Any?, property: KProperty<*>, value: Int) {
+                      println("Setting value of property ${property.name}")
+                      storedValue = value
+                  }
+              }
+
+              class Example {
+                  var value: Int by IntDelegate()
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
+    @Test
+    void provideDelegateBinaryType() {
+        rewriteRun(
+          spec -> spec.parser(KotlinParser.builder().classpath("clikt")),
+          kotlin(
+            //language=none, disabled since Kotlin inspection does not detect the classpath
+            """
+              import com.github.ajalt.clikt.core.CliktCommand
+              import com.github.ajalt.clikt.parameters.arguments.argument
+              import com.github.ajalt.clikt.parameters.arguments.multiple
+              import com.github.ajalt.clikt.parameters.types.file
+
+              class CodeGenCli : CliktCommand("Generate Java sources for SCHEMA file(s)") {
+                  private val schemas by argument().file(mustExist = true).multiple()
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/277")
+    @Test
+    void provideDelegateExtension() {
+        rewriteRun(
+          kotlin(
+            """
+              operator fun String.provideDelegate(thisRef: T,
+                     prop :  kotlin   .    reflect     . KProperty  <*>   ): kotlin.properties.ReadOnlyProperty<T, Any> {
+                  return null!!
+              }
+              class T {
+                  val s by ""
               }
               """
           )
@@ -288,6 +394,7 @@ class VariableDeclarationTest implements RewriteTest {
     void unresolvedNameFirSource() {
         rewriteRun(
           kotlin(
+            //language=none, disabled due to invalid code
             """
               val t = SomeInput . Test
               """
@@ -301,15 +408,12 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
+              @file:Suppress("UNUSED_VARIABLE")
               class StringValue {
                   val value : String = ""
               }
-              """
-          ),
-          kotlin(
-            """
               fun method ( input : Any ) {
-                  val split = ( input as StringValue ) . value . split ( "-" ) . toTypedArray ( )
+                  val split = (  input   as    StringValue     ) .  value   .    split ( "-" ) .  toTypedArray   ( )
               }
               """
           )
@@ -320,9 +424,9 @@ class VariableDeclarationTest implements RewriteTest {
     @Test
     void parameterizedReceiver() {
         rewriteRun(
-          kotlin("class SomeParameterized<T>"),
           kotlin(
             """
+              class SomeParameterized<T>
               val SomeParameterized < Int > . receivedMember : Int
                   get ( ) = 42
               """
@@ -334,11 +438,11 @@ class VariableDeclarationTest implements RewriteTest {
     @Test
     void abstractReceiver() {
         rewriteRun(
-          kotlin("class SomeParameterized<T>"),
           kotlin(
             """
+              class SomeParameterized<T>
               abstract class Test {
-                  abstract val SomeParameterized < Int > . receivedMember : Int
+                  abstract val SomeParameterized <  Int > . receivedMember : Int
               }
               """
           )
@@ -353,8 +457,8 @@ class VariableDeclarationTest implements RewriteTest {
           kotlin(
             """
               var s : String = ""
-                  set ( value ) {
-                      field = value
+                  set  (   value    )     {
+                      field  =   value
                   }
               """
           )
@@ -403,8 +507,9 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
+              @file:Suppress("UNUSED_VARIABLE")
               fun foo() {
-                  val l = listOf ( "x" )
+                  val l: List<String?> = listOf ( "x" )
                   val a = l [ 0 ] !!
               }
               """
@@ -435,8 +540,217 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              val a  =   1    ;
+              val a  =   1   /*C1*/  ; /*C2*/
               val    b   =  2 ;
+              """
+          )
+        );
+    }
+
+    @Test
+    void anonymousObjectWithoutSupertype() {
+        rewriteRun(
+          kotlin(
+            """
+              val x: Any = object  {}   .    javaClass
+              """
+          )
+        );
+    }
+
+    @Test
+    void spaceBetweenEqualsInDestructuringDeclaration() {
+        rewriteRun(
+          kotlin(
+            """
+              @file:Suppress("UNUSED_VARIABLE")
+              fun getUserInfo(): Pair<String, String> {
+                  return Pair("Leo", "Messi")
+              }
+
+              fun main() {
+                  val (firstName, lastName)   =     getUserInfo()
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/286")
+    @Test
+    void unusedUnderScoreVariableInDestructuringDeclaration() {
+        rewriteRun(
+          kotlin(
+            """
+              @file:Suppress("UNUSED_VARIABLE")
+              fun getUserInfo(): Pair<String, String> {
+                  return Pair("Leo", "Messi")
+              }
+
+              fun main() {
+                  val (_, lastName) = getUserInfo()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void typeExpressionPresent() {
+        rewriteRun(
+          kotlin(
+            """
+              val i1 = 1
+              var i2 = 3
+              val i3: Int = 2
+              """,
+            spec -> spec.afterRecipe(cu ->
+                assertThat(cu.getStatements()).satisfiesExactly(
+                    i1 -> assertThat(((J.VariableDeclarations) i1).getTypeExpression()).satisfies(
+                        type -> assertThat(type).isNull()
+                    ),
+                    i2 -> assertThat(((J.VariableDeclarations) i2).getTypeExpression()).satisfies(
+                        type -> assertThat(type).isNull()
+                    ),
+                    i3 -> assertThat(((J.VariableDeclarations) i3).getTypeExpression()).satisfies(
+                        type -> {
+                            assertThat(type).isInstanceOf(J.Identifier.class);
+                            assertThat(((J.Identifier) type).getSimpleName()).isEqualTo("Int");
+                            assertThat(type.getMarkers().findFirst(Implicit.class)).isEmpty();
+                            assertThat(type.getType()).isInstanceOf(JavaType.Class.class);
+                            assertThat(((JavaType.Class) Objects.requireNonNull(type.getType())).getFullyQualifiedName()).isEqualTo("kotlin.Int");
+                        }
+                    )
+                )
+            )
+          )
+        );
+    }
+
+    @Test
+    void typealias() {
+        rewriteRun(
+          kotlin(
+            """
+              class Other
+              typealias  OldAlias   =    Other
+              """
+          )
+        );
+    }
+
+    @Test
+    void typealiasLambda() {
+        rewriteRun(
+          kotlin(
+            """
+              /*C1*/ typealias Operation =  (Int , Int )   ->    Int
+              """
+          )
+        );
+    }
+
+    @Test
+    void typedFunctionCallInitializer() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = emptySet  <   String    > (  )
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingSemicolon() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {
+                  var t = 1 /*C1*/  ; /*C2*/
+                  fun method() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/416")
+    @Test
+    void trailingComma() {
+        rewriteRun(
+          kotlin(
+            """
+              @file:Suppress("UNUSED_VARIABLE")
+              fun example ( ) {
+                val (
+                  a ,
+                  b   ,
+                ) = Pair ( 1, 2 )
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/404")
+    @Test
+    void destructuringWithTypes() {
+        rewriteRun(
+          kotlin(
+            """
+              @file:Suppress("UNUSED_VARIABLE")
+              fun example ( ) {
+                val ( a   :  Int   , b :  String  ?   ) = Pair ( 1 , "Two" )
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/455")
+    @Test
+    void starTypeProjection() {
+        rewriteRun(
+          kotlin(
+            """
+              val f = Enum<*>::name
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/446")
+    @Test
+    void trailingCommaOnParameterized() {
+        rewriteRun(
+          kotlin(
+            """
+             val m: Map<
+                Int ,
+                String ,
+              > = mapOf()
+             """
+          )
+        );
+    }
+
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/447")
+    @Test
+    void extensionProperty() {
+        rewriteRun(
+          kotlin(
+            """
+              class A {
+                  var internalProperty = "x"
+              }
+
+              var A .  property   : String
+                  get() = ""
+                  set(value) {
+                      internalProperty = value
+                  }
               """
           )
         );

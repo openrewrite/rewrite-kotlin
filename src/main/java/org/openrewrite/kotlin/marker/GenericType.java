@@ -21,11 +21,17 @@ import org.openrewrite.marker.Marker;
 
 import java.util.UUID;
 
+@Deprecated
 @Value
 @With
 public class GenericType implements Marker {
     UUID id;
     Variance variance;
+
+    public GenericType(UUID id, Variance variance) {
+        this.id = id;
+        this.variance = variance;
+    }
 
     public enum Variance {
         INVARIANT,

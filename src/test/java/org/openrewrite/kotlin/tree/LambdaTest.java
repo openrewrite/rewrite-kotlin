@@ -30,7 +30,7 @@ class LambdaTest implements RewriteTest {
           kotlin(
             """
               fun method ( ) {
-                  val square = { number : Int -> number * number }
+                  val square =  {   number    :     Int ->  number   *    number     }
               }
               """
           )
@@ -64,6 +64,19 @@ class LambdaTest implements RewriteTest {
                   fun inputValues ( ) : List < Pair < String , Any ? > > {
                       return fields ( ) . filter { ( k , _ ) -> ! defaults . contains ( k ) }
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void multipleDestructuredLambdaParams() {
+        rewriteRun(
+          kotlin(
+            """
+              val m = mapOf(Pair("", "")).forEach { (key, value) ->
+                       println(key + value)
               }
               """
           )
@@ -126,6 +139,36 @@ class LambdaTest implements RewriteTest {
         );
     }
 
+    @Test
+    void trailingComma() {
+        rewriteRun(
+          kotlin(
+            """
+              val sum: (Int, Int, ) -> Int = { x, y , -> x + y }
+              """
+          )
+        );
+    }
+
+    @Test
+    void redundantArrow() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.function.Supplier
+              
+              class Test {
+                  fun method(n: Int) {
+                      val ns: Supplier<Int> = Supplier {   ->
+                          n
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/110")
     @Test
     void unusedVar() {
@@ -176,6 +219,19 @@ class LambdaTest implements RewriteTest {
                   val a = Bar . bar {
                       _ : kotlin . Int? ->
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void underScoreAsLamdbaParameters() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method(map : HashMap<String, String>) {
+                  map.forEach { (_, value) -> println("$value!") }
               }
               """
           )

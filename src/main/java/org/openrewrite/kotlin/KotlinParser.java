@@ -22,7 +22,9 @@ import kotlin.jvm.functions.Function1;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.intellij.lang.annotations.Language;
+import org.jetbrains.kotlin.KtRealPsiSourceElement;
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments;
+import org.jetbrains.kotlin.cli.common.messages.AnalyzerWithCompilerReport;
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector;
 import org.jetbrains.kotlin.cli.common.messages.PrintingMessageCollector;
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles;
@@ -31,26 +33,30 @@ import org.jetbrains.kotlin.cli.jvm.compiler.VfsBasedProjectEnvironment;
 import org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt;
 import org.jetbrains.kotlin.com.intellij.openapi.Disposable;
 import org.jetbrains.kotlin.com.intellij.openapi.util.Disposer;
+import org.jetbrains.kotlin.com.intellij.openapi.util.text.StringUtilRt;
+import org.jetbrains.kotlin.com.intellij.openapi.vfs.StandardFileSystems;
 import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFile;
+import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager;
 import org.jetbrains.kotlin.com.intellij.psi.FileViewProvider;
+import org.jetbrains.kotlin.com.intellij.psi.PsiElement;
 import org.jetbrains.kotlin.com.intellij.psi.PsiManager;
 import org.jetbrains.kotlin.com.intellij.psi.SingleRootFileViewProvider;
+import org.jetbrains.kotlin.com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.kotlin.com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.kotlin.config.*;
-import org.jetbrains.kotlin.diagnostics.DiagnosticReporterFactory;
-import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector;
 import org.jetbrains.kotlin.fir.DependencyListForCliModule;
 import org.jetbrains.kotlin.fir.FirSession;
 import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.fir.java.FirProjectSessionProvider;
-import org.jetbrains.kotlin.fir.pipeline.AnalyseKt;
-import org.jetbrains.kotlin.fir.pipeline.BuildFirKt;
+import org.jetbrains.kotlin.fir.pipeline.*;
 import org.jetbrains.kotlin.fir.resolve.ScopeSession;
 import org.jetbrains.kotlin.fir.session.FirSessionConfigurator;
-import org.jetbrains.kotlin.fir.session.FirSessionFactory;
+import org.jetbrains.kotlin.fir.session.FirSessionFactoryHelper;
 import org.jetbrains.kotlin.fir.session.environment.AbstractProjectFileSearchScope;
 import org.jetbrains.kotlin.idea.KotlinFileType;
 import org.jetbrains.kotlin.idea.KotlinLanguage;
+import org.jetbrains.kotlin.load.kotlin.PackagePartProvider;
+import org.jetbrains.kotlin.modules.Module;
 import org.jetbrains.kotlin.name.Name;
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms;
 import org.jetbrains.kotlin.psi.KtFile;
@@ -61,9 +67,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaSourceSet;
-import org.openrewrite.kotlin.internal.CompiledSource;
-import org.openrewrite.kotlin.internal.KotlinParserVisitor;
-import org.openrewrite.kotlin.internal.KotlinSource;
+import org.openrewrite.kotlin.internal.*;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.tree.ParseError;
@@ -87,13 +91,14 @@ import static java.util.stream.Collectors.toList;
 import static org.jetbrains.kotlin.cli.common.CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY;
 import static org.jetbrains.kotlin.cli.common.messages.MessageRenderer.PLAIN_FULL_PATHS;
 import static org.jetbrains.kotlin.cli.jvm.JvmArgumentsKt.*;
-import static org.jetbrains.kotlin.cli.jvm.compiler.pipeline.CompilerPipelineKt.*;
+import static org.jetbrains.kotlin.cli.jvm.K2JVMCompilerKt.configureModuleChunk;
 import static org.jetbrains.kotlin.cli.jvm.config.JvmContentRootsKt.*;
 import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
-import static org.jetbrains.kotlin.config.CommonConfigurationKeys.INCREMENTAL_COMPILATION;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
+import static org.jetbrains.kotlin.config.JVMConfigurationKeys.LINK_VIA_SIGNATURES;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
 
+@SuppressWarnings("CommentedOutCode")
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class KotlinParser implements Parser {
     public static final String SKIP_SOURCE_SET_TYPE_GENERATION = "org.openrewrite.kotlin.skipSourceSetTypeGeneration";
@@ -110,6 +115,8 @@ public class KotlinParser implements Parser {
     private final boolean logCompilationWarningsAndErrors;
     private final JavaTypeCache typeCache;
     private final String moduleName;
+    private final KotlinLanguageLevel languageLevel;
+    private final boolean isKotlinScript;
 
     @Override
     public Stream<SourceFile> parse(@Language("kotlin") String... sources) {
@@ -148,14 +155,13 @@ public class KotlinParser implements Parser {
         ParsingExecutionContextView pctx = ParsingExecutionContextView.view(ctx);
         ParsingEventListener parsingListener = pctx.getParsingListener();
 
+        // TODO: FIR and disposable may not be necessary using the IR.
         Disposable disposable = Disposer.newDisposable();
         CompiledSource compilerCus;
         try {
             compilerCus = parse(acceptedInputs(sources).collect(Collectors.toList()), disposable, pctx);
         } catch (Exception e) {
-            // TODO: associate the compiler exception to a specific source file.
-            // https://github.com/openrewrite/rewrite-kotlin/issues/24
-            return Stream.empty();
+            return acceptedInputs(sources).map(input -> ParseError.build(this, input, relativeTo, ctx, e));
         }
 
         FirSession firSession = compilerCus.getFirSession();
@@ -163,18 +169,23 @@ public class KotlinParser implements Parser {
                         compilerCus.getSources().stream()
                                 .map(kotlinSource -> {
                                     try {
-                                        KotlinParserVisitor mappingVisitor = new KotlinParserVisitor(
-                                                kotlinSource,
-                                                relativeTo,
-                                                styles,
-                                                typeCache,
-                                                firSession,
-                                                ctx
-                                        );
+                                        assert kotlinSource.getFirFile() != null;
+                                        assert kotlinSource.getFirFile().getSource() != null;
+                                        PsiElement psi = ((KtRealPsiSourceElement) kotlinSource.getFirFile().getSource()).getPsi();
+                                        AnalyzerWithCompilerReport.SyntaxErrorReport report =
+                                                AnalyzerWithCompilerReport.Companion.reportSyntaxErrors(psi, new PrintingMessageCollector(System.err, PLAIN_FULL_PATHS, true));
+                                        if (report.isHasErrors()) {
+                                            return ParseError.build(KotlinParser.this, kotlinSource.getInput(), relativeTo, ctx, new RuntimeException());
+                                        }
 
-                                        SourceFile kcu = (SourceFile) mappingVisitor.visitFile(kotlinSource.getFirFile(), new InMemoryExecutionContext());
-                                        parsingListener.parsed(kotlinSource.getInput(), kcu);
-                                        return requirePrintEqualsInput(kcu, kotlinSource.getInput(), relativeTo, ctx);
+                                        KotlinTypeMapping typeMapping = new KotlinTypeMapping(typeCache, firSession, kotlinSource.getFirFile());
+                                        PsiElementAssociations associations = new PsiElementAssociations(typeMapping, kotlinSource.getFirFile());
+                                        associations.initialize();
+                                        KotlinTreeParserVisitor psiParser = new KotlinTreeParserVisitor(kotlinSource, associations, styles, relativeTo, ctx);
+                                        SourceFile cu = psiParser.parse();
+
+                                        parsingListener.parsed(kotlinSource.getInput(), cu);
+                                        return requirePrintEqualsInput(cu, kotlinSource.getInput(), relativeTo, ctx);
                                     } catch (Throwable t) {
                                         ctx.getOnError().accept(t);
                                         return ParseError.build(this, kotlinSource.getInput(), relativeTo, ctx, t);
@@ -191,7 +202,8 @@ public class KotlinParser implements Parser {
 
     @Override
     public boolean accept(Path path) {
-        return path.toString().endsWith(".kt");
+        String p = path.toString();
+        return p.endsWith(".kt") || p.endsWith(".kts");
     }
 
     @Override
@@ -221,7 +233,7 @@ public class KotlinParser implements Parser {
 
     @Override
     public Path sourcePathFromSourceText(Path prefix, String sourceCode) {
-        return prefix.resolve("openRewriteFile.kt");
+        return prefix.resolve(isKotlinScript ? "openRewriteFile.kts" : "openRewriteFile.kt");
     }
 
     public static Builder builder() {
@@ -231,12 +243,16 @@ public class KotlinParser implements Parser {
     @SuppressWarnings("unused")
     public static class Builder extends Parser.Builder {
         @Nullable
-        private Collection<Path> classpath = JavaParser.runtimeClasspath();
+        private Collection<String> artifactNames = emptyList();
+        @Nullable
+        private Collection<Path> classpath = emptyList();
 
         private JavaTypeCache typeCache = new JavaTypeCache();
         private boolean logCompilationWarningsAndErrors;
         private final List<NamedStyles> styles = new ArrayList<>();
         private String moduleName = "main";
+        private KotlinLanguageLevel languageLevel = KotlinLanguageLevel.KOTLIN_1_9;
+        private boolean isKotlinScript = false;
 
         public Builder() {
             super(K.CompilationUnit.class);
@@ -247,13 +263,26 @@ public class KotlinParser implements Parser {
             return this;
         }
 
+        public Builder isKotlinScript(boolean isKotlinScript) {
+            this.isKotlinScript = isKotlinScript;
+            return this;
+        }
+
         public Builder classpath(Collection<Path> classpath) {
+            this.artifactNames = null;
             this.classpath = classpath;
             return this;
         }
 
-        public Builder classpath(String... classpath) {
-            this.classpath = JavaParser.dependenciesFromClasspath(classpath);
+        public Builder classpath(String... artifactNames) {
+            this.artifactNames = Arrays.asList(artifactNames);
+            this.classpath = null;
+            return this;
+        }
+
+        public Builder classpathFromResources(ExecutionContext ctx, String... classpath) {
+            this.artifactNames = null;
+            this.classpath = JavaParser.dependenciesFromResources(ctx, classpath);
             return this;
         }
 
@@ -283,19 +312,38 @@ public class KotlinParser implements Parser {
             return this;
         }
 
+        public Builder languageLevel(KotlinLanguageLevel languageLevel) {
+            this.languageLevel = languageLevel;
+            return this;
+        }
+
+        @Nullable
+        private Collection<Path> resolvedClasspath() {
+            if (artifactNames != null && !artifactNames.isEmpty()) {
+                classpath = JavaParser.dependenciesFromClasspath(artifactNames.toArray(new String[0]));
+                artifactNames = null;
+            }
+            return classpath;
+        }
+
         public KotlinParser build() {
-            return new KotlinParser(classpath, styles, logCompilationWarningsAndErrors, typeCache, moduleName);
+            return new KotlinParser(resolvedClasspath(), styles, logCompilationWarningsAndErrors, typeCache, moduleName, languageLevel, isKotlinScript);
         }
 
         @Override
         public String getDslName() {
             return "kotlin";
         }
+
+        public KotlinParser.Builder clone() {
+            KotlinParser.Builder clone = (KotlinParser.Builder) super.clone();
+            clone.typeCache = this.typeCache.clone();
+            return clone;
+        }
     }
 
     public CompiledSource parse(List<Parser.Input> sources, Disposable disposable, ExecutionContext ctx) {
         CompilerConfiguration compilerConfiguration = compilerConfiguration();
-
         if (classpath != null) {
             for (Path path : classpath) {
                 File file;
@@ -310,11 +358,15 @@ public class KotlinParser implements Parser {
         addJvmClasspathRoot(compilerConfiguration, PathUtil.getResourcePathForClass(AnnotationTarget.class));
 
         K2JVMCompilerArguments arguments = new K2JVMCompilerArguments();
+        configureJdkHome(compilerConfiguration, arguments);
         configureJavaModulesContentRoots(compilerConfiguration, arguments);
         configureAdvancedJvmOptions(compilerConfiguration, arguments);
         configureKlibPaths(compilerConfiguration, arguments);
+        configureContentRootsFromClassPath(compilerConfiguration, arguments);
         configureJdkClasspathRoots(compilerConfiguration);
         configureBaseRoots(compilerConfiguration, arguments);
+
+        Module module = configureModuleChunk(compilerConfiguration, arguments, null).getModules().get(0);
 
         KotlinCoreEnvironment environment = KotlinCoreEnvironment.createForProduction(
                 disposable,
@@ -326,8 +378,20 @@ public class KotlinParser implements Parser {
         List<KotlinSource> kotlinSources = new ArrayList<>(sources.size());
         for (int i = 0; i < sources.size(); i++) {
             Parser.Input source = sources.get(i);
-            String fileName = "openRewriteFile.kt".equals(source.getPath().toString()) ? "openRewriteFile" + i + ".kt" : source.getPath().toString();
-            VirtualFile vFile = new LightVirtualFile(fileName, KotlinFileType.INSTANCE, source.getSource(ctx).readFully());
+            String fileName;
+
+            if ("openRewriteFile.kt".equals(source.getPath().toString())) {
+                fileName = "openRewriteFile" + i + ".kt";
+            } else if ("openRewriteFile.kts".equals(source.getPath().toString())) {
+                fileName = "openRewriteFile" + i + ".kts";
+            } else {
+                fileName = source.getPath().toString();
+            }
+
+            String sourceText = source.getSource(ctx).readFully();
+            List<Integer> cRLFLocations = getCRLFLocations(sourceText);
+
+            VirtualFile vFile = new LightVirtualFile(fileName, KotlinFileType.INSTANCE, StringUtilRt.convertLineSeparators(sourceText));
             final FileViewProvider fileViewProvider = new SingleRootFileViewProvider(
                     PsiManager.getInstance(environment.getProject()),
                     vFile
@@ -335,12 +399,15 @@ public class KotlinParser implements Parser {
             KtFile file = (KtFile) fileViewProvider.getPsi(KotlinLanguage.INSTANCE);
             assert file != null;
             ktFiles.add(file);
-            kotlinSources.add(new KotlinSource(source, file));
+            kotlinSources.add(new KotlinSource(source, file, cRLFLocations));
         }
 
-        BaseDiagnosticsCollector diagnosticsReporter = DiagnosticReporterFactory.INSTANCE.createReporter(false);
-        VfsBasedProjectEnvironment projectEnvironment = createProjectEnvironment(compilerConfiguration, disposable,
-                EnvironmentConfigFiles.JVM_CONFIG_FILES, compilerConfiguration.getNotNull(MESSAGE_COLLECTOR_KEY));
+        Function1<? super GlobalSearchScope, PackagePartProvider> providerFunction1 = environment::createPackagePartProvider;
+        VfsBasedProjectEnvironment projectEnvironment = new VfsBasedProjectEnvironment(
+                environment.getProject(),
+                VirtualFileManager.getInstance().getFileSystem(StandardFileSystems.FILE_PROTOCOL),
+                providerFunction1);
+
         AbstractProjectFileSearchScope sourceScope = projectEnvironment.getSearchScopeByPsiFiles(ktFiles, false);
         sourceScope.plus(projectEnvironment.getSearchScopeForProjectJavaSources());
 
@@ -368,8 +435,8 @@ public class KotlinParser implements Parser {
 
         Function1<FirSessionConfigurator, Unit> sessionConfigurator = session -> Unit.INSTANCE;
 
-        FirSession firSession = FirSessionFactory.INSTANCE.createSessionWithDependencies(
-                Name.identifier(moduleName),
+        FirSession firSession = FirSessionFactoryHelper.INSTANCE.createSessionWithDependencies(
+                Name.identifier(module.getModuleName()),
                 JvmPlatforms.INSTANCE.getUnspecifiedJvmPlatform(),
                 JvmPlatformAnalyzerServices.INSTANCE,
                 sessionProvider,
@@ -386,16 +453,54 @@ public class KotlinParser implements Parser {
                 sessionConfigurator
         );
 
-        List<FirFile> rawFir = BuildFirKt.buildFirFromKtFiles(firSession, ktFiles);
+        List<FirFile> rawFir = FirUtilsKt.buildFirFromKtFiles(firSession, ktFiles);
         Pair<ScopeSession, List<FirFile>> result = AnalyseKt.runResolution(firSession, rawFir);
-        AnalyseKt.runCheckers(firSession, result.getFirst(), result.getSecond(), diagnosticsReporter);
         assert kotlinSources.size() == result.getSecond().size();
-        List<FirFile> second = result.getSecond();
-        for (int i = 0; i < second.size(); i++) {
-            kotlinSources.get(i).setFirFile(second.get(i));
+        for (int i = 0; i < kotlinSources.size(); i++) {
+            kotlinSources.get(i).setFirFile(result.getSecond().get(i));
         }
+        // IR generation.
+//        AnalyseKt.runCheckers(firSession, result.getFirst(), result.getSecond(), diagnosticsReporter);
+//        ModuleCompilerAnalyzedOutput analyzedOutput = new ModuleCompilerAnalyzedOutput(firSession, result.getFirst(), result.getSecond());
+//        FirResult firResult = new FirResult(singletonList(analyzedOutput));
+
+//        Fir2IrExtensions extensions = Fir2IrExtensions.Default.INSTANCE;
+//        Fir2IrConfiguration irConfiguration = new Fir2IrConfiguration(
+//                languageVersionSettings,
+//                compilerConfiguration.getBoolean(JVMConfigurationKeys.LINK_VIA_SIGNATURES),
+//                compilerConfiguration.putIfAbsent(EVALUATED_CONST_TRACKER, EvaluatedConstTracker.Companion.create())
+//        );
+//
+//        List<IrGenerationExtension> irGenerationExtensions = IrGenerationExtension.Companion.getInstances(projectEnvironment.getProject());
+//        Fir2IrActualizedResult actualizedResult = null;
+//        try {
+//            actualizedResult = convertToIrAndActualizeForJvm(firResult, extensions, irConfiguration, irGenerationExtensions, diagnosticsReporter);
+//            assert kotlinSources.size() == actualizedResult.getIrModuleFragment().getFiles().size();
+//        } catch (Exception ignored) {
+//        }
+//
+//        for (int i = 0; i < kotlinSources.size(); i++) {
+//            kotlinSources.get(i).setFirFile(result.getSecond().get(i));
+//            if (actualizedResult != null) {
+//                kotlinSources.get(i).setIrFile(actualizedResult.getIrModuleFragment().getFiles().get(i));
+//            }
+////            new KotlinIrTypeMapping(new JavaTypeCache()).type(files.get(i));
+//        }
 
         return new CompiledSource(firSession, kotlinSources);
+    }
+
+    public enum KotlinLanguageLevel {
+        KOTLIN_1_0,
+        KOTLIN_1_1,
+        KOTLIN_1_2,
+        KOTLIN_1_3,
+        KOTLIN_1_4,
+        KOTLIN_1_5,
+        KOTLIN_1_6,
+        KOTLIN_1_7,
+        KOTLIN_1_8,
+        KOTLIN_1_9
     }
 
     private CompilerConfiguration compilerConfiguration() {
@@ -406,16 +511,91 @@ public class KotlinParser implements Parser {
                 new PrintingMessageCollector(System.err, PLAIN_FULL_PATHS, true) :
                 MessageCollector.Companion.getNONE());
 
-        // TODO: Allow language version to be configurable.
-        compilerConfiguration.put(LANGUAGE_VERSION_SETTINGS, new LanguageVersionSettingsImpl(LanguageVersion.KOTLIN_1_8, ApiVersion.KOTLIN_1_8));
+        compilerConfiguration.put(LANGUAGE_VERSION_SETTINGS, new LanguageVersionSettingsImpl(getLanguageVersion(languageLevel), getApiVersion(languageLevel)));
 
         compilerConfiguration.put(USE_FIR, true);
         compilerConfiguration.put(DO_NOT_CLEAR_BINDING_CONTEXT, true);
         compilerConfiguration.put(ALLOW_ANY_SCRIPTS_IN_SOURCE_ROOTS, true);
         compilerConfiguration.put(INCREMENTAL_COMPILATION, true);
+        compilerConfiguration.put(LINK_VIA_SIGNATURES, true);
 
         addJvmSdkRoots(compilerConfiguration, PathUtil.getJdkClassesRootsFromCurrentJre());
 
         return compilerConfiguration;
+    }
+
+    private LanguageVersion getLanguageVersion(KotlinLanguageLevel languageLevel) {
+        switch (languageLevel) {
+            case KOTLIN_1_0:
+                return LanguageVersion.KOTLIN_1_0;
+            case KOTLIN_1_1:
+                return LanguageVersion.KOTLIN_1_1;
+            case KOTLIN_1_2:
+                return LanguageVersion.KOTLIN_1_2;
+            case KOTLIN_1_3:
+                return LanguageVersion.KOTLIN_1_3;
+            case KOTLIN_1_4:
+                return LanguageVersion.KOTLIN_1_4;
+            case KOTLIN_1_5:
+                return LanguageVersion.KOTLIN_1_5;
+            case KOTLIN_1_6:
+                return LanguageVersion.KOTLIN_1_6;
+            case KOTLIN_1_7:
+                return LanguageVersion.KOTLIN_1_7;
+            case KOTLIN_1_8:
+                return LanguageVersion.KOTLIN_1_8;
+            case KOTLIN_1_9:
+                return LanguageVersion.KOTLIN_1_9;
+            default:
+                throw new IllegalArgumentException("Unknown language level: " + languageLevel);
+        }
+    }
+
+    private ApiVersion getApiVersion(KotlinLanguageLevel languageLevel) {
+        switch (languageLevel) {
+            case KOTLIN_1_0:
+                return ApiVersion.KOTLIN_1_0;
+            case KOTLIN_1_1:
+                return ApiVersion.KOTLIN_1_1;
+            case KOTLIN_1_2:
+                return ApiVersion.KOTLIN_1_2;
+            case KOTLIN_1_3:
+                return ApiVersion.KOTLIN_1_3;
+            case KOTLIN_1_4:
+                return ApiVersion.KOTLIN_1_4;
+            case KOTLIN_1_5:
+                return ApiVersion.KOTLIN_1_5;
+            case KOTLIN_1_6:
+                return ApiVersion.KOTLIN_1_6;
+            case KOTLIN_1_7:
+                return ApiVersion.KOTLIN_1_7;
+            case KOTLIN_1_8:
+                return ApiVersion.KOTLIN_1_8;
+            case KOTLIN_1_9:
+                return ApiVersion.KOTLIN_1_9;
+            default:
+                throw new IllegalArgumentException("Unknown language level: " + languageLevel);
+        }
+    }
+
+    private List<Integer> getCRLFLocations(String source) {
+        if (source.isEmpty()) {
+            return emptyList();
+        }
+        List<Integer> cRLFIndices = new ArrayList<>();
+        int pos = 0;
+        for (int i = 0; i < source.length(); i++) {
+            char currentChar = source.charAt(i);
+            if (currentChar == '\r') {
+                // Check if the next character is '\n' (CRLF)
+                if (i + 1 < source.length() && source.charAt(i + 1) == '\n') {
+                    cRLFIndices.add(pos);
+                    i++; // Skip the next character ('\n')
+                }
+            }
+            pos++;
+        }
+
+        return cRLFIndices;
     }
 }

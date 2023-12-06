@@ -31,6 +31,32 @@ import static org.openrewrite.test.RewriteTest.toRecipe;
 class FieldAccessTest implements RewriteTest {
 
     @Test
+    void fieldAccessOnParameterizedType() {
+        rewriteRun(
+          kotlin(
+            """
+              class Foo {
+                val s =/*1*/java/*2*/./*3*/util/*4*/./*5*/ArrayList<String>()/*6*/./*7*/toString()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void fieldAccessOnIdentifier() {
+        rewriteRun(
+          kotlin(
+            """
+              class Foo {
+                val sb = /*1*/java/*2*/./*3*/lang/*4*/./*5*/StringBuilder()/*6*/./*7*/toString()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void thisAccess() {
         rewriteRun(
           kotlin(
@@ -46,25 +72,69 @@ class FieldAccessTest implements RewriteTest {
         );
     }
 
+    @Test
+    void notNullAssertionAfterFieldAccess() {
+        rewriteRun(
+          kotlin(
+            """
+              class A {
+                val a : String? = null
+              }
+              val x = A().a!!
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/18")
     @Test
     void superAccess() {
         rewriteRun(
           kotlin(
             """
-              open class Super {
-                  val id : String = ""
+              open class A {
+                  val id : Int = 0
               }
-              """
-          ),
-          kotlin(
-            """
-              class Test : Super() {
-                  fun getId ( ) : String {
+              class B : A ( ) {
+                  fun getId ( ) : Int {
                       return super . id
                   }
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void constructorDelegationWithExpression() {
+        rewriteRun(
+          kotlin(
+            """
+              open class Super(val id : Int)
+              class Test(val id2 : Int) : @Suppress Super(1 + 3)
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                J.ClassDeclaration test = (J.ClassDeclaration) cu.getStatements().get(1);
+                assertThat(test.getImplements()).satisfiesExactly(
+                  superType -> {
+                      K.ConstructorInvocation call = (K.ConstructorInvocation) superType;
+                      assertThat(((JavaType.FullyQualified) call.getType()).getFullyQualifiedName()).isEqualTo("Super");
+                      assertThat(((J.Identifier) call.getTypeTree()).getSimpleName()).isEqualTo("Super");
+                      assertThat(call.getArguments()).satisfiesExactly(
+                        id -> assertThat(id).isInstanceOf(J.Binary.class)
+                      );
+                  }
+                );
+                assertThat(test.getBody().getStatements()).satisfiesExactly(
+                  stmt -> {
+                      J.MethodDeclaration constr = (J.MethodDeclaration) stmt;
+                      assertThat(constr.getParameters()).satisfiesExactly(
+                        id2 -> assertThat(id2).isInstanceOf(J.VariableDeclarations.class)
+                      );
+                      assertThat(constr.getBody()).isNull();
+                  }
+                );
+            })
           )
         );
     }
@@ -77,10 +147,6 @@ class FieldAccessTest implements RewriteTest {
               class Test {
                   val property = 42
               }
-              """
-          ),
-          kotlin(
-            """
               fun method ( test : Test ? ) {
                   val a = test ?. property
               }
@@ -97,10 +163,6 @@ class FieldAccessTest implements RewriteTest {
               class Test {
                   val value : Int ? = 42
               }
-              """
-          ),
-          kotlin(
-            """
               fun method ( test : Test ) {
                   val a = test . value ?: null
               }

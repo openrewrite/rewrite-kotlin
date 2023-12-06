@@ -138,4 +138,83 @@ class IfTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void annotatedIf() {
+        rewriteRun(
+          kotlin(
+            """
+              fun foo(t: Boolean) {
+                  @Suppress
+                  if (t)
+                      print("t")
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/298")
+    void functionCallCondition() {
+        rewriteRun(
+          kotlin(
+            """
+              import kotlin.text.Regex
+
+              fun foo(choices: List<Pair<String, String>>, peekedHeader: Regex) {
+                  for ((_, adapter) in choices) {
+                      if (adapter.matches(peekedHeader)) {
+                          print("1")
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/390")
+    @Test
+    void typeParameter() {
+        rewriteRun(
+          kotlin(
+            """
+              val enabled = true
+              fun foo(arg: String = if (enabled) "foo" else "bar"): String {
+                return arg
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/394")
+    @Test
+    void fieldAccess() {
+        rewriteRun(
+          kotlin(
+            """
+              val foo = if (true) { "" } else { null }?.plus("bar")
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/392")
+    @Test
+    void postfixExpression() {
+        rewriteRun(
+          kotlin(
+            """
+              fun foo(arg: Boolean): String? {
+                  return if (arg) "" else null
+              }
+              fun bar(arg: Boolean) {
+                  if (arg) { foo(true) } else { foo(false) }!!
+              }
+              """
+          )
+        );
+    }
 }

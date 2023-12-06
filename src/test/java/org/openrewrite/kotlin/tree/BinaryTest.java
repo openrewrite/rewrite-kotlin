@@ -265,6 +265,29 @@ class BinaryTest implements RewriteTest {
     }
 
     @Test
+    void doubleLogicParenthesized() {
+        rewriteRun(
+          kotlin(
+            """
+              val b : Boolean = true
+              val x = ((b || b) && (b || b))
+              """
+          )
+        );
+    }
+
+    @Test
+    void elvis() {
+        rewriteRun(
+          kotlin(
+            """
+              val a = "S" ?: "X"
+              """
+          )
+        );
+    }
+
+    @Test
     void rem() {
         rewriteRun(
           kotlin(
@@ -292,6 +315,17 @@ class BinaryTest implements RewriteTest {
                   }
               }
               """.formatted(arg)
+          )
+        );
+    }
+
+    @Test
+    void notIn() {
+        rewriteRun(
+          kotlin(
+            """
+              val x = "x" !in arrayOf("x")
+              """
           )
         );
     }

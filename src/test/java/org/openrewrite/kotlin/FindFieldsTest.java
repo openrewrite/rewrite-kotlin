@@ -13,29 +13,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.kotlin.tree;
+package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.Issue;
+import org.openrewrite.java.search.FindFields;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
-class TypeMappingTest implements RewriteTest {
+public class FindFieldsTest implements RewriteTest {
 
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/199")
     @Test
-    void parameterizedTypeMapping() {
+    void jvmStaticField() {
         rewriteRun(
+          spec -> spec.recipe(new FindFields("java.lang.Integer", false, "MAX_VALUE")),
           kotlin(
             """
-              import org.openrewrite.Maintainer
-              import org.openrewrite.test.AdHocRecipe
-
-              fun method(): List<Maintainer> {
-                  val adHocRecipe = AdHocRecipe(null, null, null, null, null, null, null)
-                  return adHocRecipe.maintainers
-              }
+              import java.lang.Integer
+              import java.lang.Integer.MAX_VALUE
+              
+              val i1 = java.lang.Integer.MAX_VALUE
+              val i2 = Integer.MAX_VALUE
+              val i3 = MAX_VALUE
+              val i4 = `MAX_VALUE`
+              """,
+            """
+              import java.lang.Integer
+              import java.lang.Integer.MAX_VALUE
+              
+              val i1 = /*~~>*/java.lang.Integer.MAX_VALUE
+              val i2 = /*~~>*/Integer.MAX_VALUE
+              val i3 = /*~~>*/MAX_VALUE
+              val i4 = /*~~>*/`MAX_VALUE`
               """
           )
         );

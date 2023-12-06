@@ -59,7 +59,8 @@ public class RenameTypeAlias extends Recipe {
                 if (!i.getSimpleName().equals(aliasName) || !TypeUtils.isOfClassType(i.getType(), fullyQualifiedAliasedType)) {
                     return i;
                 }
-                if (!isVariableName(getCursor().getParentTreeCursor(), i)) {
+                if (!isVariableName(getCursor().getParentTreeCursor(), i) ||
+                        isAliasImport(getCursor().getParentTreeCursor(), i)) {
                     i = i.withSimpleName(newName);
                 }
                 return i;
@@ -85,14 +86,18 @@ public class RenameTypeAlias extends Recipe {
             Object maybeVd = cursor.getParentTreeCursor().getValue();
             if (maybeVd instanceof J.VariableDeclarations) {
                 J.VariableDeclarations vd = (J.VariableDeclarations) maybeVd;
-                if (vd.getLeadingAnnotations().stream().anyMatch(it -> "typealias".equals(it.getSimpleName()))) {
-                    return false;
-                }
+                return vd.getLeadingAnnotations().stream().noneMatch(it -> "typealias".equals(it.getSimpleName()));
             }
             return true;
-        } else if (value instanceof J.ParameterizedType) {
-            return false;
+        } else return !(value instanceof J.ParameterizedType);
+    }
+
+    private boolean isAliasImport(Cursor cursor, J.Identifier id) {
+        if (cursor.getValue() instanceof J.Import) {
+            J.Import ji = cursor.getValue();
+            return ji.getAlias() == id;
         }
-        return true;
+
+        return false;
     }
 }

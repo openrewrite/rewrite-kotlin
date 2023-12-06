@@ -15,8 +15,9 @@
  */
 package org.openrewrite.kotlin.tree;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Statement;
@@ -59,7 +60,7 @@ class MethodDeclarationTest implements RewriteTest {
     @Test
     void functionTypeWithReceiver() {
         rewriteRun(
-          kotlin("fun method ( arg : String . ( ) -> String ) { }")
+          kotlin("fun method (  arg   :    String .  (   )    -> String /*c*/) { }")
         );
     }
 
@@ -91,6 +92,19 @@ class MethodDeclarationTest implements RewriteTest {
               class A {
                   fun method ( ) {
                   }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void constructor() {
+        rewriteRun(
+          kotlin(
+            """
+              class A(i : Int) {
+                  constructor() : this  (1)
               }
               """
           )
@@ -152,8 +166,12 @@ class MethodDeclarationTest implements RewriteTest {
     @Test
     void receiverType() {
         rewriteRun(
-          kotlin("class Test"),
-          kotlin("fun Test . method ( ) { }")
+          kotlin(
+            """
+            class Test
+            fun Test . method ( ) { }
+            """
+          )
         );
     }
 
@@ -166,10 +184,7 @@ class MethodDeclarationTest implements RewriteTest {
                   fun build ( s : ( ) -> String ) {
                   }
               }
-              """
-          ),
-          kotlin(
-            """
+
               fun Test . method ( ) = build {
                   "42"
               }
@@ -184,6 +199,7 @@ class MethodDeclarationTest implements RewriteTest {
           kotlin(
             """
               fun method ( ) : Array < Int > ? {
+                  return null
               }
               """
           )
@@ -242,14 +258,29 @@ class MethodDeclarationTest implements RewriteTest {
         );
     }
 
-    @Disabled
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/205")
+    @ParameterizedTest
+    @ValueSource(strings = {
+      "out Number",
+      "in String"
+    })
+    void variance(String param) {
+        rewriteRun(
+          kotlin(
+            """
+              interface PT < T >
+              fun generic ( n : PT < %s > ) { }
+              """.formatted(param)
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/160")
     @Test
     void genericTypeConstraint() {
         rewriteRun(
           kotlin(
             """
-              fun <T> foo(): Int where T: List<T> {
+              fun <T> foo() :  Int   where    T     : List <  T   > {
                   return 0
               }
               """
@@ -270,6 +301,121 @@ class MethodDeclarationTest implements RewriteTest {
                     }
                 }
             }))
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/271")
+    void negativeSingleExpression() {
+        rewriteRun(
+          kotlin(
+            """
+              fun size(): Int = -1
+              """
+          )
+        );
+    }
+
+    @Test
+    void parenthesizedSingleExpression() {
+        rewriteRun(
+          kotlin(
+            """
+              fun size(): Int = (-1)
+              """
+          )
+        );
+    }
+
+    @Test
+    void multiplatformExpectDeclaration() {
+        rewriteRun(
+          kotlin(
+            """
+              expect suspend fun Any.executeAsync(): Any
+              """
+          )
+        );
+    }
+
+    @Test
+    void multipleTypeConstraints() {
+        rewriteRun(
+          kotlin(
+            """
+              fun <T> foo(t: T): T where T: CharSequence, T: Comparable<T> = t
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingSemiColon() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {
+                  fun m0() {
+                  } /*c1*/  ;  /*c2*/
+
+                  fun m1() {};
+
+                  fun m2() {
+                  }  /*c3*/   ; /*c4*/
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void argumentTrailingComma() {
+        rewriteRun(
+          kotlin(
+            """
+              inline fun <reified T, R> default(paramName: String): R? {
+                  return null
+              }
+
+              class PersonProjection {
+                  operator fun invoke() = this
+              }
+
+              public fun person(
+                  a1: String? = default<PersonProjection, String?>("a1"),
+                  a2: String,
+                  _projection: PersonProjection.() -> PersonProjection, // Trailing Comma here
+              ) {
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/439")
+    @Test
+    void trailingSemiColonOnAssignment() {
+        rewriteRun(
+          kotlin(
+            """
+              fun size(): Int = 42;
+              fun m2() = 1 /*C1*/  ;
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/442")
+    @Test
+    void intersectionType() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.*
+              @Suppress("UNUSED_PARAMETER")
+              fun < T : Any ? > test( n : Optional <  T   &    Any > = Optional.empty < T > ( ) ) { }
+              """
+          )
         );
     }
 }

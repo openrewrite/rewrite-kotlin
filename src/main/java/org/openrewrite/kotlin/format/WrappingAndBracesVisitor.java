@@ -16,17 +16,18 @@
 package org.openrewrite.kotlin.format;
 
 
+import org.openrewrite.Cursor;
 import org.openrewrite.Tree;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.java.tree.Space;
-import org.openrewrite.java.tree.Statement;
+import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
+import org.openrewrite.kotlin.marker.OmitBraces;
+import org.openrewrite.kotlin.marker.PrimaryConstructor;
 import org.openrewrite.kotlin.style.WrappingAndBracesStyle;
 
 import java.util.List;
+import java.util.Optional;
 
 public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
     @Nullable
@@ -47,8 +48,23 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public Statement visitStatement(Statement statement, P p) {
         Statement j = super.visitStatement(statement, p);
-        J parentTree = getCursor().getParentTreeCursor().getValue();
+        Tree parentTree = getCursor().getParentTreeCursor().getValue();
+
         if (parentTree instanceof J.Block && !(j instanceof J.EnumValueSet)) {
+            J.Block parentBlock = (J.Block) parentTree;
+            if (parentBlock.getMarkers().findFirst(OmitBraces.class).isPresent()) {
+                return j;
+            }
+
+
+            if (j instanceof J.MethodDeclaration) {
+                J.MethodDeclaration m = (J.MethodDeclaration) j;
+                // no new line for constructor
+                if ("<constructor>".equals(Optional.ofNullable(m.getMethodType()).map(JavaType.Method::getName).orElse(""))) {
+                    return j;
+                }
+            }
+
             // for `J.EnumValueSet` the prefix is on the enum constants
             if (!j.getPrefix().getWhitespace().contains("\n")) {
                 j = j.withPrefix(withNewline(j.getPrefix()));
@@ -62,11 +78,13 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
     public J.VariableDeclarations visitVariableDeclarations(J.VariableDeclarations multiVariable, P p) {
 
         J.VariableDeclarations variableDeclarations = super.visitVariableDeclarations(multiVariable, p);
-        if (getCursor().getParent() != null && getCursor().getParent().firstEnclosing(J.class) instanceof J.Block) {
-
+        Cursor parentCursor = getCursor().getParentTreeCursor();
+        if (parentCursor.getValue() instanceof J.Block) {
             variableDeclarations = variableDeclarations.withLeadingAnnotations(withNewlines(variableDeclarations.getLeadingAnnotations()));
 
-            if (!variableDeclarations.getLeadingAnnotations().isEmpty()) {
+            J grandparent;
+            if (!variableDeclarations.getLeadingAnnotations().isEmpty() &&
+                    ((grandparent = parentCursor.getParentTreeCursor().getValue()) instanceof J.ClassDeclaration || grandparent instanceof J.NewClass)) {
                 if (!variableDeclarations.getModifiers().isEmpty()) {
                     variableDeclarations = variableDeclarations.withModifiers(withNewline(variableDeclarations.getModifiers()));
                 } else if (variableDeclarations.getTypeExpression() != null &&
@@ -83,6 +101,10 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, P p) {
         J.MethodDeclaration m = super.visitMethodDeclaration(method, p);
+        if (m.getMarkers().findFirst(PrimaryConstructor.class).isPresent()) {
+            return m;
+        }
+
         m = m.withLeadingAnnotations(withNewlines(m.getLeadingAnnotations()));
 
         List<J.Modifier> modifiers = method.getModifiers();
@@ -182,10 +204,10 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
                 c = c.withModifiers(withNewline(c.getModifiers()));
             } else {
                 J.ClassDeclaration.Kind kind = c.getAnnotations().getKind();
-                if (!kind.getPrefix().getWhitespace().contains("\n")) {
-                    c = c.getAnnotations().withKind(kind.withPrefix(
-                            kind.getPrefix().withWhitespace("\n" + kind.getPrefix().getWhitespace())
-                    ));
+                Space kindPrefix = kind.getPrefix();
+                if (!kindPrefix.getWhitespace().contains("\n") && kindPrefix.getComments().isEmpty()) {
+                    kindPrefix = kindPrefix.withWhitespace("\n" + kindPrefix.getWhitespace());
+                    c = c.getAnnotations().withKind(kind.withPrefix(kindPrefix));
                 }
             }
         }
@@ -207,7 +229,9 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public J.Block visitBlock(J.Block block, P p) {
         J.Block b = super.visitBlock(block, p);
-        if(!b.getEnd().getWhitespace().contains("\n")) {
+        if (!b.getMarkers().findFirst(OmitBraces.class).isPresent() &&
+                !b.getStatements().isEmpty() &&
+                !b.getEnd().getWhitespace().contains("\n")) {
             b = b.withEnd(withNewline(b.getEnd()));
         }
         return b;
@@ -216,7 +240,7 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
     private Space withNewline(Space space) {
         if (space.getComments().isEmpty()) {
             space = space.withWhitespace("\n" + space.getWhitespace());
-        } else if (space.getComments().get(space.getComments().size()-1).isMultiline()) {
+        } else if (space.getComments().get(space.getComments().size() - 1).isMultiline()) {
             space = space.withComments(ListUtils.mapLast(space.getComments(), c -> c.withSuffix("\n")));
         }
 
@@ -225,10 +249,6 @@ public class WrappingAndBracesVisitor<P> extends KotlinIsoVisitor<P> {
 
     private List<J.Modifier> withNewline(List<J.Modifier> modifiers) {
         J.Modifier firstModifier = modifiers.iterator().next();
-        if (firstModifier.getType() == J.Modifier.Type.Final) {
-            return modifiers;
-        }
-
         if (!firstModifier.getPrefix().getWhitespace().contains("\n")) {
             return ListUtils.mapFirst(modifiers,
                     mod -> mod.withPrefix(

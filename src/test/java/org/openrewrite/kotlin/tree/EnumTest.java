@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -35,8 +36,30 @@ class EnumTest implements RewriteTest {
           kotlin(
             """
               enum class A {
-                  B , C ,
+                  /*C0*/ B  /*C1*/   ,  /*C2*//*C3*/C (  )   ,
+                  /*C4*/  D
+              }
+              """
+          )
+        );
+    }
+
+    @SuppressWarnings("RedundantEnumConstructorInvocation")
+    @Test
+    void enumWithInit() {
+        rewriteRun(
+          kotlin(
+            """
+              enum class A {
+                  B /*11*/, /*12*//*13*/C (  )   ,
                   D
+              }
+              """
+          ),
+          kotlin(
+            """
+              enum class EnumTypeB(val label: String) {
+                  FOO (  "foo"   ) 
               }
               """
           )
@@ -66,6 +89,101 @@ class EnumTest implements RewriteTest {
               enum class A {
                   B , C ,
                   D ;
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingComma() {
+        rewriteRun(
+          kotlin(
+            """
+              enum class A {
+                  B , C ,
+                  D ,  // trailing comma 
+                 }
+              """
+          )
+        );
+    }
+
+    @Test
+    void trailingCommaTerminatingSemicolon() {
+        rewriteRun(
+          kotlin(
+            """
+              enum class A {
+                  B , C ,
+                  D , /* trailing comma */ ; /*terminating semicolon*/
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void enumImplementingInterface() {
+        rewriteRun(
+          kotlin(
+            """
+              enum class Test : java.io.Serializable {
+                  FOO   {
+                      fun foo() = print("bar",)
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/307")
+    void enumWithFunction() {
+        rewriteRun(
+          kotlin(
+            """
+              private enum class TargetLanguage {
+                  JAVA,
+                  KOTLIN;
+              
+                  fun expectedFile(): String = "foo"
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void enumWithAnnotation() {
+        rewriteRun(
+          kotlin(
+            """
+              enum class EnumTypeA {
+                  FOO, 
+                  BAR( ),
+                  @Suppress
+                  FUZ
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/400")
+    @Test
+    void enumClassWithParameters() {
+        rewriteRun(
+          kotlin(
+            """
+              enum class Code {
+                  YES
+              }
+              enum class Test ( val arg: Code ) {
+                  FOO ( Code.YES  ) {
+                      // Body is required to reproduce issue
+                  }
               }
               """
           )

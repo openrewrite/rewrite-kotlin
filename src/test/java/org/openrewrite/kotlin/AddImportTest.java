@@ -17,10 +17,20 @@ package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Issue;
 import org.openrewrite.Recipe;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.kotlin.style.ImportLayoutStyle;
 import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.style.NamedStyles;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
@@ -147,7 +157,13 @@ public class AddImportTest implements RewriteTest {
     @Test
     void importAlias() {
         rewriteRun(
-          spec -> spec.recipe(importMemberRecipe("java.util.regex.Pattern", "MULTILINE")),
+          spec -> spec.recipe(importMemberRecipe("java.util.regex.Pattern", "MULTILINE"))
+            .parser(KotlinParser.builder().styles(singletonList(
+            new NamedStyles(
+              randomId(), "test", "test", "test", emptySet(),
+              singletonList(importAliasesSeparatelyStyle())
+            )
+          ))),
           kotlin(
             """
               import java.util.regex.Pattern.CASE_INSENSITIVE as i
@@ -204,6 +220,95 @@ public class AddImportTest implements RewriteTest {
     }
 
     @Test
+    void importOrdering() {
+        rewriteRun(
+          spec -> spec.recipe(
+            importTypeRecipe("java.util.LinkedList")
+          ),
+          kotlin(
+            """
+              import java.util.HashMap
+              import java.util.StringJoiner
+
+              class A {
+              }
+              """,
+            """
+              import java.util.HashMap
+              import java.util.LinkedList
+              import java.util.StringJoiner
+
+              class A {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void importOrderingWithAlias() {
+        rewriteRun(
+          spec -> spec.recipe(
+            importTypeRecipe("java.util", "LinkedList", "MyList")
+          ),
+          kotlin(
+            """
+              import java.util.Calendar as CA
+              import java.util.HashMap
+              import java.util.StringJoiner as MyStringJoiner
+
+              class A {
+              }
+              """,
+            """
+              import java.util.Calendar as CA
+              import java.util.HashMap
+              import java.util.LinkedList as MyList
+              import java.util.StringJoiner as MyStringJoiner
+
+              class A {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void importOrderingWithAliasImportAliasesSeparately() {
+        rewriteRun(
+          spec -> spec.recipe(
+            importTypeRecipe("java.util", "LinkedList", "MyList")
+          ).parser(KotlinParser.builder().styles(singletonList(
+            new NamedStyles(
+              randomId(), "test", "test", "test", emptySet(),
+              singletonList(importAliasesSeparatelyStyle())
+            )
+          ))),
+          kotlin(
+            """
+              import java.util.HashMap
+              
+              import java.util.Calendar as CA
+              import java.util.StringJoiner as MyStringJoiner
+
+              class A {
+              }
+              """,
+            """
+              import java.util.HashMap
+              
+              import java.util.Calendar as CA
+              import java.util.LinkedList as MyList
+              import java.util.StringJoiner as MyStringJoiner
+
+              class A {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void noImportOfImplicitTypes() {
         rewriteRun(
           spec -> spec.recipe(importTypeRecipe("kotlin.Pair")),
@@ -223,11 +328,77 @@ public class AddImportTest implements RewriteTest {
         );
     }
 
+    @Test
+    void addJavaStaticImport() {
+        rewriteRun(
+          spec -> spec.recipe(importMemberRecipe("org.junit.jupiter.api.Assertions", "assertFalse")),
+          kotlin(
+            """
+              class Foo
+              """,
+            """
+              import org.junit.jupiter.api.Assertions.assertFalse
+              
+              class Foo
+              """
+          )
+        );
+    }
+
+    @SuppressWarnings("RemoveRedundantBackticks")
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/493")
+    @Test
+    void addEscapedImport() {
+        rewriteRun(
+          spec -> spec.recipe(importTypeRecipe("`java`.`util`.`List`")),
+          kotlin(
+            """
+              class A
+              """,
+            """
+              import `java`.`util`.`List`
+              
+              class A
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                AtomicBoolean found = new AtomicBoolean(false);
+                new KotlinIsoVisitor<Integer>() {
+                    @Override
+                    public J.Identifier visitIdentifier(J.Identifier identifier, Integer integer) {
+                        assertThat(identifier.getSimpleName().startsWith("`")).isFalse();
+                        return super.visitIdentifier(identifier, integer);
+                    }
+
+                    @Override
+                    public J.Import visitImport(J.Import _import, Integer integer) {
+                        assertThat(_import.getQualid().getType()).isNotNull();
+                        assertThat(_import.getQualid().getType().toString()).isEqualTo("java.util.List");
+                        found.set(true);
+                        return super.visitImport(_import, integer);
+                    }
+                }.visit(cu, 0);
+                assertThat(found.get()).isTrue();
+            })
+          )
+        );
+    }
+
     static Recipe importTypeRecipe(String type) {
         return toRecipe(() -> new KotlinIsoVisitor<>() {
             @Override
             public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext ctx) {
+
                 maybeAddImport(type, null, false);
+                return cu;
+            }
+        });
+    }
+
+    static Recipe importTypeRecipe(String packageName, String typeName, String alias) {
+        return toRecipe(() -> new KotlinIsoVisitor<>() {
+            @Override
+            public K.CompilationUnit visitCompilationUnit(K.CompilationUnit cu, ExecutionContext ctx) {
+                maybeAddImport(packageName, typeName, null, alias, false);
                 return cu;
             }
         });
@@ -241,5 +412,19 @@ public class AddImportTest implements RewriteTest {
                 return cu;
             }
         });
+    }
+
+    public static ImportLayoutStyle importAliasesSeparatelyStyle() {
+        // same style as `IntelliJ.importLayout()` but just with `importAliasesSeparately` as false
+        return ImportLayoutStyle.builder()
+          .importAliasesSeparately(true)
+          .packageToFold("kotlinx.android.synthetic.*", true)
+          .packageToFold("io.ktor.*", true)
+          .importAllOthers()
+          .importPackage("java.*")
+          .importPackage("javax.*")
+          .importPackage("kotlin.*")
+          .importAllAliases()
+          .build();
     }
 }

@@ -26,5 +26,11 @@ import java.util.UUID;
 @With
 public class KObject implements Marker {
     UUID id;
+    @Deprecated
     Space prefix;
+
+    public KObject(UUID id, Space prefix) {
+        this.id = id;
+        this.prefix = prefix;
+    }
 }

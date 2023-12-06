@@ -24,7 +24,6 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.kotlin.style.*;
-import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.style.GeneralFormatStyle;
 
 import java.util.Optional;
@@ -35,17 +34,13 @@ public class AutoFormatVisitor<P> extends KotlinIsoVisitor<P> {
     @Nullable
     private final Tree stopAfter;
 
+    @SuppressWarnings("unused")
     public AutoFormatVisitor() {
         this(null);
     }
 
     public AutoFormatVisitor(@Nullable Tree stopAfter) {
         this.stopAfter = stopAfter;
-    }
-
-    @Override
-    public boolean isAcceptable(SourceFile sourceFile, P p) {
-        return sourceFile instanceof K.CompilationUnit;
     }
 
     @Override
@@ -75,9 +70,11 @@ public class AutoFormatVisitor<P> extends KotlinIsoVisitor<P> {
                 .orElse(IntelliJ.tabsAndIndents()), stopAfter)
                 .visit(t, p, cursor.fork());
 
-        t = new TabsAndIndentsVisitor<>(Optional.ofNullable(((SourceFile) cu).getStyle(TabsAndIndentsStyle.class))
-                .orElse(IntelliJ.tabsAndIndents()), stopAfter)
-                .visit(t, p, cursor.fork());
+        t = new TabsAndIndentsVisitor<>(
+                Optional.ofNullable(((SourceFile) cu).getStyle(TabsAndIndentsStyle.class)).orElse(IntelliJ.tabsAndIndents()),
+                Optional.ofNullable(((SourceFile) cu).getStyle(WrappingAndBracesStyle.class)).orElse(IntelliJ.wrappingAndBraces()),
+                stopAfter
+        ).visit(t, p, cursor.fork());
 
         t = new NormalizeLineBreaksVisitor<>(Optional.ofNullable(((SourceFile) cu).getStyle(GeneralFormatStyle.class))
                 .orElse(new GeneralFormatStyle(false)), stopAfter)
@@ -85,6 +82,7 @@ public class AutoFormatVisitor<P> extends KotlinIsoVisitor<P> {
 
         t = new RemoveTrailingWhitespaceVisitor<>(stopAfter).visit(t, p, cursor.fork());
 
+        t = new ImportReorderingVisitor<>().visit(t, p, cursor.fork());
         return t;
     }
 
@@ -118,9 +116,11 @@ public class AutoFormatVisitor<P> extends KotlinIsoVisitor<P> {
                     .orElse(IntelliJ.tabsAndIndents()), stopAfter)
                     .visit(t, p);
 
-            t = (JavaSourceFile) new TabsAndIndentsVisitor<>(Optional.ofNullable(((SourceFile) cu).getStyle(TabsAndIndentsStyle.class))
-                    .orElse(IntelliJ.tabsAndIndents()), stopAfter)
-                    .visit(t, p);
+            t = (JavaSourceFile) new TabsAndIndentsVisitor<>(
+                    Optional.ofNullable(((SourceFile) cu).getStyle(TabsAndIndentsStyle.class)).orElse(IntelliJ.tabsAndIndents()),
+                    Optional.ofNullable(((SourceFile) cu).getStyle(WrappingAndBracesStyle.class)).orElse(IntelliJ.wrappingAndBraces()),
+                    stopAfter
+            ).visit(t, p);
 
             assert t != null;
             return t;

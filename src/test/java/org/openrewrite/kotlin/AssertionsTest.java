@@ -18,32 +18,34 @@ package org.openrewrite.kotlin;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.SourceFile;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.tree.ParseError;
 
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-// This class may be removed after recipes with Assertions are added.
 public class AssertionsTest implements RewriteTest {
-    @Override
-    public void defaults(RecipeSpec spec) {
-        spec.recipe(toRecipe(() -> new KotlinIsoVisitor<>() {
-            @Override
-            public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, ExecutionContext executionContext) {
-                if ("a".equals(variable.getSimpleName())) {
-                    return variable.withName(variable.getName().withSimpleName("b"));
-                }
-                return variable;
-            }
-        }));
-    }
 
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/30")
     @Test
     void isChanged() {
         rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new KotlinIsoVisitor<>() {
+              @Override
+              public J.VariableDeclarations.NamedVariable visitVariable(J.VariableDeclarations.NamedVariable variable, ExecutionContext executionContext) {
+                  J.VariableDeclarations.NamedVariable n = super.visitVariable(variable, executionContext);
+                  if ("a".equals(n.getSimpleName())) {
+                      return n.withName(n.getName().withSimpleName("b").withType(null).withFieldType(null)).withType(null).withVariableType(null);
+                  }
+                  return n;
+              }
+          })),
           kotlin(
             """
             class A {
@@ -57,5 +59,17 @@ public class AssertionsTest implements RewriteTest {
             """
           )
         );
+    }
+
+    @Test
+    void invalidSyntax() {
+        Optional<SourceFile> sf = KotlinParser.builder().build()
+                .parse(
+                    //language=none
+                    "a++")
+                .findFirst();
+        assertThat(sf.isPresent()).isEqualTo(true);
+        //noinspection OptionalGetWithoutIsPresent
+        assertThat(sf.get()).isInstanceOf(ParseError.class);
     }
 }

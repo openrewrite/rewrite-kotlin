@@ -21,8 +21,13 @@ import org.openrewrite.marker.Marker;
 
 import java.util.UUID;
 
+@Deprecated
 @Value
 @With
 public class Modifier implements Marker {
     UUID id;
+
+    public Modifier(UUID id) {
+        this.id = id;
+    }
 }

@@ -16,9 +16,14 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.openrewrite.Issue;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings("UnusedReceiverParameter")
@@ -27,14 +32,33 @@ class ImportTest implements RewriteTest {
     @Test
     void jdkImport() {
         rewriteRun(
-          kotlin("import java.util.ArrayList")
+          kotlin("import   java.util.ArrayList")
         );
     }
 
     @Test
     void kotlinImport() {
         rewriteRun(
-          kotlin("import kotlin.collections.List")
+          kotlin("import   kotlin.collections.List")
+        );
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+      "import kotlin.collections.List,false",
+      "import java.util.regex.Pattern.CASE_INSENSITIVE,true",
+    })
+    void staticImports(String _import, Boolean isStatic) {
+        rewriteRun(
+          kotlin("%s".formatted(_import),
+            spec -> spec.afterRecipe(cu ->
+              new KotlinIsoVisitor<Integer>() {
+                @Override
+                public J.Import visitImport(J.Import _import, Integer i) {
+                    assertThat(_import.isStatic()).isEqualTo(isStatic);
+                    return super.visitImport(_import, i);
+                }
+            }.visit(cu, 0)))
         );
     }
 
@@ -72,7 +96,7 @@ class ImportTest implements RewriteTest {
     void methodName() {
         rewriteRun(
           kotlin("fun <T : Any> Class<T>.createInstance() {}"),
-          kotlin("import createInstance")
+          kotlin("import   createInstance /*C1*/")
         );
     }
 
@@ -88,4 +112,45 @@ class ImportTest implements RewriteTest {
               """)
         );
     }
+
+    @Test
+    void aliasFieldAccess() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.lang.Integer as Number
+              var max = Number.MAX_VALUE
+              """
+          )
+        );
+    }
+
+    @Test
+    void importWithTrailingSemiColon() {
+        rewriteRun(
+          kotlin(
+            """
+              import java.util.List;
+              import java .  util   . Map;
+              
+              class T
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/412")
+    @Test
+    void aliasFromSamePackage() {
+        rewriteRun(
+          kotlin("class Foo"),
+          kotlin(
+            """
+              import Foo as Bar
+              
+              class Test
+              """)
+        );
+    }
+
 }

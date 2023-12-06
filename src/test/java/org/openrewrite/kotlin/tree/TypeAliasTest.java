@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -28,10 +29,6 @@ class TypeAliasTest implements RewriteTest {
           kotlin(
             """
               class Test
-              """
-          ),
-          kotlin(
-            """
               typealias TestAlias = Test
               val a : TestAlias = Test ( )
               """
@@ -45,14 +42,48 @@ class TypeAliasTest implements RewriteTest {
           kotlin(
             """
               class Test < T >
-              """
-          ),
-          kotlin(
-            """
-              typealias OldAlias < T > = Test < T >
+
+              typealias OldAlias  <   T    >     = Test < T >
               val a : OldAlias < String > = Test < String> ( )
               """
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/300")
+    void typeAliasForFunctionType() {
+        rewriteRun(
+          kotlin(
+            """
+              typealias Action = (String) -> Unit
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/375")
+    @Test
+    void typeAliasWithModifier() {
+        rewriteRun(
+          kotlin(
+            """
+              internal  typealias   Action = (String) -> Unit
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/444")
+    @Test
+    void semiColonOnAlias() {
+        rewriteRun(
+          kotlin(
+            """
+              typealias A = Int ;
+              """
+          )
+        );
+    }
+
 }

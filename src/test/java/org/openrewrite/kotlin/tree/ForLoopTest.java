@@ -16,12 +16,31 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
 @SuppressWarnings({"ControlFlowWithEmptyBody", "RemoveForLoopIndices"})
 class ForLoopTest implements RewriteTest {
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/298")
+    @Test
+    void functionCallCondition() {
+        rewriteRun(
+          kotlin(
+            """
+              fun foo(choices: List<Pair<String, String>>, peekedHeader: Regex) {
+                  for ((_, adapter) in choices) {
+                      if (adapter.matches(peekedHeader)) {
+                          print("1")
+                      }
+                  }
+              }
+              """
+          )
+        );
+    }
 
     @Test
     void inList() {
@@ -46,7 +65,7 @@ class ForLoopTest implements RewriteTest {
             """
               fun method() {
                   val map = mapOf ( 1 to "one" , 2 to "two" , 3 to "three" )
-                  for ( ( key , value ) in map ) {
+                  for (  (   key    , value  )   in    map ) {
                       print ( key )
                       print ( ", " )
                       println ( value )
@@ -64,6 +83,21 @@ class ForLoopTest implements RewriteTest {
             """
               fun method ( ) {
                   for ( i in 1 .. 42 ) {
+                      println ( i )
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void rangeUntil() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method ( ) {
+                  for ( i in 1 ..< 42 ) {
                       println ( i )
                   }
               }

@@ -20,6 +20,7 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.kotlin.Assertions.kotlin;
 
+@SuppressWarnings("All")
 class AssignmentTest implements RewriteTest {
 
     @Test
@@ -131,6 +132,21 @@ class AssignmentTest implements RewriteTest {
             """
               val a = true
               val b = ! a
+              """
+          )
+        );
+    }
+
+    @Test
+    void annotation() {
+        rewriteRun(
+          kotlin(
+            """
+              fun test() {
+                  var a: Boolean
+                  @Suppress
+                  a = true
+              }
               """
           )
         );
