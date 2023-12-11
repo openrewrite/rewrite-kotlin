@@ -1148,7 +1148,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 type
         ));
 
-        return delegationCall != null ? new K.Constructor(randomId(), Markers.EMPTY, methodDeclaration, null, null, padLeft(prefix(constructor.getColon()), delegationCall)) :
+        return delegationCall != null ? new K.Constructor(randomId(), Markers.EMPTY, methodDeclaration, padLeft(prefix(constructor.getColon()), delegationCall)) :
                 methodDeclaration;
     }
 
