@@ -2913,9 +2913,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     typeParameters,
                     variableDeclarations.withPrefix(Space.EMPTY),
                     typeConstraints,
-                    null,
-                    null,
-                    false,
                     JContainer.build(rps),
                     receiver
             );

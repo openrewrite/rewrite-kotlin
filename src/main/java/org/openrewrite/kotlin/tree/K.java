@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
@@ -1409,6 +1410,7 @@ public interface K extends J {
 
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @RequiredArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     @With
     @Data
@@ -1436,31 +1438,25 @@ public interface K extends J {
         @Nullable
         TypeConstraints typeConstraints;
 
-        @Nullable
-        J.MethodDeclaration getter;
-
-        @Nullable
-        J.MethodDeclaration setter;
-
-        boolean isSetterFirst;
-
         // A replacement of `getter`,`setter` and `isSetterFirst`
         JContainer<J.MethodDeclaration> accessors;
 
         @Nullable
         JRightPadded<Expression> receiver;
 
-        public Property(UUID id,
-                        Space prefix,
-                        Markers markers,
-                        @Nullable JContainer<TypeParameter> typeParameters,
-                        VariableDeclarations variableDeclarations,
-                        @Nullable K.TypeConstraints typeConstraints,
-                        @Nullable J.MethodDeclaration getter,
-                        @Nullable J.MethodDeclaration setter,
-                        boolean isSetterFirst,
-                        JContainer<J.MethodDeclaration> accessors,
-                        @Nullable JRightPadded<Expression> receiver
+        // For backward compatibility, handle removed fields `getter`, 'setter' and `isSetterFirst` which has been relocated to `accessors`
+        // Todo, Remove when all kotlin LSTs have been rebuilt.
+        @JsonCreator
+        public Property(@JsonProperty("id") UUID id,
+                        @JsonProperty("prefix") Space prefix,
+                        @JsonProperty("markers") Markers markers,
+                        @JsonProperty("typeParameters") @Nullable JContainer<TypeParameter> typeParameters,
+                        @JsonProperty("variableDeclarations") VariableDeclarations variableDeclarations,
+                        @JsonProperty("typeConstraints") @Nullable K.TypeConstraints typeConstraints,
+                        @JsonProperty("getter") @Nullable J.MethodDeclaration getter,
+                        @JsonProperty("setter") @Nullable J.MethodDeclaration setter,
+                        @JsonProperty("isSetterFirst") boolean isSetterFirst,
+                        @JsonProperty("receiver") @Nullable JRightPadded<Expression> receiver
                         ) {
             this.id = id;
             this.prefix = prefix;
@@ -1468,31 +1464,21 @@ public interface K extends J {
             this.typeParameters = typeParameters;
             this.variableDeclarations = variableDeclarations;
             this.typeConstraints = typeConstraints;
-            this.getter = null;
-            this.setter = null;
-            this.isSetterFirst = false;
 
-            if (getter != null || setter != null) {
-                // For backward compatibility
-                List<JRightPadded<J.MethodDeclaration>> rps = new ArrayList<>(2);
+            List<JRightPadded<J.MethodDeclaration>> rps = new ArrayList<>(2);
 
-                if (setter != null) {
-                    rps.add(new JRightPadded<>(setter, Space.EMPTY, Markers.EMPTY));
-                }
-
-                if (getter != null) {
-                    rps.add(new JRightPadded<>(getter, Space.EMPTY, Markers.EMPTY));
-                }
-
-                if (!isSetterFirst) {
-                    Collections.reverse(rps);
-                }
-                this.accessors = JContainer.build(rps);
-            } else {
-                this.accessors = accessors;
+            if (setter != null) {
+                rps.add(new JRightPadded<>(setter, Space.EMPTY, Markers.EMPTY));
             }
 
+            if (getter != null) {
+                rps.add(new JRightPadded<>(getter, Space.EMPTY, Markers.EMPTY));
+            }
 
+            if (!isSetterFirst) {
+                Collections.reverse(rps);
+            }
+            this.accessors = JContainer.build(rps);
             this.receiver = receiver;
         }
 
@@ -1544,7 +1530,7 @@ public interface K extends J {
 
             public Property withTypeParameters(@Nullable JContainer<TypeParameter> typeParameters) {
                 return t.typeParameters == typeParameters ? t : new Property(t.id, t.prefix, t.markers, typeParameters,
-                        t.variableDeclarations, t.typeConstraints, t.getter, t.setter, t.isSetterFirst, t.accessors, t.receiver);
+                        t.variableDeclarations, t.typeConstraints, t.accessors, t.receiver);
             }
 
             @Nullable
@@ -1555,7 +1541,7 @@ public interface K extends J {
             @Nullable
             public Property withReceiver(@Nullable JRightPadded<Expression> receiver) {
                 return t.receiver == receiver ? t : new Property(t.id, t.prefix, t.markers, t.typeParameters,
-                        t.variableDeclarations, t.typeConstraints, t.getter, t.setter, t.isSetterFirst, t.accessors, receiver);
+                        t.variableDeclarations, t.typeConstraints, t.accessors, receiver);
             }
         }
     }
