@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.KtFakeSourceElementKind
 import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.codegen.classId
 import org.jetbrains.kotlin.codegen.topLevelClassAsmType
+import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibility
@@ -50,6 +51,9 @@ import org.jetbrains.kotlin.load.java.structure.*
 import org.jetbrains.kotlin.load.java.structure.impl.classFiles.*
 import org.jetbrains.kotlin.load.kotlin.JvmPackagePartSource
 import org.jetbrains.kotlin.name.isOneSegmentFQN
+import org.jetbrains.kotlin.psi
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.resolve.jvm.JvmClassName
 import org.jetbrains.kotlin.types.ConstantValueKind
 import org.jetbrains.kotlin.types.Variance
@@ -98,6 +102,54 @@ class KotlinTypeMapping(
         return type(type, parent, signature)
     }
 
+    fun type(psi: PsiElement?,  type: Any?, parent: Any?): JavaType? {
+        if (type == null || type is FirErrorTypeRef || type is FirExpression && type.typeRef is FirErrorTypeRef || type is FirResolvedQualifier && type.classId == null) {
+            return Unknown.getInstance()
+        }
+        var signature = signatureBuilder.signature(type, parent)
+
+        if (type is FirResolvedQualifier && type.source != null && type.source.psi is KtDotQualifiedExpression) {
+            val dots : KtDotQualifiedExpression = type.source.psi as KtDotQualifiedExpression
+            val flattened = flattenDots(dots)
+            if (flattened != null) {
+                val types = signature.split("$")
+                if (types.size == flattened.size) {
+                    for ((index, element) in flattened.withIndex()) {
+                        if (element == psi) {
+                            signature = types.take(types.size - index).joinToString("$")
+                        }
+                    }
+                }
+            }
+        }
+
+        val existing = typeCache.get<JavaType>(signature)
+        if (existing != null) {
+            return existing
+        }
+        return type(type, parent, signature)
+    }
+
+    fun flattenDots(ktDotQualifiedExpression: KtDotQualifiedExpression) : List<KtNameReferenceExpression>? {
+        var dot = ktDotQualifiedExpression;
+        val names : MutableList<KtNameReferenceExpression> = ArrayList()
+        var qualified = true;
+
+        while (dot.selectorExpression is KtNameReferenceExpression) {
+            names.add(dot.selectorExpression as KtNameReferenceExpression)
+            if (dot.receiverExpression is KtDotQualifiedExpression) {
+                dot = dot.receiverExpression as KtDotQualifiedExpression
+            } else if (dot.receiverExpression is KtNameReferenceExpression) {
+                names.add(dot.receiverExpression as KtNameReferenceExpression)
+                break
+            } else {
+                qualified = false
+                break
+            }
+        }
+
+        return if (qualified) names else  null
+    }
 
     @OptIn(SymbolInternals::class)
     fun type(type: Any?, parent: Any?, signature: String): JavaType? {

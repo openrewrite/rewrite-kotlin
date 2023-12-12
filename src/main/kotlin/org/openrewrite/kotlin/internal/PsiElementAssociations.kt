@@ -151,7 +151,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
             return typeMapping.type(typeMap[parent], owner)
         }
         val fir = primary(psiElement)
-        return if (fir != null) typeMapping.type(fir, owner) else null
+        return if (fir != null) typeMapping.type(psiElement, fir, owner) else null
     }
 
     fun primary(psiElement: PsiElement?) =

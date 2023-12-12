@@ -18,10 +18,14 @@ package org.openrewrite.kotlin.tree;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
+import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
 import org.openrewrite.test.RewriteTest;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.kotlin.Assertions.kotlin;
@@ -246,6 +250,53 @@ class FieldAccessTest implements RewriteTest {
                   }
               }
               """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/517")
+    @Test
+    void nestedFieldAccessType() {
+        rewriteRun(
+          kotlin(
+            """
+              class A {
+                  class B {
+                      class A {
+                          class C
+                      }
+                  }
+              }
+
+              val x = A.B.A.C()
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                AtomicBoolean found = new AtomicBoolean(false);
+                new KotlinIsoVisitor<AtomicBoolean>() {
+
+                    @Override
+                    public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicBoolean atomicBoolean) {
+                        // 1. A fieldAccess should have the matched name and type
+                        assert fieldAccess.getType() != null;
+                        String expectedType = fieldAccess.toString().replace(".","$");
+                        String actualType = fieldAccess.getType().toString();
+
+                        assertThat(expectedType).isEqualTo(actualType);
+
+                        // 2. The 1st element of the field access should have the right type
+                        Expression target = fieldAccess.getTarget();
+                        if (target instanceof J.Identifier) {
+                            J.Identifier id = (J.Identifier) target;
+                            assert id.getType() != null;
+                            assertThat (id.getType().toString()).isEqualTo(id.getSimpleName());
+                        }
+
+                        return super.visitFieldAccess(fieldAccess, atomicBoolean);
+                    }
+
+                }.visit(cu, found);
+              }
+            )
           )
         );
     }
