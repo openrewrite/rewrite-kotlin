@@ -1653,6 +1653,92 @@ public interface K extends J {
         }
     }
 
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @RequiredArgsConstructor
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @With
+    class NullableTypeTree implements K, TypeTree, Expression {
+        @Nullable
+        @NonFinal
+        transient WeakReference<K.NullableTypeTree.Padding> padding;
+
+        @Getter
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        @Getter
+        Space prefix;
+
+        @Getter
+        Markers markers;
+
+        @Getter
+        List<J.Annotation> annotations;
+
+        JRightPadded<TypeTree> typeTree;
+
+        public TypeTree getTypeTree() {
+            return typeTree.getElement();
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            return typeTree.getElement().getType();
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public NullableTypeTree withType(@Nullable JavaType type) {
+            JRightPadded<TypeTree> rp = getPadding().getTypeTree();
+            TypeTree tt = rp.getElement();
+            tt = tt.withType(type);
+            return getPadding().withTypeTree(rp.withElement(tt));
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitNullableTypeTree(this, p);
+        }
+
+        @Override
+        public CoordinateBuilder.Expression getCoordinates() {
+            return new CoordinateBuilder.Expression(this);
+        }
+
+        public K.NullableTypeTree.Padding getPadding() {
+            K.NullableTypeTree.Padding p;
+            if (this.padding == null) {
+                p = new K.NullableTypeTree.Padding(this);
+                this.padding = new WeakReference<>(p);
+            } else {
+                p = this.padding.get();
+                if (p == null || p.t != this) {
+                    p = new K.NullableTypeTree.Padding(this);
+                    this.padding = new WeakReference<>(p);
+                }
+            }
+            return p;
+        }
+
+        @RequiredArgsConstructor
+        public static class Padding {
+            private final K.NullableTypeTree t;
+
+            public JRightPadded<TypeTree> getTypeTree() {
+                return t.typeTree;
+            }
+
+            public K.NullableTypeTree withTypeTree(JRightPadded<TypeTree> typeTree) {
+                return t.typeTree == typeTree ? t : new K.NullableTypeTree(t.id,
+                        t.prefix,
+                        t.markers,
+                        t.annotations,
+                        t.typeTree);
+            }
+        }
+    }
+
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With

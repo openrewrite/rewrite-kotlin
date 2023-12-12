@@ -939,7 +939,7 @@ class SpacesTest implements RewriteTest {
               """,
             """
               class A {
-                  fun method ( ) /*TYPE_REFERENCE_PREFIX*/: Int /*UNARY_OPERATOR*/? {
+                  fun method ( ) /*TYPE_REFERENCE_PREFIX*/: Int ? {
                       return 1
                   }
               }

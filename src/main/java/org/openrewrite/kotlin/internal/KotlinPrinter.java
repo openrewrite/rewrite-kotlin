@@ -718,21 +718,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         }
 
         @Override
-        public J visitUnaryTypeTree(J.UnaryTypeTree utt, PrintOutputCapture<P> p) {
-            beforeSyntax(utt, Space.Location.UNARY_PREFIX, p);
-            switch (utt.getOperator()) {
-                case IsNullable:
-                    visit(utt.getTypeTree(), p);
-                    visitSpace(utt.getPadding().getOperator().getBefore(), Space.Location.UNARY_OPERATOR, p);
-                    p.append("?");
-                default:
-                    break;
-            }
-            afterSyntax(utt, p);
-            return utt;
-        }
-
-        @Override
         public J visitForEachLoop(J.ForEachLoop forEachLoop, PrintOutputCapture<P> p) {
             beforeSyntax(forEachLoop, Space.Location.FOR_EACH_LOOP_PREFIX, p);
             p.append("for");
@@ -1376,6 +1361,16 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     @Override
     public <M extends Marker> M visitMarker(Marker marker, PrintOutputCapture<P> p) {
         return delegate.visitMarker(marker, p);
+    }
+
+    @Override
+    public J visitNullableTypeTree(K.NullableTypeTree ntt, PrintOutputCapture<P> p) {
+        beforeSyntax(ntt, Space.Location.UNARY_PREFIX, p);
+        visit(ntt.getTypeTree(), p);
+        visitSpace(ntt.getPadding().getTypeTree().getAfter(), Space.Location.UNARY_OPERATOR, p);
+        p.append("?");
+        afterSyntax(ntt, p);
+        return ntt;
     }
 
     private static final UnaryOperator<String> JAVA_MARKER_WRAPPER =

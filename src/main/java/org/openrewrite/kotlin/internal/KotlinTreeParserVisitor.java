@@ -310,12 +310,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 PsiElement questionMark = PsiTreeUtil.findSiblingForward(expression.getFirstChild(), KtTokens.QUEST, null);
 
                 TypeTree tt = (TypeTree) receiverExp;
-                receiverExp = new J.UnaryTypeTree(randomId(),
+                receiverExp = new K.NullableTypeTree(randomId(),
                         Space.EMPTY,
                         Markers.EMPTY,
                         Collections.emptyList(),
-                        padLeft(prefix(questionMark), J.UnaryTypeTree.Type.IsNullable),
-                        tt
+                        padRight(tt, prefix(questionMark))
                 );
             }
             receiver = padRight(receiverExp, prefix(expression.findColonColon()));
@@ -874,12 +873,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             );
         }
 
-        return new J.UnaryTypeTree(randomId(),
+        return new K.NullableTypeTree(randomId(),
                 merge(deepPrefix(nullableType), j.getPrefix()),
                 Markers.EMPTY,
                 Collections.emptyList(),
-                padLeft(prefix(findFirstChild(nullableType, c -> c.getNode().getElementType() == KtTokens.QUEST)), J.UnaryTypeTree.Type.IsNullable),
-                j
+                padRight(j, prefix(findFirstChild(nullableType, c -> c.getNode().getElementType() == KtTokens.QUEST)))
         );
     }
 
