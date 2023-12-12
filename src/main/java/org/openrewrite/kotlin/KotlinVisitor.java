@@ -262,23 +262,6 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         return n;
     }
 
-    public J visitNullableTypeTree(K.NullableTypeTree nullableTypeTree, P p) {
-        K.NullableTypeTree ntt = nullableTypeTree;
-        ntt = ntt.withPrefix(visitSpace(ntt.getPrefix(), Space.Location.UNARY_PREFIX, p));
-        ntt = ntt.withMarkers(visitMarkers(ntt.getMarkers(), p));
-
-        Expression temp = (Expression) visitExpression(ntt, p);
-        if (!(temp instanceof K.NullableTypeTree)) {
-            return temp;
-        } else {
-            ntt = (K.NullableTypeTree) temp;
-        }
-
-        ntt = ntt.getPadding().withTypeTree(visitRightPadded(ntt.getPadding().getTypeTree(), KRightPadded.Location.NULLABLE_PREFIX, p));
-        ntt = ntt.withType(visitType(ntt.getType(), p));
-        return ntt;
-    }
-
     @SuppressWarnings("DataFlowIssue")
     public J visitProperty(K.Property property, P p) {
         K.Property pr = property;

@@ -1363,16 +1363,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         return delegate.visitMarker(marker, p);
     }
 
-    @Override
-    public J visitNullableTypeTree(K.NullableTypeTree ntt, PrintOutputCapture<P> p) {
-        beforeSyntax(ntt, Space.Location.UNARY_PREFIX, p);
-        visit(ntt.getTypeTree(), p);
-        visitSpace(ntt.getPadding().getTypeTree().getAfter(), Space.Location.UNARY_OPERATOR, p);
-        p.append("?");
-        afterSyntax(ntt, p);
-        return ntt;
-    }
-
     private static final UnaryOperator<String> JAVA_MARKER_WRAPPER =
             out -> "/*~~" + out + (out.isEmpty() ? "" : "~~") + ">*/";
 

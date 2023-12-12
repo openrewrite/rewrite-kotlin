@@ -309,7 +309,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (expression.getHasQuestionMarks()) {
                 PsiElement questionMark = PsiTreeUtil.findSiblingForward(expression.getFirstChild(), KtTokens.QUEST, null);
 
-                receiverExp = new K.NullableTypeTree(randomId(),
+                receiverExp = new J.NullableType(randomId(),
                         Space.EMPTY,
                         Markers.EMPTY,
                         Collections.emptyList(),
@@ -872,7 +872,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             );
         }
 
-        return new K.NullableTypeTree(randomId(),
+        return new J.NullableType(randomId(),
                 merge(deepPrefix(nullableType), j.getPrefix()),
                 Markers.EMPTY,
                 Collections.emptyList(),
