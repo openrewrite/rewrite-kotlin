@@ -433,6 +433,19 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public J visitUseSite(K.UseSite useSite, PrintOutputCapture<P> p) {
+        beforeSyntax(useSite, Space.Location.ANNOTATIONS, p);
+        visit(useSite.getTarget(), p);
+        visitSpace(useSite.getPadding().getTarget().getAfter(), Space.Location.ANNOTATIONS, p);
+
+        if (!(useSite.getTarget() instanceof J.Empty)) {
+            p.append(":");
+        }
+
+        return useSite;
+    }
+
+    @Override
     public J visitWhen(K.When when, PrintOutputCapture<P> p) {
         beforeSyntax(when, KSpace.Location.WHEN_PREFIX, p);
         p.append("when");
@@ -484,12 +497,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             String afterArgs = ")";
             String delimiter = ",";
 
-            AnnotationUseSite useSite = annotation.getMarkers().findFirst(AnnotationUseSite.class).orElse(null);
-            if (useSite != null) {
-                kotlinPrinter.visitSpace(useSite.getPrefix(), KSpace.Location.ANNOTATION_CALL_SITE_PREFIX, p);
-                p.append(":");
+            boolean isUseSite = annotation.getAnnotationType() instanceof K.UseSite;
+            if (isUseSite) {
+                boolean isImplicitBracket = ((K.UseSite) annotation.getAnnotationType()).isImplicitBracket();
 
-                if (!useSite.isImplicitBracket()) {
+                if (!isImplicitBracket) {
                     beforeArgs = "[";
                     afterArgs = "]";
                 } else {

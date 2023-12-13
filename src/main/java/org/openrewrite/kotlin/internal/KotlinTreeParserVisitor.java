@@ -1675,9 +1675,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitAnnotation(KtAnnotation annotation, ExecutionContext data) {
-        if (annotation.getUseSiteTarget() == null) {
-            throw new UnsupportedOperationException("TODO, Some cases we don't know");
+        NameTree target;
+
+        if (annotation.getUseSiteTarget() != null) {
+            target = (NameTree) annotation.getUseSiteTarget().accept(this, data);
+        } else {
+            target = new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY);
         }
+
         List<KtAnnotationEntry> annotationEntries = annotation.getEntries();
         List<JRightPadded<Expression>> rpAnnotations = new ArrayList<>(annotationEntries.size());
 
@@ -1698,8 +1703,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         return mapType(new J.Annotation(randomId(),
                 Space.EMPTY,
-                Markers.EMPTY.addIfAbsent(new AnnotationUseSite(randomId(), suffix(annotation.getUseSiteTarget()), isImplicitBracket)),
-                (NameTree) annotation.getUseSiteTarget().accept(this, data),
+                Markers.EMPTY,
+                new K.UseSite(randomId(), Space.EMPTY, Markers.EMPTY, padRight(target, suffix(annotation.getUseSiteTarget())), isImplicitBracket),
                 JContainer.build(beforeLBracket, rpAnnotations, Markers.EMPTY)
         ));
     }
@@ -1716,8 +1721,11 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (isUseSite) {
-            nameTree = (NameTree) annotationEntry.getUseSiteTarget().accept(this, data);
-            markers = markers.addIfAbsent(new AnnotationUseSite(randomId(), prefix(findFirstChild(annotationEntry, p -> p.getNode().getElementType() == KtTokens.COLON)), true));
+            nameTree = new K.UseSite(randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    padRight((NameTree) annotationEntry.getUseSiteTarget().accept(this, data), prefix(findFirstChild(annotationEntry, p -> p.getNode().getElementType() == KtTokens.COLON))),
+                    true);
             J.Annotation argAnno = new J.Annotation(
                     randomId(),
                     Space.EMPTY,

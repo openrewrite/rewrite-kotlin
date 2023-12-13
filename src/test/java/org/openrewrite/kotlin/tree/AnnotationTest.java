@@ -588,11 +588,26 @@ class AnnotationTest implements RewriteTest {
             """
               import javax.inject.Inject
               import javax.inject.Named
-              
+
               class Test {
                   @field :  [   Inject    Named (  "numberfield "   )    ]
                   var field: Long = 0
               }
+              """
+          )
+        );
+    }
+
+    @Test
+    void emptyNameUseSiteAnnotation() {
+        rewriteRun(
+          kotlin(
+            """
+              annotation class Anno1
+              annotation class Anno2
+
+              @[ Anno1 Anno2 ]
+              val x = 42
               """
           )
         );

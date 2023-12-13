@@ -2040,4 +2040,90 @@ public interface K extends J {
         }
     }
 
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @RequiredArgsConstructor
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    final class UseSite implements K, NameTree, Expression {
+        @Nullable
+        @NonFinal
+        transient WeakReference<K.UseSite.Padding> padding;
+
+        @Getter
+        @With
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        @Getter
+        @With
+        Space prefix;
+
+        @Getter
+        @With
+        Markers markers;
+
+        JRightPadded<NameTree> target;
+
+        @Getter
+        @With
+        boolean isImplicitBracket;
+
+        public NameTree getTarget() {
+            return target.getElement();
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            // use site has no type
+            return null;
+        }
+
+        @Override
+        public <T extends J> T withType(@Nullable JavaType type) {
+            return (T) this;
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitUseSite(this, p);
+        }
+
+        @Override
+        public CoordinateBuilder.Expression getCoordinates() {
+            return new CoordinateBuilder.Expression(this);
+        }
+
+        public K.UseSite.Padding getPadding() {
+            K.UseSite.Padding p;
+            if (this.padding == null) {
+                p = new K.UseSite.Padding(this);
+                this.padding = new WeakReference<>(p);
+            } else {
+                p = this.padding.get();
+                if (p == null || p.t != this) {
+                    p = new K.UseSite.Padding(this);
+                    this.padding = new WeakReference<>(p);
+                }
+            }
+            return p;
+        }
+
+        @RequiredArgsConstructor
+        public static class Padding {
+            private final K.UseSite t;
+
+            public JRightPadded<NameTree> getTarget() {
+                return t.target;
+            }
+
+            public K.UseSite withTarget(JRightPadded<NameTree> target) {
+                return t.target == target ? t : new K.UseSite(t.id,
+                        t.prefix,
+                        t.markers,
+                        target,
+                        t.isImplicitBracket);
+            }
+        }
+    }
+
 }

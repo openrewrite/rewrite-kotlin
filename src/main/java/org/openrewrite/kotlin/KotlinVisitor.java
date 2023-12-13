@@ -325,6 +325,25 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         return u;
     }
 
+    public J visitUseSite(K.UseSite useSite, P p) {
+        K.UseSite u = useSite;
+
+        u = u.withPrefix(visitSpace(u.getPrefix(), Space.Location.ANNOTATION_ARGUMENTS, p));
+        u = u.withMarkers(visitMarkers(u.getMarkers(), p));
+
+        Expression temp = (Expression) visitExpression(u, p);
+        if (!(temp instanceof K.UseSite)) {
+            return temp;
+        } else {
+            u = (K.UseSite) temp;
+        }
+
+        u = u.getPadding().withTarget(visitRightPadded(u.getPadding().getTarget(), JRightPadded.Location.ANNOTATION_ARGUMENT, p));
+        u = u.withType(visitType(u.getType(), p));
+
+        return u;
+    }
+
     public J visitWhen(K.When when, P p) {
         K.When w = when;
         w = w.withPrefix(visitSpace(w.getPrefix(), KSpace.Location.WHEN_PREFIX, p));
@@ -419,10 +438,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
     @Override
     public <M extends Marker> M visitMarker(Marker marker, P p) {
         Marker m = super.visitMarker(marker, p);
-        if (m instanceof AnnotationUseSite) {
-            AnnotationUseSite acs = (AnnotationUseSite) marker;
-            m = acs.withPrefix(visitSpace(acs.getPrefix(), KSpace.Location.ANNOTATION_CALL_SITE_PREFIX, p));
-        } else if (marker instanceof IsNullable) {
+        if (marker instanceof IsNullable) {
             IsNullable isn = (IsNullable) marker;
             m = isn.withPrefix(visitSpace(isn.getPrefix(), KSpace.Location.IS_NULLABLE_PREFIX, p));
         } else if (marker instanceof TypeReferencePrefix) {
