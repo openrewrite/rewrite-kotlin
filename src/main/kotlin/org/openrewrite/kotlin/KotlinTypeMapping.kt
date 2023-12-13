@@ -113,10 +113,15 @@ class KotlinTypeMapping(
             val flattened = flattenDots(dots)
             if (flattened != null) {
                 val types = signature.split("$")
-                if (types.size == flattened.size) {
+                if (types.size <= flattened.size) {
                     for ((index, element) in flattened.withIndex()) {
                         if (element == psi) {
-                            signature = types.take(types.size - index).joinToString("$")
+                            signature = if (index < types.size) {
+                                types.take(types.size - index).joinToString("$")
+                            } else {
+                                return null
+                            }
+                            break;
                         }
                     }
                 }
