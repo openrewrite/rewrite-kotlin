@@ -434,7 +434,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
     @Override
     public J visitUseSite(K.UseSite useSite, PrintOutputCapture<P> p) {
-        beforeSyntax(useSite, Space.Location.ANNOTATIONS, p);
+        beforeSyntax(useSite, Space.Location.ANNOTATION_PREFIX, p);
         visit(useSite.getTarget(), p);
         visitSpace(useSite.getPadding().getTarget().getAfter(), Space.Location.ANNOTATIONS, p);
 
