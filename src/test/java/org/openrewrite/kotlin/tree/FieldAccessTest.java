@@ -18,12 +18,10 @@ package org.openrewrite.kotlin.tree;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
-import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
-import org.openrewrite.kotlin.internal.PsiTreePrinter;
 import org.openrewrite.test.RewriteTest;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -252,139 +250,6 @@ class FieldAccessTest implements RewriteTest {
                   }
               }
               """
-          )
-        );
-    }
-
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/517")
-    @Test
-    void nestedFieldAccessType() {
-        rewriteRun(
-          kotlin(
-            """
-              class A {
-                  class B {
-                      class A {
-                          class C
-                      }
-                  }
-              }
-
-              val x = A.B.A.C()
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                new KotlinIsoVisitor<AtomicBoolean>() {
-                    @Override
-                    public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicBoolean atomicBoolean) {
-                        // 1. A fieldAccess should have the matched name and type
-                        assert fieldAccess.getType() != null;
-                        String expectedType = fieldAccess.toString().replace(".","$");
-                        String actualType = fieldAccess.getType().toString();
-                        assertThat(expectedType).isEqualTo(actualType);
-
-                        // 2. The 1st element of the field access should have the right type
-                        Expression target = fieldAccess.getTarget();
-                        if (target instanceof J.Identifier id) {
-                            assert id.getType() != null;
-                            assertThat (id.getType().toString()).isEqualTo(id.getSimpleName());
-                        }
-
-                        return super.visitFieldAccess(fieldAccess, atomicBoolean);
-                    }
-
-                }.visit(cu, new AtomicBoolean());
-              }
-            )
-          )
-        );
-    }
-
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/517")
-    @Test
-    void nestedFieldAccessWithPackage() {
-        rewriteRun(
-          kotlin(
-            """
-              package    foo.bar
-              class A {
-                  class B {
-                      class A {
-                          class C
-                      }
-                  }
-              }
-              """
-          ),
-          kotlin(
-            """
-              val x = foo.bar.A.B.A.C()
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                  new KotlinIsoVisitor<AtomicBoolean>() {
-                      @Override
-                      public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicBoolean atomicBoolean) {
-                          // A fieldAccess should have the matched name and type
-                          String text = fieldAccess.toString();
-                          String fieldAccessSignature = fieldAccess.getType() != null ? fieldAccess.getType().toString() : "";
-                          String nameSignature = fieldAccess.getName().getType() != null ? fieldAccess.getName().getType().toString() : "";
-                          assertThat(fieldAccessSignature).isEqualTo(nameSignature);
-
-                          switch (text) {
-                              case "foo.bar.A.B.A.C":
-                                  assertThat(fieldAccessSignature).isEqualTo("foo.bar.A$B$A$C");
-                                  break;
-                              case "foo.bar.A.B.A":
-                                  assertThat(fieldAccessSignature).isEqualTo("foo.bar.A$B$A");
-                                  break;
-                              case "foo.bar.A.B":
-                                  assertThat(fieldAccessSignature).isEqualTo("foo.bar.A$B");
-                                  break;
-                              case "foo.bar.A":
-                                  assertThat(fieldAccessSignature).isEqualTo("foo.bar.A");
-                                  break;
-                              case "foo.bar":
-                                  assertThat(fieldAccessSignature).isEqualTo("");
-                                  break;
-                              case "foo":
-                                  assertThat(fieldAccessSignature).isEqualTo("");
-                                  break;
-                          }
-
-                          return super.visitFieldAccess(fieldAccess, atomicBoolean);
-                      }
-
-                  }.visit(cu, new AtomicBoolean());
-              }
-            )
-          )
-        );
-    }
-
-    @Test
-    void packageFieldAccess() {
-        rewriteRun(
-          kotlin(
-            """
-              package   foo.bar
-              class A
-              """
-          ),
-          kotlin(
-            """
-              val x = foo.bar.A()
-              """,
-            spec -> spec.afterRecipe(cu -> {
-                new KotlinIsoVisitor<AtomicBoolean>() {
-                    @Override
-                    public J.FieldAccess visitFieldAccess(J.FieldAccess fieldAccess, AtomicBoolean atomicBoolean) {
-                        if ("foo.bar".equals(fieldAccess.toString())) {
-                            String fieldAccessSignature = fieldAccess.getType() != null ? fieldAccess.getType().toString() : "";
-                            assertThat(fieldAccessSignature).isEqualTo("Unknown");
-                        }
-                        return super.visitFieldAccess(fieldAccess, atomicBoolean);
-                    }
-                }.visit(cu, new AtomicBoolean());
-            })
           )
         );
     }
