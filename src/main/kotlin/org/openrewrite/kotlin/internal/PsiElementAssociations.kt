@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.resolved
+import org.jetbrains.kotlin.fir.resolve.calls.FirSyntheticFunctionSymbol
 import org.jetbrains.kotlin.fir.resolve.providers.toSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
@@ -159,6 +160,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
 
     fun methodDeclarationType(psi: PsiElement): JavaType.Method? {
         return when (val fir = primary(psi)) {
+            is FirEnumEntry -> typeMapping.methodDeclarationType(fir)
             is FirFunction -> typeMapping.methodDeclarationType(fir, null)
             is FirAnonymousFunctionExpression -> typeMapping.methodDeclarationType(fir.anonymousFunction, null)
             else -> {
@@ -325,9 +327,11 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                 if (fir.calleeReference is FirErrorNamedReference)
                     return null
 
-                when (fir.calleeReference.resolved?.resolvedSymbol) {
-                    is FirConstructorSymbol -> ExpressionType.CONSTRUCTOR
-                    is FirNamedFunctionSymbol -> ExpressionType.METHOD_INVOCATION
+                val sym = fir.calleeReference.resolved?.resolvedSymbol
+                when {
+                    sym is FirConstructorSymbol ||
+                            sym is FirSyntheticFunctionSymbol && sym.origin == FirDeclarationOrigin.SamConstructor -> ExpressionType.CONSTRUCTOR
+                    sym is FirNamedFunctionSymbol -> ExpressionType.METHOD_INVOCATION
                     else -> throw UnsupportedOperationException("Unsupported resolved symbol: ${fir.calleeReference.resolved?.resolvedSymbol?.javaClass}")
                 }
             }
