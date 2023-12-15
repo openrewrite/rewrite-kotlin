@@ -23,6 +23,7 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.Statement;
 import org.openrewrite.kotlin.KotlinParser;
+import org.openrewrite.kotlin.internal.PsiTreePrinter;
 import org.openrewrite.kotlin.marker.Implicit;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.TypeValidation;
@@ -479,6 +480,23 @@ class VariableDeclarationTest implements RewriteTest {
                       set ( value ) {
                           field = value
                       }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getterSetterWithTrailingSemiColon() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {
+                  var stringRepresentation : String = ""
+                      get ( ) = field   ;
+                      set ( value ) {
+                          field = value
+                      } ;
               }
               """
           )

@@ -1447,16 +1447,16 @@ public interface K extends J {
         // For backward compatibility, handle removed fields `getter`, 'setter' and `isSetterFirst` which has been relocated to `accessors`
         // Todo, Remove when all kotlin LSTs have been rebuilt.
         @JsonCreator
-        public Property(@JsonProperty("id") UUID id,
-                        @JsonProperty("prefix") Space prefix,
-                        @JsonProperty("markers") Markers markers,
-                        @JsonProperty("typeParameters") @Nullable JContainer<TypeParameter> typeParameters,
-                        @JsonProperty("variableDeclarations") VariableDeclarations variableDeclarations,
-                        @JsonProperty("typeConstraints") @Nullable K.TypeConstraints typeConstraints,
+        public Property(UUID id,
+                        Space prefix,
+                        Markers markers,
+                        JContainer<TypeParameter> typeParameters,
+                        VariableDeclarations variableDeclarations,
+                        @Nullable K.TypeConstraints typeConstraints,
                         @JsonProperty("getter") @Nullable J.MethodDeclaration getter,
                         @JsonProperty("setter") @Nullable J.MethodDeclaration setter,
                         @JsonProperty("isSetterFirst") boolean isSetterFirst,
-                        @JsonProperty("receiver") @Nullable JRightPadded<Expression> receiver
+                        @Nullable JRightPadded<Expression> receiver
                         ) {
             this.id = id;
             this.prefix = prefix;
