@@ -28,9 +28,11 @@ import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.FirElement;
 import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
 import org.jetbrains.kotlin.fir.references.FirResolvedCallableReference;
+import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol;
 import org.jetbrains.kotlin.kdoc.psi.api.KDoc;
+import org.jetbrains.kotlin.kdoc.psi.impl.KDocSection;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
@@ -285,6 +287,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     expression.getReceiverExpression()
             );
         }
+        if (reference != null && reference.getResolvedSymbol() instanceof FirConstructorSymbol) {
+            methodReferenceType = psiElementAssociations.getTypeMapping().methodDeclarationType(
+                    ((FirConstructorSymbol) reference.getResolvedSymbol()).getFir(),
+                    expression.getReceiverExpression()
+            );
+        }
         JavaType.Variable fieldReferenceType = null;
         if (reference != null && reference.getResolvedSymbol() instanceof FirPropertySymbol) {
             fieldReferenceType = psiElementAssociations.getTypeMapping().variableType(
@@ -494,14 +502,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         Set<PsiElement> consumedSpaces = preConsumedInfix(enumEntry);
 
-        // TODO: in java the EnumValue has a type of JavaType.Variable with a null fieldType.
         J.Identifier name = createIdentifier(requireNonNull(enumEntry.getNameIdentifier()), type(enumEntry), consumedSpaces);
         J.NewClass initializer = null;
 
+        JavaType.Method mt = methodDeclarationType(enumEntry);
         if (enumEntry.getInitializerList() != null) {
-            // TODO: this creates an empty init with no type attribution: enum class Foo { BAR() }
-            //   Add constructor method type.
             initializer = (J.NewClass) enumEntry.getInitializerList().accept(this, data);
+            initializer = initializer.withMethodType(mt);
         }
 
         if (enumEntry.getBody() != null) {
@@ -522,7 +529,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         null,
                         args,
                         body,
-                        null
+                        mt
                 );
             }
         }
@@ -623,7 +630,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     typeTree = new K.FunctionType.Parameter(
                             randomId(),
                             Markers.EMPTY.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(ktParameter.getColon()))),
-                            createIdentifier(ktParameter.getNameIdentifier(), null),
+                            createIdentifier(ktParameter.getNameIdentifier(), type(ktParameter.getTypeReference())),
                             (TypeTree) requireNonNull(ktParameter.getTypeReference()).accept(this, data)
                     );
                 } else {
@@ -4192,17 +4199,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             PsiElement it = iterator.next();
             String text = it.getText();
             if (it instanceof PsiWhiteSpace) {
-                // replace `\n` to CRLF back if it's CRLF in the source
-                TextRange range = it.getTextRange();
-                int left = findFirstGreaterOrEqual(cRLFLocations, range.getStartOffset());
-                int right = left != -1 ? findFirstLessOrEqual(cRLFLocations, range.getEndOffset(), left) : -1;
-                boolean hasCRLF = left != -1 && left <= right;
-
-                if (hasCRLF) {
-                    for (int i = right; i >= left; i--) {
-                        text = replaceNewLineWithCRLF(text, cRLFLocations.get(i) - range.getStartOffset());
-                    }
-                }
+                text = replaceCRLF((PsiWhiteSpace) it);
+            } else if (it instanceof KDocSection) {
+                text = KDocSectionToString((KDocSection) it);
             }
 
             sb.append(text);
@@ -4213,6 +4212,37 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<Comment> comments = new ArrayList<>(1);
         comments.add(new TextComment(true, comment, "", Markers.EMPTY));
         return Space.build("", comments);
+    }
+
+    private String KDocSectionToString(KDocSection kDocSection) {
+        StringBuilder sb = new StringBuilder();
+        Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(kDocSection).iterator();
+        while (iterator.hasNext()) {
+            PsiElement it = iterator.next();
+            String text = it.getText();
+            if (it instanceof PsiWhiteSpace) {
+                text = replaceCRLF((PsiWhiteSpace) it);
+            }
+            sb.append(text);
+        }
+
+        return sb.toString();
+    }
+
+    // replace `\n` to CRLF back if it's CRLF in the source
+    private String replaceCRLF(PsiWhiteSpace wp) {
+        String text = wp.getText();
+        TextRange range = wp.getTextRange();
+        int left = findFirstGreaterOrEqual(cRLFLocations, range.getStartOffset());
+        int right = left != -1 ? findFirstLessOrEqual(cRLFLocations, range.getEndOffset(), left) : -1;
+        boolean hasCRLF = left != -1 && left <= right;
+
+        if (hasCRLF) {
+            for (int i = right; i >= left; i--) {
+                text = replaceNewLineWithCRLF(text, cRLFLocations.get(i) - range.getStartOffset());
+            }
+        }
+        return text;
     }
 
     private Space space(@Nullable PsiElement node) {

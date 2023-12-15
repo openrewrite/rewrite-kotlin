@@ -31,6 +31,7 @@ import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.java.tree.TypeUtils;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -949,6 +950,7 @@ public class KotlinTypeMappingTest {
         @Test
         void unknownIdentifier() {
             rewriteRun(
+              spec -> spec.typeValidationOptions(TypeValidation.none()),
               kotlin(
                 //language=none
                 "class A : RemoteStub",
@@ -1460,6 +1462,143 @@ public class KotlinTypeMappingTest {
                         }
                     }.visit(cu, 0);
                     assertThat(found.get()).isTrue();
+                })
+              )
+            );
+        }
+
+        @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/533")
+        @Test
+        void enumConstructorType() {
+            rewriteRun(
+              kotlin(
+                """
+                  enum class Code {
+                      YES ,
+                  }
+                  enum class Test ( val arg: Code , ) {
+                      FOO ( Code.YES , ) {
+                          // Body is required to reproduce issue
+                      }
+                  }
+                  """, spec -> spec.afterRecipe(cu -> {
+                    AtomicBoolean found = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<Integer>() {
+                        @Override
+                        public J.EnumValue visitEnumValue(J.EnumValue _enum, Integer integer) {
+                            if ("FOO".equals(_enum.getName().getSimpleName())) {
+                                assertThat(_enum.getInitializer().getConstructorType().toString())
+                                  .isEqualTo("Test{name=<constructor>,return=Test,parameters=[Code]}");
+                                found.set(true);
+                            }
+                            return super.visitEnumValue(_enum, integer);
+                        }
+                    }.visit(cu, 0);
+                    assertThat(found.get()).isTrue();
+                })
+              )
+            );
+        }
+
+        @Test
+        void functionTypeOnParams() {
+            rewriteRun(
+              kotlin(
+                """
+                 fun foo() :   suspend    ( param : Int )  -> Unit = { }
+                 """, spec -> spec.afterRecipe(cu -> {
+                    AtomicBoolean found = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<Integer>() {
+                        @Override
+                        public J.Identifier visitIdentifier(J.Identifier identifier, Integer integer) {
+                            if ("param".equals(identifier.getSimpleName()) && identifier.getType() != null) {
+                                assertThat(identifier.getType().toString()).isEqualTo("kotlin.Int");
+                                found.set(true);
+                            }
+                            return super.visitIdentifier(identifier, integer);
+                        }
+                    }.visit(cu, 0);
+                    assertThat(found.get()).isTrue();
+                })
+              )
+            );
+        }
+
+        @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/526")
+        @Test
+        void methodDeclarationType() {
+            rewriteRun(
+              kotlin(
+                """
+                 val arr = arrayOf(1, 2, 3)
+                 """, spec -> spec.afterRecipe(cu -> {
+                    AtomicBoolean found = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<Integer>() {
+                        @Override
+                        public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, Integer integer) {
+                            assertThat(method.getMethodType().toString()).isEqualTo("kotlin.Library{name=arrayOf,return=kotlin.Array<kotlin.Int>,parameters=[kotlin.Array<Generic{? extends Generic{T}}>]}");
+                            found.set(true);
+                            return super.visitMethodInvocation(method, integer);
+                        }
+                    }.visit(cu, 0);
+                    assertThat(found.get()).isTrue();
+                })
+              )
+            );
+        }
+
+        @Test
+        void anonymousConstructor() {
+            rewriteRun(
+              kotlin(
+                """
+                 val s = java.util.function.Supplier<String> {
+                     @Suppress("UNCHECKED_CAST")
+                     requireNotNull("x")
+                 }
+                 """, spec -> spec.afterRecipe(cu -> {
+                    AtomicInteger count = new AtomicInteger(0);
+                    new KotlinIsoVisitor<Integer>() {
+                        @Override
+                        public J.NewClass visitNewClass(J.NewClass newClass, Integer integer) {
+                            assertThat(newClass.getMethodType().toString()).isEqualTo("java.util.function.Supplier{name=<constructor>,return=java.util.function.Supplier<kotlin.String>,parameters=[kotlin.Function0<Generic{T extends kotlin.Any}>]}");
+                            count.getAndIncrement();
+                            assertThat(newClass.getClazz().getType().toString()).isEqualTo("java.util.function.Supplier<kotlin.String>");
+                            count.getAndIncrement();
+                            return super.visitNewClass(newClass, integer);
+                        }
+                    }.visit(cu, 0);
+                    assertThat(count.get()).isEqualTo(2);
+                })
+              )
+            );
+        }
+
+        @Test
+        void constructorMemberReferenceType() {
+            rewriteRun(
+              kotlin(
+                """
+                  open class A(
+                    val foo : ( ( Any ) -> A) -> A
+                  )
+                  class B : A ( foo = { x -> ( :: A ) ( x ) } ) {
+                    @Suppress("UNUSED_PARAMETER")
+                    fun mRef(a: Any) {}
+                  }
+                  """, spec -> spec.afterRecipe(cu -> {
+                    AtomicBoolean found = new AtomicBoolean(false);
+                    new KotlinIsoVisitor<Integer>() {
+                        @Override
+                        public J.MemberReference visitMemberReference(J.MemberReference memberRef, Integer integer) {
+                            if ("A".equals(memberRef.getReference().getSimpleName())) {
+                                assertThat(memberRef.getMethodType().toString()).isEqualTo("A{name=<constructor>,return=A,parameters=[kotlin.Function1<kotlin.Function1<kotlin.Any, A>, A>]}");
+                                found.set(true);
+                            }
+                            return super.visitMemberReference(memberRef, integer);
+                        }
+                    }.visit(cu, 0);
+                    assertThat(found.get()).isEqualTo(true);
                 })
               )
             );
