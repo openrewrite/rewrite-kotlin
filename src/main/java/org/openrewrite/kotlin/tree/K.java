@@ -569,17 +569,56 @@ public interface K extends J {
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @RequiredArgsConstructor
-    @Getter
-    @With
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @Data
     final class Constructor implements K, Statement, TypedTree {
 
+        @Nullable
+        @NonFinal
+        transient WeakReference<K.Constructor.Padding> padding;
+
         @EqualsAndHashCode.Include
+        @With
         UUID id;
 
+        @With
         Markers markers;
+
+        @With
         J.MethodDeclaration methodDeclaration;
-        Space colon;
-        ConstructorInvocation constructorInvocation;
+
+        // A replacement of `colon` and `constructorInvocation`
+        JLeftPadded<ConstructorInvocation> invocation;
+
+        public ConstructorInvocation getInvocation() {
+            return invocation.getElement();
+        }
+
+        public K.Constructor withInvocation(ConstructorInvocation invocation) {
+            return getPadding().withInvocation(this.invocation.withElement(invocation));
+        }
+
+        // For backward compatibility, handle removed fields `colon` and `constructorInvocation` which has been relocated to `invocation`
+        // Todo, Remove when we feel good that kotlin LSTs have been rebuilt.
+        @Deprecated
+        @JsonCreator
+        public Constructor(UUID id,
+                           Markers markers,
+                           J.MethodDeclaration methodDeclaration,
+                           @Nullable @JsonProperty("colon") Space colon,
+                           @Nullable @JsonProperty("constructorInvocation") ConstructorInvocation constructorInvocation,
+                           JLeftPadded<ConstructorInvocation> invocation
+        ) {
+            padding = null;
+            this.id = id;
+            this.markers = markers;
+            this.methodDeclaration = methodDeclaration;
+            if (colon != null && constructorInvocation != null) {
+                this.invocation = new JLeftPadded<>(colon, constructorInvocation, Markers.EMPTY);
+            } else {
+                this.invocation = invocation;
+            }
+        }
 
         @Override
         public Constructor withType(@Nullable JavaType type) {
@@ -614,6 +653,34 @@ public interface K extends J {
         @Override
         public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
+        }
+
+        public K.Constructor.Padding getPadding() {
+            K.Constructor.Padding p;
+            if (this.padding == null) {
+                p = new K.Constructor.Padding(this);
+                this.padding = new WeakReference<>(p);
+            } else {
+                p = this.padding.get();
+                if (p == null || p.t != this) {
+                    p = new K.Constructor.Padding(this);
+                    this.padding = new WeakReference<>(p);
+                }
+            }
+            return p;
+        }
+
+        @RequiredArgsConstructor
+        public static class Padding {
+            private final K.Constructor t;
+
+            public JLeftPadded<ConstructorInvocation> getInvocation() {
+                return t.invocation;
+            }
+
+            public K.Constructor withInvocation(JLeftPadded<ConstructorInvocation> invocation) {
+                return t.invocation == invocation ? t : new K.Constructor(t.id, t.markers, t.methodDeclaration, invocation);
+            }
         }
     }
 
@@ -751,7 +818,7 @@ public interface K extends J {
         }
     }
 
-    @SuppressWarnings({"unused", "DeprecatedIsStillUsed"})
+    @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @RequiredArgsConstructor
@@ -1107,7 +1174,6 @@ public interface K extends J {
         }
     }
 
-    @SuppressWarnings("DeprecatedIsStillUsed")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
