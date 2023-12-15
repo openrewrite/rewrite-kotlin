@@ -1446,6 +1446,7 @@ public interface K extends J {
 
         // For backward compatibility, handle removed fields `getter`, 'setter' and `isSetterFirst` which has been relocated to `accessors`
         // Todo, Remove when all kotlin LSTs have been rebuilt.
+        @Deprecated
         @JsonCreator
         public Property(UUID id,
                         Space prefix,
