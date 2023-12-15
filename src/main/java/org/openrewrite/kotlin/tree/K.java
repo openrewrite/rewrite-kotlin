@@ -1454,9 +1454,10 @@ public interface K extends J {
                         JContainer<TypeParameter> typeParameters,
                         VariableDeclarations variableDeclarations,
                         @Nullable K.TypeConstraints typeConstraints,
-                        @JsonProperty("getter") @Nullable J.MethodDeclaration getter,
-                        @JsonProperty("setter") @Nullable J.MethodDeclaration setter,
-                        @JsonProperty("isSetterFirst") boolean isSetterFirst,
+                        @Nullable @JsonProperty("getter") J.MethodDeclaration getter,
+                        @Nullable @JsonProperty("setter") J.MethodDeclaration setter,
+                        @Nullable @JsonProperty("isSetterFirst") Boolean isSetterFirst,
+                        JContainer<J.MethodDeclaration> accessors,
                         @Nullable JRightPadded<Expression> receiver
                         ) {
             this.id = id;
@@ -1466,20 +1467,26 @@ public interface K extends J {
             this.variableDeclarations = variableDeclarations;
             this.typeConstraints = typeConstraints;
 
-            List<JRightPadded<J.MethodDeclaration>> rps = new ArrayList<>(2);
+            if (getter != null || setter != null || isSetterFirst != null) {
+                List<JRightPadded<J.MethodDeclaration>> rps = new ArrayList<>(2);
 
-            if (setter != null) {
-                rps.add(new JRightPadded<>(setter, Space.EMPTY, Markers.EMPTY));
+                // handle old LST removed fields `getter`, 'setter' and `isSetterFirst` which has been relocated to `accessors`
+                if (setter != null) {
+                    rps.add(new JRightPadded<>(setter, Space.EMPTY, Markers.EMPTY));
+                }
+
+                if (getter != null) {
+                    rps.add(new JRightPadded<>(getter, Space.EMPTY, Markers.EMPTY));
+                }
+
+                if (Boolean.FALSE.equals(isSetterFirst)) {
+                    Collections.reverse(rps);
+                }
+                this.accessors = JContainer.build(rps);
+            } else {
+                this.accessors = accessors;
             }
 
-            if (getter != null) {
-                rps.add(new JRightPadded<>(getter, Space.EMPTY, Markers.EMPTY));
-            }
-
-            if (!isSetterFirst) {
-                Collections.reverse(rps);
-            }
-            this.accessors = JContainer.build(rps);
             this.receiver = receiver;
         }
 
