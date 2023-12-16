@@ -426,6 +426,28 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
+    public J visitAnnotationType(K.AnnotationType annotationType, PrintOutputCapture<P> p) {
+        beforeSyntax(annotationType, Space.Location.ANNOTATION_PREFIX, p);
+        visitRightPadded(annotationType.getPadding().getUseSite(), p);
+        p.append(":");
+        visit(annotationType.getCallee(), p);
+        return annotationType;
+    }
+
+    @Override
+    public J visitMultiAnnotationType(K.MultiAnnotationType multiAnnotationType, PrintOutputCapture<P> p) {
+        beforeSyntax(multiAnnotationType, Space.Location.ANNOTATION_PREFIX, p);
+        visitRightPadded(multiAnnotationType.getPadding().getUseSite(), p);
+
+        if (!(multiAnnotationType.getUseSite() instanceof J.Empty)) {
+            p.append(":");
+        }
+
+        delegate.visitContainer("[", multiAnnotationType.getAnnotations(), JContainer.Location.TYPE_PARAMETERS, "", "]",  p);
+        return multiAnnotationType;
+    }
+
+    @Override
     public J visitWhen(K.When when, PrintOutputCapture<P> p) {
         beforeSyntax(when, KSpace.Location.WHEN_PREFIX, p);
         p.append("when");
@@ -476,22 +498,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             String beforeArgs = "(";
             String afterArgs = ")";
             String delimiter = ",";
-
-            AnnotationUseSite useSite = annotation.getMarkers().findFirst(AnnotationUseSite.class).orElse(null);
-            if (useSite != null) {
-                kotlinPrinter.visitSpace(useSite.getPrefix(), KSpace.Location.ANNOTATION_CALL_SITE_PREFIX, p);
-                p.append(":");
-
-                if (!useSite.isImplicitBracket()) {
-                    beforeArgs = "[";
-                    afterArgs = "]";
-                } else {
-                    beforeArgs = "";
-                    afterArgs = "";
-                }
-
-                delimiter = "";
-            }
 
             visitContainer(beforeArgs, annotation.getPadding().getArguments(), JContainer.Location.ANNOTATION_ARGUMENTS, delimiter, afterArgs, p);
             afterSyntax(annotation, p);
