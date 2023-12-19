@@ -221,7 +221,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             TypeTree clazz = (TypeTree) (requireNonNull(expression.getRight()).accept(this, data));
             Markers markers = Markers.EMPTY;
             if (type == KtTokens.AS_SAFE) {
-                markers = markers.addIfAbsent(new IsNullSafe(randomId(), Space.EMPTY));
+                markers = markers.addIfAbsent(new IsNullSafe(randomId()));
             }
 
             return new J.TypeCast(
@@ -310,10 +310,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 PsiElement questionMark = PsiTreeUtil.findSiblingForward(expression.getFirstChild(), KtTokens.QUEST, null);
 
                 receiverExp = new J.NullableType(randomId(),
-                        Space.EMPTY,
+                        receiverExp.getPrefix(),
                         Markers.EMPTY,
                         Collections.emptyList(),
-                        padRight((TypeTree) receiverExp, prefix(questionMark))
+                        padRight(receiverExp.withPrefix(Space.EMPTY), prefix(questionMark))
                 );
             }
             receiver = padRight(receiverExp, prefix(expression.findColonColon()));
@@ -1144,7 +1144,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitSafeQualifiedExpression(KtSafeQualifiedExpression expression, ExecutionContext data) {
         J j = visitQualifiedExpression(expression, data);
-        return j.withMarkers(j.getMarkers().addIfAbsent(new IsNullSafe(randomId(), Space.EMPTY)));
+        return j.withMarkers(j.getMarkers().addIfAbsent(new IsNullSafe(randomId())));
     }
 
     @Override
@@ -2759,7 +2759,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (declaration.getObjectKeyword() != null) {
-            markers = markers.add(new KObject(randomId(), Space.EMPTY));
+            markers = markers.add(new KObject(randomId()));
         }
 
         J.Identifier name;
