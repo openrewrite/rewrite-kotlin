@@ -923,7 +923,7 @@ class SpacesTest implements RewriteTest {
                       return space;
                   }
 
-                  if (loc == Space.Location.UNARY_OPERATOR || loc == Space.Location.NULLABLE_TYPE_PREFIX) {
+                  if (loc == Space.Location.UNARY_OPERATOR || loc == Space.Location.NULLABLE_TYPE_SUFFIX) {
                       return space.withComments(ListUtils.concat(new TextComment(true, loc.name(), "", Markers.EMPTY), space.getComments()));
                   }
                   return s;
@@ -939,7 +939,7 @@ class SpacesTest implements RewriteTest {
               """,
             """
               class A {
-                  fun method ( ) /*TYPE_REFERENCE_PREFIX*/: /*NULLABLE_TYPE_PREFIX*/Int ? {
+                  fun method ( ) /*TYPE_REFERENCE_PREFIX*/: Int /*NULLABLE_TYPE_SUFFIX*/? {
                       return 1
                   }
               }
