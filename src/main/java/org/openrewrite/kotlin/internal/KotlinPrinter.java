@@ -1135,14 +1135,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         @Override
         public J visitVariableDeclarations(J.VariableDeclarations multiVariable, PrintOutputCapture<P> p) {
-            // TypeAliases are converted into a J.VariableDeclaration to re-use complex recipes like RenameVariable and ChangeType.
-            // However, a type alias has different syntax and is printed separately to reduce code complexity in visitVariableDeclarations.
-            // This is a temporary solution until K.TypeAlias is added to the model, and RenameVariable is revised to operator from a J.Identifier.
-            if (multiVariable.getLeadingAnnotations().stream().anyMatch(it -> "typealias".equals(it.getSimpleName()))) {
-                visitTypeAlias(multiVariable, p);
-                return multiVariable;
-            }
-
             beforeSyntax(multiVariable, Space.Location.VARIABLE_DECLARATIONS_PREFIX, p);
 
             visit(multiVariable.getLeadingAnnotations(), p);
