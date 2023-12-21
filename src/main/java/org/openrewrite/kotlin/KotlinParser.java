@@ -349,6 +349,7 @@ public class KotlinParser implements Parser {
         addJvmClasspathRoot(compilerConfiguration, PathUtil.getResourcePathForClass(AnnotationTarget.class));
 
         K2JVMCompilerArguments arguments = new K2JVMCompilerArguments();
+        arguments.setContextReceivers(true);
         configureJdkHome(compilerConfiguration, arguments);
         configureJavaModulesContentRoots(compilerConfiguration, arguments);
         configureAdvancedJvmOptions(compilerConfiguration, arguments);
