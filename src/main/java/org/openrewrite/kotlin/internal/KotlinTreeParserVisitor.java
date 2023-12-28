@@ -2943,7 +2943,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
             for (KtPropertyAccessor ktPropertyAccessor : ktPropertyAccessors) {
                 J.MethodDeclaration accessor = (J.MethodDeclaration) ktPropertyAccessor.accept(this, data);
-                accessors.add((lastChild == ktPropertyAccessor) ? padRight(accessor, Space.EMPTY) : maybeTrailingSemicolon(accessor, ktPropertyAccessor));
+                accessors.add(maybeTrailingSemicolonInternal(accessor, ktPropertyAccessor));
             }
 
             return new K.Property(
@@ -3669,6 +3669,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 singletonList(JRightPadded.build(kreturn)),
                 Space.EMPTY
         );
+    }
+
+    private <J2 extends J> JRightPadded<J2> maybeTrailingSemicolonInternal(J2 j, KtElement element) {
+        PsiElement maybeSemicolon = findLastNotSpaceChild(element);
+        if (isSemicolon(maybeSemicolon)) {
+            return new JRightPadded<>(j, prefix(maybeSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
+        }
+        return padRight(j, Space.EMPTY);
     }
 
     private <J2 extends J> JRightPadded<J2> maybeTrailingSemicolon(J2 j, KtElement element) {

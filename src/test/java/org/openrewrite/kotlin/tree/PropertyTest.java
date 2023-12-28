@@ -86,4 +86,17 @@ class PropertyTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/568")
+    void propertyAccessorWithTrailingSemiColon() {
+        rewriteRun(
+          kotlin(
+            """
+              val <T : Any> Collection<T>.nullable: Collection<T?>
+                  /*c1*/ get() = this ;   
+              """
+          )
+        );
+    }
 }
