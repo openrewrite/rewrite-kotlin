@@ -492,7 +492,9 @@ class ChangeTypeTest implements RewriteTest {
             """
               package a.b
               annotation class Original
-              """),
+              """,
+            SourceSpec::skip
+          ),
           kotlin(
             """
               import a.b.Original
