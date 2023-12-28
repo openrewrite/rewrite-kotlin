@@ -1692,12 +1692,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                                         declaration.getTextRange().getEndOffset())));
             }
 
-            if (declaration instanceof KtProperty) {
-                // KtProperty's trailing semicolon is consumed internally
-                statements.add(maybeFollowingSemicolon(statement, declaration));
-            } else {
-                statements.add(maybeTrailingSemicolon(statement, declaration));
-            }
+            statements.add(maybeTrailingSemicolon(statement, declaration));
         }
 
         return new K.CompilationUnit(
@@ -2272,7 +2267,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 continue;
             }
             Statement statement = convertToStatement(d.accept(this, data));
-            list.add(maybeFollowingSemicolon(statement, d));
+            list.add(maybeTrailingSemicolon(statement, d));
         }
 
         return new J.Block(
@@ -3671,6 +3666,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         );
     }
 
+    // Handle trailing semicolon inside the input `element` only.
     private <J2 extends J> JRightPadded<J2> maybeTrailingSemicolonInternal(J2 j, KtElement element) {
         PsiElement maybeSemicolon = findLastNotSpaceChild(element);
         if (isSemicolon(maybeSemicolon)) {
@@ -3679,29 +3675,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         return padRight(j, Space.EMPTY);
     }
 
+    // Handle trailing semicolon maybe inside the input `element` or following the input `element`
     private <J2 extends J> JRightPadded<J2> maybeTrailingSemicolon(J2 j, KtElement element) {
+        // maybe trailing semicolon at the end of the `element`
         PsiElement maybeSemicolon = findLastNotSpaceChild(element);
         if (isSemicolon(maybeSemicolon)) {
             return new JRightPadded<>(j, prefix(maybeSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
         }
 
+        // maybe following trailing semicolon of the `element`
         maybeSemicolon = PsiTreeUtil.skipWhitespacesAndCommentsForward(element);
         if (isSemicolon(maybeSemicolon)) {
             return new JRightPadded<>(j, deepPrefix(maybeSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
-        }
-
-        return padRight(j, Space.EMPTY);
-    }
-
-    private <J2 extends J> JRightPadded<J2> maybeFollowingSemicolon(J2 j, KtElement element) {
-        PsiElement maybeSemicolon = PsiTreeUtil.skipWhitespacesAndCommentsForward(element);
-        if (isSemicolon(maybeSemicolon)) {
-            return new JRightPadded<>(j, deepPrefix(maybeSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
-        }
-
-        PsiElement endSemicolon = findLastChild(element, this::isSemicolon, c -> !isSpace(c.getNode()));
-        if (endSemicolon != null) {
-            return new JRightPadded<>(j, prefix(endSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
         }
 
         return padRight(j, Space.EMPTY);
