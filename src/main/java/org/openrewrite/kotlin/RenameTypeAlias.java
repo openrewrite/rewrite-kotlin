@@ -20,6 +20,7 @@ import lombok.Value;
 import org.openrewrite.*;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.TypeUtils;
+import org.openrewrite.kotlin.tree.K;
 
 @Value
 @EqualsAndHashCode(callSuper = true)
@@ -55,7 +56,15 @@ public class RenameTypeAlias extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new KotlinIsoVisitor<ExecutionContext>() {
             @Override
-            public J.Identifier visitIdentifier(J.Identifier i, ExecutionContext executionContext) {
+            public K.TypeAlias visitTypeAlias(K.TypeAlias typeAlias, ExecutionContext executionContext) {
+                if (!aliasName.equals(typeAlias.getSimpleName()) || !TypeUtils.isOfClassType(typeAlias.getType(), fullyQualifiedAliasedType)) {
+                    return typeAlias;
+                }
+                return typeAlias.withName(typeAlias.getName().withSimpleName(newName));
+            }
+
+            @Override
+            public J.Identifier visitIdentifier(J.Identifier i, ExecutionContext ctx) {
                 if (!i.getSimpleName().equals(aliasName) || !TypeUtils.isOfClassType(i.getType(), fullyQualifiedAliasedType)) {
                     return i;
                 }
@@ -86,7 +95,7 @@ public class RenameTypeAlias extends Recipe {
             Object maybeVd = cursor.getParentTreeCursor().getValue();
             if (maybeVd instanceof J.VariableDeclarations) {
                 J.VariableDeclarations vd = (J.VariableDeclarations) maybeVd;
-                return vd.getLeadingAnnotations().stream().noneMatch(it -> "typealias".equals(it.getSimpleName()));
+                return vd.getModifiers().stream().noneMatch(x -> x.getType() == J.Modifier.Type.LanguageExtension && "typealias".equals(x.getKeyword()));
             }
             return true;
         } else return !(value instanceof J.ParameterizedType);

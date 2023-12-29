@@ -13,20 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.kotlin.marker;
+@NonNullApi
+@NonNullFields
+package org.openrewrite.kotlin.search;
 
-import lombok.Value;
-import lombok.With;
-import org.openrewrite.marker.Marker;
-
-import java.util.UUID;
-
-@Value
-@With
-public class Extension implements Marker {
-    UUID id;
-
-    public Extension(UUID id) {
-        this.id = id;
-    }
-}
+import org.openrewrite.internal.lang.NonNullApi;
+import org.openrewrite.internal.lang.NonNullFields;

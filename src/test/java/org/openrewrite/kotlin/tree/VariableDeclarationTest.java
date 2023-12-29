@@ -25,6 +25,7 @@ import org.openrewrite.java.tree.Statement;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.kotlin.marker.Implicit;
 import org.openrewrite.test.RewriteTest;
+import org.openrewrite.test.TypeValidation;
 
 import java.util.Objects;
 
@@ -120,7 +121,7 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              val isEmpty : Boolean
+              val isEmpty   : Boolean
                   get ( ) : Boolean = 1 == 1
               """
           )
@@ -393,6 +394,7 @@ class VariableDeclarationTest implements RewriteTest {
     @Test
     void unresolvedNameFirSource() {
         rewriteRun(
+          spec -> spec.typeValidationOptions(TypeValidation.none()),
           kotlin(
             //language=none, disabled due to invalid code
             """
@@ -477,6 +479,23 @@ class VariableDeclarationTest implements RewriteTest {
                       set ( value ) {
                           field = value
                       }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void getterSetterWithTrailingSemiColon() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {
+                  var stringRepresentation : String = ""
+                      get ( ) = field   ;
+                      set ( value ) {
+                          field = value
+                      } ;
               }
               """
           )
@@ -644,7 +663,7 @@ class VariableDeclarationTest implements RewriteTest {
         rewriteRun(
           kotlin(
             """
-              /*C1*/ typealias Operation =  (Int , Int )   ->    Int
+              /*C1*/ typealias   Operation =  (Int , Int )   ->    Int
               """
           )
         );
@@ -667,7 +686,7 @@ class VariableDeclarationTest implements RewriteTest {
           kotlin(
             """
               class Test {
-                  var t = 1 /*C1*/  ; /*C2*/
+                  var t /*C0*/ : /*C1*/ Int = 1 /*C2*/  ; /*C3*/
                   fun method() {}
               }
               """
@@ -751,6 +770,45 @@ class VariableDeclarationTest implements RewriteTest {
                   set(value) {
                       internalProperty = value
                   }
+              """
+          )
+        );
+    }
+
+    @Test
+    void typeReferencePrefix_1_VariableDeclarations() {
+        rewriteRun(
+          kotlin(
+            """
+              class Test {
+                  var t /*C1*/ : Int = 1 /*C2*/  ; /*C3*/
+                  fun method() {}
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void typeReferencePrefix_2_MethodParameter() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method ( input /*C0*/ : Any = 1 /*C2*/ , x : Int ) {
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void typeReferencePrefix_3_MethodReturnType() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method () /*C3*/ :  Int {
+                 return 1
+              }
               """
           )
         );

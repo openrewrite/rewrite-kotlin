@@ -13,31 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.openrewrite.kotlin.marker;
+package org.openrewrite.kotlin.style;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AccessLevel;
 import lombok.Value;
 import lombok.With;
-import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.tree.Space;
-import org.openrewrite.marker.Marker;
+import lombok.experimental.FieldDefaults;
+import org.openrewrite.kotlin.KotlinStyle;
+import org.openrewrite.style.Style;
+import org.openrewrite.style.StyleHelper;
 
-import java.util.UUID;
-
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @Value
 @With
-public class IsNullSafe implements Marker {
-    UUID id;
+public class OtherStyle implements KotlinStyle {
+    Boolean useTrailingComma;
 
-    public IsNullSafe(UUID id) {
-        this.id = id;
-    }
-
-    // to be dereleased
-    @Deprecated
-    @JsonCreator
-    IsNullSafe(UUID id, @Deprecated @Nullable @JsonProperty("prefix") Space prefix) {
-        this.id = id;
+    @Override
+    public Style applyDefaults() {
+        return StyleHelper.merge(IntelliJ.other(), this);
     }
 }

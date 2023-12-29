@@ -27,10 +27,13 @@ import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType;
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.kotlin.fir.FirElement;
 import org.jetbrains.kotlin.fir.declarations.FirResolvedImport;
+import org.jetbrains.kotlin.fir.expressions.FirCallableReferenceAccess;
 import org.jetbrains.kotlin.fir.references.FirResolvedCallableReference;
+import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol;
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol;
 import org.jetbrains.kotlin.kdoc.psi.api.KDoc;
+import org.jetbrains.kotlin.kdoc.psi.impl.KDocSection;
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken;
 import org.jetbrains.kotlin.lexer.KtTokens;
 import org.jetbrains.kotlin.parsing.ParseUtilsKt;
@@ -194,7 +197,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         JContainer<Expression> args = JContainer.build(Space.EMPTY, expressions, markers);
-        return new J.MethodInvocation(
+        return mapType(new J.MethodInvocation(
                 randomId(),
                 prefix(expression),
                 markers,
@@ -203,7 +206,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 name,
                 args,
                 type
-        );
+        ));
     }
 
     @Override
@@ -219,7 +222,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             TypeTree clazz = (TypeTree) (requireNonNull(expression.getRight()).accept(this, data));
             Markers markers = Markers.EMPTY;
             if (type == KtTokens.AS_SAFE) {
-                markers = markers.addIfAbsent(new IsNullSafe(randomId(), Space.EMPTY));
+                markers = markers.addIfAbsent(new IsNullSafe(randomId()));
             }
 
             return new J.TypeCast(
@@ -267,31 +270,36 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitCallableReferenceExpression(KtCallableReferenceExpression expression, ExecutionContext data) {
         FirElement firElement = psiElementAssociations.primary(expression.getCallableReference());
-        FirResolvedCallableReference reference;
-        if (!(firElement instanceof FirResolvedCallableReference)) {
-            throw new UnsupportedOperationException(String.format("Unsupported callable reference: fir: %s, psi : %s with code: %s | sub-psi : %s | sub-fir : %s",
+        if (!(firElement instanceof FirResolvedCallableReference || firElement instanceof FirCallableReferenceAccess)) {
+            throw new UnsupportedOperationException(String.format("Unsupported callable reference: fir class: %s, fir: %s, psi class: %s.",
                     firElement == null ? "null" : firElement.getClass().getName(),
-                    expression.getClass().getName(),
-                    expression.getText(),
-                    PsiTreePrinter.print(expression),
-                    PsiTreePrinter.print(psiElementAssociations.primary(expression))));
-        } else {
-            reference = (FirResolvedCallableReference) psiElementAssociations.primary(expression.getCallableReference());
+                    PsiTreePrinter.print(psiElementAssociations.primary(expression)),
+                    expression.getClass().getName()));
         }
         JavaType.Method methodReferenceType = null;
-        if (reference != null && reference.getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
-            methodReferenceType = psiElementAssociations.getTypeMapping().methodDeclarationType(
-                    ((FirNamedFunctionSymbol) reference.getResolvedSymbol()).getFir(),
-                    expression.getReceiverExpression()
-            );
-        }
         JavaType.Variable fieldReferenceType = null;
-        if (reference != null && reference.getResolvedSymbol() instanceof FirPropertySymbol) {
-            fieldReferenceType = psiElementAssociations.getTypeMapping().variableType(
-                    ((FirPropertySymbol) reference.getResolvedSymbol()).getFir(),
-                    expression.getReceiverExpression()
-            );
+        if (firElement instanceof FirResolvedCallableReference) {
+            FirResolvedCallableReference reference = (FirResolvedCallableReference) psiElementAssociations.primary(expression.getCallableReference());
+            if (reference != null && reference.getResolvedSymbol() instanceof FirNamedFunctionSymbol) {
+                methodReferenceType = psiElementAssociations.getTypeMapping().methodDeclarationType(
+                        ((FirNamedFunctionSymbol) reference.getResolvedSymbol()).getFir(),
+                        expression.getReceiverExpression()
+                );
+            }
+            if (reference != null && reference.getResolvedSymbol() instanceof FirConstructorSymbol) {
+                methodReferenceType = psiElementAssociations.getTypeMapping().methodDeclarationType(
+                        ((FirConstructorSymbol) reference.getResolvedSymbol()).getFir(),
+                        expression.getReceiverExpression()
+                );
+            }
+            if (reference != null && reference.getResolvedSymbol() instanceof FirPropertySymbol) {
+                fieldReferenceType = psiElementAssociations.getTypeMapping().variableType(
+                        ((FirPropertySymbol) reference.getResolvedSymbol()).getFir(),
+                        expression.getReceiverExpression()
+                );
+            }
         }
+
         JRightPadded<Expression> receiver;
         if (expression.getReceiverExpression() == null) {
             receiver = padRight(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY),
@@ -300,7 +308,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             Expression receiverExp = convertToExpression(expression.getReceiverExpression().accept(this, data));
             if (expression.getHasQuestionMarks()) {
                 PsiElement questionMark = PsiTreeUtil.findSiblingForward(expression.getFirstChild(), KtTokens.QUEST, null);
-                receiverExp = receiverExp.withMarkers(receiverExp.getMarkers().addIfAbsent(new IsNullable(randomId(), prefix(questionMark))));
+
+                receiverExp = new J.NullableType(randomId(),
+                        receiverExp.getPrefix(),
+                        Markers.EMPTY,
+                        Collections.emptyList(),
+                        padRight(receiverExp.withPrefix(Space.EMPTY), prefix(questionMark))
+                );
             }
             receiver = padRight(receiverExp, prefix(expression.findColonColon()));
         }
@@ -494,14 +508,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         Set<PsiElement> consumedSpaces = preConsumedInfix(enumEntry);
 
-        // TODO: in java the EnumValue has a type of JavaType.Variable with a null fieldType.
         J.Identifier name = createIdentifier(requireNonNull(enumEntry.getNameIdentifier()), type(enumEntry), consumedSpaces);
         J.NewClass initializer = null;
 
+        JavaType.Method mt = methodDeclarationType(enumEntry);
         if (enumEntry.getInitializerList() != null) {
-            // TODO: this creates an empty init with no type attribution: enum class Foo { BAR() }
-            //   Add constructor method type.
             initializer = (J.NewClass) enumEntry.getInitializerList().accept(this, data);
+            initializer = initializer.withMethodType(mt);
         }
 
         if (enumEntry.getBody() != null) {
@@ -522,7 +535,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         null,
                         args,
                         body,
-                        null
+                        mt
                 );
             }
         }
@@ -623,7 +636,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     typeTree = new K.FunctionType.Parameter(
                             randomId(),
                             Markers.EMPTY.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(ktParameter.getColon()))),
-                            createIdentifier(ktParameter.getNameIdentifier(), null),
+                            createIdentifier(ktParameter.getNameIdentifier(), type(ktParameter.getTypeReference())),
                             (TypeTree) requireNonNull(ktParameter.getTypeReference()).accept(this, data)
                     );
                 } else {
@@ -802,7 +815,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitNullableType(KtNullableType nullableType, ExecutionContext data) {
-        TypeTree typeTree = (TypeTree) requireNonNull(nullableType.getInnerType()).accept(this, data);
+        KtTypeElement innerType = nullableType.getInnerType();
+        if (innerType == null) {
+            throw new UnsupportedOperationException("This should never happen");
+        }
+
+        TypeTree typeTree = (TypeTree) requireNonNull(innerType).accept(this, data);
+        Set<PsiElement> consumedSpaces = new HashSet<>();
+        if (innerType.getNextSibling() != null &&
+                isSpace(innerType.getNextSibling().getNode()) &&
+                !(innerType instanceof KtNullableType)) {
+            consumedSpaces.add(innerType.getNextSibling());
+        }
 
         if (typeTree instanceof K.FunctionType && nullableType.getModifierList() != null) {
             List<J.Annotation> leadingAnnotations = new ArrayList<>();
@@ -817,10 +841,43 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             typeTree = ((K.FunctionType) typeTree).withModifiers(modifiers).withLeadingAnnotations(leadingAnnotations);
         }
 
-        return typeTree.withPrefix(merge(deepPrefix(nullableType), typeTree.getPrefix()))
-                .withMarkers(typeTree.getMarkers().addIfAbsent(new IsNullable(randomId(),
-                        prefix((PsiElement) nullableType.getQuestionMarkNode())
-                )));
+        // Handle parentheses or potential nested parentheses
+        Stack<Pair<Integer, Integer>> parenPairs = new Stack<>();
+        List<PsiElement> allChildren = getAllChildren(nullableType);
+
+        TypeTree j = typeTree;
+        int l = 0;
+        int r = allChildren.size() - 1;
+        while (l < r) {
+            l = findFirstLPAR(allChildren, l);
+            r = findLastRPAR(allChildren, r);
+            if (l * r < 0) {
+                throw new UnsupportedOperationException("Unpaired parentheses!");
+            }
+            if (l < 0 || r < 0) {
+                break;
+            }
+            parenPairs.add(new Pair<>(l++, r--));
+        }
+
+        while (!parenPairs.empty()) {
+            Pair<Integer, Integer> parenPair = parenPairs.pop();
+            PsiElement lPAR = allChildren.get(parenPair.getFirst());
+            PsiElement rPAR = allChildren.get(parenPair.getSecond());
+            j = new J.ParenthesizedTypeTree(randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    emptyList(),
+                    new J.Parentheses<>(randomId(), prefix(lPAR), Markers.EMPTY, padRight(j, prefix(rPAR, consumedSpaces)))
+            );
+        }
+
+        return new J.NullableType(randomId(),
+                merge(deepPrefix(nullableType), j.getPrefix()),
+                Markers.EMPTY,
+                Collections.emptyList(),
+                padRight(j, prefix(findFirstChild(nullableType, c -> c.getNode().getElementType() == KtTokens.QUEST)))
+        );
     }
 
     @Override
@@ -855,7 +912,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
 
             if (parameter.getValOrVarKeyword() != null) {
-                modifiers.add(mapModifier(parameter.getValOrVarKeyword(), Collections.emptyList(), consumedSpaces));
+                modifiers.add(mapModifier(parameter.getValOrVarKeyword(), lastAnnotations, consumedSpaces));
             }
         }
 
@@ -868,7 +925,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         J.Identifier name = createIdentifier(requireNonNull(parameter.getNameIdentifier()), vt, consumedSpaces);
 
         if (parameter.getTypeReference() != null) {
-            markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(parameter.getColon())));
             typeExpression = (TypeTree) parameter.getTypeReference().accept(this, data);
             // TODO: get type from IR of KtProperty.
         }
@@ -886,7 +942,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 vt
         );
 
-        vars.add(padRight(namedVariable, Space.EMPTY));
+        vars.add(padRight(namedVariable, prefix(parameter.getColon())));
 
         return new J.VariableDeclarations(
                 randomId(),
@@ -971,9 +1027,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     public J visitPropertyAccessor(KtPropertyAccessor accessor, ExecutionContext data) {
         Markers markers = Markers.EMPTY;
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
-        List<J.Modifier> modifiers = mapModifiers(accessor.getModifierList(), leadingAnnotations, emptyList(), data);
-        TypeTree returnTypeExpression = null;
         List<J.Annotation> lastAnnotations = new ArrayList<>();
+        List<J.Modifier> modifiers = mapModifiers(accessor.getModifierList(), leadingAnnotations, lastAnnotations, data);
+        TypeTree returnTypeExpression = null;
         JContainer<Statement> params;
         J.Block body = null;
         Set<PsiElement> consumedSpaces = preConsumedInfix(accessor);
@@ -1088,7 +1144,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     @Override
     public J visitSafeQualifiedExpression(KtSafeQualifiedExpression expression, ExecutionContext data) {
         J j = visitQualifiedExpression(expression, data);
-        return j.withMarkers(j.getMarkers().addIfAbsent(new IsNullSafe(randomId(), Space.EMPTY)));
+        return j.withMarkers(j.getMarkers().addIfAbsent(new IsNullSafe(randomId())));
     }
 
     @Override
@@ -1108,7 +1164,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<J.Annotation> leadingAnnotations = new ArrayList<>();
         List<J.Annotation> lastAnnotations = new ArrayList<>();
         List<J.Modifier> modifiers = mapModifiers(constructor.getModifierList(), leadingAnnotations, lastAnnotations, data);
-        modifiers.add(mapModifier(constructor.getConstructorKeyword(), emptyList(), preConsumedInfix(constructor)));
+        modifiers.add(mapModifier(constructor.getConstructorKeyword(), lastAnnotations, preConsumedInfix(constructor)));
 
         JavaType.Method type = methodDeclarationType(constructor);
         J.Identifier name = createIdentifier(requireNonNull(constructor.getName()), prefix(constructor.getConstructorKeyword()), type)
@@ -1149,7 +1205,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 type
         ));
 
-        return delegationCall != null ? new K.Constructor(randomId(), Markers.EMPTY, methodDeclaration, prefix(constructor.getColon()), delegationCall) :
+        return delegationCall != null ? new K.Constructor(randomId(), Markers.EMPTY, methodDeclaration, padLeft(prefix(constructor.getColon()), delegationCall)) :
                 methodDeclaration;
     }
 
@@ -1244,7 +1300,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<J.Annotation> lastAnnotations = new ArrayList<>();
         Set<PsiElement> consumedSpaces = preConsumedInfix(typeAlias);
 
-        List<J.Modifier> modifiers = new ArrayList<>(mapModifiers(typeAlias.getModifierList(), leadingAnnotations, lastAnnotations, data));
+        List<J.Modifier> modifiers = mapModifiers(typeAlias.getModifierList(), leadingAnnotations, lastAnnotations, data);
         modifiers.add(new J.Modifier(randomId(), prefix(typeAlias.getTypeAliasKeyword(), consumedSpaces), markers, "typealias", J.Modifier.Type.LanguageExtension, emptyList()));
 
         if (typeAlias.getIdentifyingElement() == null) {
@@ -1252,47 +1308,27 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         J.Identifier name = createIdentifier(typeAlias.getIdentifyingElement(), type(typeAlias.getTypeReference()));
-        TypeTree typeExpression = name;
 
+        JContainer<J.TypeParameter> typeParams = null;
         if (typeAlias.getTypeParameterList() != null) {
-            typeExpression = (TypeTree) typeAlias.getTypeParameterList().accept(this, data);
-
-            if (typeExpression instanceof J.ParameterizedType) {
-                typeExpression = mapType(typeExpression);
-                Space prefix = name.getPrefix();
-                typeExpression = ((J.ParameterizedType) typeExpression).withClazz(name.withPrefix(Space.EMPTY).withPrefix(prefix));
-            }
+            typeParams = JContainer.build(prefix(typeAlias.getTypeParameterList()), mapTypeParameters(typeAlias.getTypeParameterList(), data), Markers.EMPTY);
         }
 
         Expression expr = convertToExpression(typeAlias.getTypeReference().accept(this, data));
 
         ASTNode node = typeAlias.getNode().findChildByType(KtTokens.EQ);
         Space prefix = node != null ? prefix(node.getPsi()) : Space.EMPTY;
-        JRightPadded<J.VariableDeclarations.NamedVariable> namedVariable = padRight(
-                new J.VariableDeclarations.NamedVariable(
-                        randomId(),
-                        Space.EMPTY,
-                        Markers.EMPTY,
-                        // typealias does not have a name.
-                        createIdentifier("", Space.EMPTY, null, null),
-                        emptyList(),
-                        padLeft(prefix, expr),
-                        null
-                ), Space.EMPTY
-        );
 
-        List<JRightPadded<J.VariableDeclarations.NamedVariable>> vars = singletonList(namedVariable);
-
-        return new J.VariableDeclarations(
+        return new K.TypeAlias(
                 randomId(),
                 deepPrefix(typeAlias),
                 markers,
                 leadingAnnotations,
                 modifiers,
-                typeExpression,
-                null,
-                emptyList(),
-                vars
+                name,
+                typeParams,
+                padLeft(prefix, expr),
+                type(typeAlias.getTypeReference())
         );
     }
 
@@ -1586,7 +1622,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 deepPrefix(expression),
                 Markers.EMPTY,
                 mapControlParentheses(requireNonNull(expression.getCondition()), data).withPrefix(prefix(expression.getLeftParenthesis())),
-                JRightPadded.build(requireNonNull(expression.getBody()).accept(this, data).withPrefix(prefix(expression.getBody().getParent())))
+                expression.getBody() == null ? JRightPadded.build(new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY)) : JRightPadded.build(requireNonNull(expression.getBody()).accept(this, data).withPrefix(prefix(expression.getBody().getParent())))
         );
     }
 
@@ -1683,32 +1719,44 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitAnnotation(KtAnnotation annotation, ExecutionContext data) {
-        if (annotation.getUseSiteTarget() == null) {
-            throw new UnsupportedOperationException("TODO, Some cases we don't know");
-        }
-        List<KtAnnotationEntry> annotationEntries = annotation.getEntries();
-        List<JRightPadded<Expression>> rpAnnotations = new ArrayList<>(annotationEntries.size());
+        Expression target;
 
+        if (annotation.getUseSiteTarget() != null) {
+            target = (J.Identifier) annotation.getUseSiteTarget().accept(this, data);
+        } else {
+            target = new J.Empty(randomId(), Space.EMPTY, Markers.EMPTY);
+        }
+
+        List<KtAnnotationEntry> annotationEntries = annotation.getEntries();
+        List<JRightPadded<J.Annotation>> rpAnnotations = new ArrayList<>(annotationEntries.size());
+        J.Annotation anno = null;
         for (KtAnnotationEntry ktAnnotationEntry : annotationEntries) {
-            J.Annotation anno = (J.Annotation) ktAnnotationEntry.accept(this, data);
+            anno = (J.Annotation) ktAnnotationEntry.accept(this, data);
             anno = anno.withMarkers(anno.getMarkers().addIfAbsent(new AnnotationConstructor(randomId())));
             rpAnnotations.add(padRight(anno, Space.EMPTY));
         }
 
-        PsiElement maybeLBracket = findFirstChild(annotation, anno -> anno.getNode().getElementType() == KtTokens.LBRACKET);
+        PsiElement maybeLBracket = findFirstChild(annotation, an -> an.getNode().getElementType() == KtTokens.LBRACKET);
         boolean isImplicitBracket = maybeLBracket == null;
         Space beforeLBracket = isImplicitBracket ? Space.EMPTY : prefix(maybeLBracket);
 
         if (!isImplicitBracket) {
             rpAnnotations = ListUtils.mapLast(rpAnnotations,
-                    rp -> rp.withAfter(prefix(findFirstChild(annotation, anno -> anno.getNode().getElementType() == KtTokens.RBRACKET))));
+                    rp -> rp.withAfter(prefix(findFirstChild(annotation, an -> an.getNode().getElementType() == KtTokens.RBRACKET))));
+        }
+
+        NameTree annotationType;
+        if (isImplicitBracket) {
+            annotationType = new K.AnnotationType(randomId(), Space.EMPTY, Markers.EMPTY, padRight(target, suffix(annotation.getUseSiteTarget())), anno);
+        } else {
+            annotationType = new K.MultiAnnotationType(randomId(), Space.EMPTY, Markers.EMPTY, padRight(target, suffix(annotation.getUseSiteTarget())), JContainer.build(beforeLBracket, rpAnnotations, Markers.EMPTY));
         }
 
         return mapType(new J.Annotation(randomId(),
                 Space.EMPTY,
-                Markers.EMPTY.addIfAbsent(new AnnotationUseSite(randomId(), suffix(annotation.getUseSiteTarget()), isImplicitBracket)),
-                (NameTree) annotation.getUseSiteTarget().accept(this, data),
-                JContainer.build(beforeLBracket, rpAnnotations, Markers.EMPTY)
+                Markers.EMPTY,
+                annotationType,
+                null
         ));
     }
 
@@ -1724,16 +1772,20 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (isUseSite) {
-            nameTree = (NameTree) annotationEntry.getUseSiteTarget().accept(this, data);
-            markers = markers.addIfAbsent(new AnnotationUseSite(randomId(), prefix(findFirstChild(annotationEntry, p -> p.getNode().getElementType() == KtTokens.COLON)), true));
-            J.Annotation argAnno = new J.Annotation(
+            J.Annotation callee = new J.Annotation(
                     randomId(),
                     Space.EMPTY,
                     Markers.EMPTY.addIfAbsent(new AnnotationConstructor(randomId())),
                     (NameTree) requireNonNull(annotationEntry.getCalleeExpression()).accept(this, data),
                     annotationEntry.getValueArgumentList() != null ? mapValueArguments(annotationEntry.getValueArgumentList(), data) : null
             );
-            args = JContainer.build(Space.EMPTY, singletonList(padRight(argAnno, Space.EMPTY)), Markers.EMPTY);
+
+            nameTree = new K.AnnotationType(randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    padRight(convertToExpression(annotationEntry.getUseSiteTarget().accept(this, data)),
+                            prefix(findFirstChild(annotationEntry, p -> p.getNode().getElementType() == KtTokens.COLON))),
+                    callee);
         } else {
             nameTree = (NameTree) requireNonNull(annotationEntry.getCalleeExpression()).accept(this, data);
             if (annotationEntry.getValueArgumentList() != null) {
@@ -2294,7 +2346,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     vt
             );
 
-
             TypeTree typeExpression = null;
             if (entry.getTypeReference() != null) {
                 typeExpression = (TypeTree) entry.getTypeReference().accept(this, data);
@@ -2302,13 +2353,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
             J.VariableDeclarations variableDeclarations = new J.VariableDeclarations(randomId(),
                     Space.EMPTY,
-                    Markers.EMPTY.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(entry.getColon()))),
+                    Markers.EMPTY,
                     emptyList(),
                     emptyList(),
                     typeExpression,
                     null,
                     emptyList(),
-                    singletonList(padRight(namedVariable, Space.EMPTY))
+                    singletonList(padRight(namedVariable, prefix(entry.getColon())))
             );
 
             destructVars.add(maybeTrailingComma(entry, padRight(variableDeclarations, suffix(entry)), i == entries.size() - 1));
@@ -2342,6 +2393,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 deepPrefix(multiDeclaration),
                 Markers.EMPTY,
                 variableDeclarations,
+                null,
                 JContainer.build(prefix(multiDeclaration.getLPar()), destructVars, Markers.EMPTY)
         );
     }
@@ -2359,14 +2411,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (j instanceof J.Annotation) {
                 J.Annotation a = (J.Annotation) j;
                 a = a.withAnnotationType(a.getAnnotationType().withPrefix(callExpressionPrefix));
-                J.FieldAccess newName = new J.FieldAccess(
+                J.FieldAccess newName = mapType(new J.FieldAccess(
                         randomId(),
                         receiver.getPrefix(),
                         Markers.EMPTY,
                         receiver.withPrefix(Space.EMPTY),
                         padLeft(suffix(expression.getReceiverExpression()), (J.Identifier) a.getAnnotationType()),
                         a.getType()
-                );
+                ));
                 return a.withAnnotationType(newName).withPrefix(prefix);
             } else if (j instanceof J.ParameterizedType) {
                 J.ParameterizedType pt = (J.ParameterizedType) j;
@@ -2379,7 +2431,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         padLeft(suffix(expression.getReceiverExpression()), (J.Identifier) pt.getClazz()),
                         pt.getType()
                 ));
-                return pt.withClazz(newName).withPrefix(prefix);
+                return mapType(pt.withClazz(newName).withPrefix(prefix));
             } else if (j instanceof J.MethodInvocation) {
                 J.MethodInvocation m = (J.MethodInvocation) j;
                 return m.getPadding().withSelect(padRight(receiver, suffix(expression.getReceiverExpression())))
@@ -2393,14 +2445,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         J.ParameterizedType pt = (J.ParameterizedType) n.getClazz();
                         if (pt != null) {
                             pt = pt.withClazz(pt.getClazz().withPrefix(callExpressionPrefix));
-                            J.FieldAccess newName = new J.FieldAccess(
+                            J.FieldAccess newName = mapType(new J.FieldAccess(
                                     randomId(),
                                     receiver.getPrefix(),
                                     Markers.EMPTY,
                                     receiver.withPrefix(Space.EMPTY),
                                     padLeft(suffix(expression.getReceiverExpression()), (J.Identifier) pt.getClazz()),
                                     pt.getType()
-                            );
+                            ));
                             pt = pt.withClazz(newName);
                             pt = mapType(pt);
                             n = n.withClazz(pt);
@@ -2409,14 +2461,14 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         J.Identifier id = (J.Identifier) n.getClazz();
                         if (id != null) {
                             id = id.withPrefix(callExpressionPrefix);
-                            J.FieldAccess newName = new J.FieldAccess(
+                            J.FieldAccess newName = mapType(new J.FieldAccess(
                                     randomId(),
                                     receiver.getPrefix(),
                                     Markers.EMPTY,
                                     receiver.withPrefix(Space.EMPTY),
                                     padLeft(suffix(expression.getReceiverExpression()), id),
                                     id.getType()
-                            );
+                            ));
                             n = n.withClazz(newName).withPrefix(prefix);
                         }
                     }
@@ -2461,7 +2513,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         ASTNode node = importDirective.getNode().findChildByType(KtTokens.IMPORT_KEYWORD);
         LeafPsiElement importPsi = (LeafPsiElement) node;
 
-        PsiElement first = findFirstNonSpaceNextSibling(importPsi);
+        PsiElement first = PsiTreeUtil.skipWhitespacesAndCommentsForward(importPsi);
         PsiElement last = findLastChild(importDirective, psi -> !(psi instanceof KtImportAlias) &&
                                                                 !isSpace(psi.getNode()) &&
                                                                 psi.getNode().getElementType() != KtTokens.SEMICOLON);
@@ -2544,7 +2596,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             modifiers.add(buildFinalModifier().withPrefix(Space.EMPTY));
         }
 
-        modifiers.add(new J.Modifier(randomId(), prefix(function.getFunKeyword(), prefixConsumedSet), Markers.EMPTY, "fun", J.Modifier.Type.LanguageExtension, emptyList()));
+        modifiers.add(new J.Modifier(randomId(), prefix(function.getFunKeyword(), prefixConsumedSet), Markers.EMPTY, "fun", J.Modifier.Type.LanguageExtension, lastAnnotations));
         J.Identifier name;
 
         JavaType.Method type = methodDeclarationType(function);
@@ -2710,7 +2762,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         if (declaration.getObjectKeyword() != null) {
-            markers = markers.add(new KObject(randomId(), Space.EMPTY));
+            markers = markers.add(new KObject(randomId()));
         }
 
         J.Identifier name;
@@ -2812,13 +2864,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<J.Modifier> modifiers = mapModifiers(property.getModifierList(), leadingAnnotations, lastAnnotations, data);
         TypeTree typeExpression = null;
         List<JRightPadded<J.VariableDeclarations.NamedVariable>> variables = new ArrayList<>();
-        J.MethodDeclaration getter = null;
-        J.MethodDeclaration setter = null;
         JRightPadded<Expression> receiver = null;
         JContainer<J.TypeParameter> typeParameters = property.getTypeParameterList() != null ?
                 JContainer.build(prefix(property.getTypeParameterList()), mapTypeParameters(property.getTypeParameterList(), data), Markers.EMPTY) : null;
         K.TypeConstraints typeConstraints = null;
-        boolean isSetterFirst = false;
         Set<PsiElement> prefixConsumedSet = preConsumedInfix(property);
 
         modifiers.add(new J.Modifier(
@@ -2850,13 +2899,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         }
 
         Markers rpMarker = Markers.EMPTY;
-        Space maybeBeforeSemicolon = Space.EMPTY;
-        PsiElement lastChild = findLastNotSpaceChild(property);
-        if (lastChild != null && lastChild.getNode().getElementType() == KtTokens.SEMICOLON) {
-            rpMarker = rpMarker.addIfAbsent(new Semicolon(randomId()));
-            maybeBeforeSemicolon = prefix(lastChild);
-        }
-
         JavaType.Variable vt = variableType(property, owner(property));
         J.VariableDeclarations.NamedVariable namedVariable =
                 new J.VariableDeclarations.NamedVariable(
@@ -2869,23 +2911,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         vt
                 );
 
-        variables.add(padRight(namedVariable, maybeBeforeSemicolon).withMarkers(rpMarker));
+        variables.add(padRight(namedVariable, prefix(property.getColon())).withMarkers(rpMarker));
 
         if (property.getColon() != null) {
-            markers = markers.addIfAbsent(new TypeReferencePrefix(randomId(), prefix(property.getColon())));
             typeExpression = (TypeTree) requireNonNull(property.getTypeReference()).accept(this, data);
-        }
-
-        if (property.getGetter() != null) {
-            getter = (J.MethodDeclaration) property.getGetter().accept(this, data);
-        }
-
-        if (property.getSetter() != null) {
-            setter = (J.MethodDeclaration) property.getSetter().accept(this, data);
-        }
-
-        if (getter != null && setter != null) {
-            isSetterFirst = property.getSetter().getTextRange().getStartOffset() < property.getGetter().getTextRange().getStartOffset();
         }
 
         J.VariableDeclarations variableDeclarations = new J.VariableDeclarations(
@@ -2907,7 +2936,16 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     .withPrefix(prefix(whereKeyword));
         }
 
-        if (getter != null || setter != null || receiver != null || typeConstraints != null) {
+        List<KtPropertyAccessor> ktPropertyAccessors = property.getAccessors();
+        if (!ktPropertyAccessors.isEmpty() || receiver != null || typeConstraints != null) {
+            List<JRightPadded<J.MethodDeclaration>> accessors = new ArrayList<>(ktPropertyAccessors.size());
+            PsiElement lastChild = findLastChild(property, c -> !isSpace(c.getNode()) && !isSemicolon(c));
+
+            for (KtPropertyAccessor ktPropertyAccessor : ktPropertyAccessors) {
+                J.MethodDeclaration accessor = (J.MethodDeclaration) ktPropertyAccessor.accept(this, data);
+                accessors.add((lastChild == ktPropertyAccessor) ? padRight(accessor, Space.EMPTY) : maybeTrailingSemicolon(accessor, ktPropertyAccessor));
+            }
+
             return new K.Property(
                     randomId(),
                     deepPrefix(property),
@@ -2915,9 +2953,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                     typeParameters,
                     variableDeclarations.withPrefix(Space.EMPTY),
                     typeConstraints,
-                    getter,
-                    setter,
-                    isSetterFirst,
+                    JContainer.build(accessors),
                     receiver
             );
         } else {
@@ -3172,7 +3208,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         if (type.getQualifier() != null) {
             Expression select = convertToExpression(type.getQualifier().accept(this, data)).withPrefix(prefix(type.getQualifier()));
-            nameTree = mapType(new J.FieldAccess(randomId(), Space.EMPTY, Markers.EMPTY, select, padLeft(suffix(type.getQualifier()), name), null));
+            nameTree = mapType(new J.FieldAccess(randomId(), Space.EMPTY, Markers.EMPTY, select, padLeft(suffix(type.getQualifier()), name), name.getType()));
         }
 
         if (type.getTypeArgumentList() != null) {
@@ -3324,7 +3360,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         JContainer<Expression> args = JContainer.build(Space.EMPTY, expressions, paramMarkers);
         JavaType.Method methodType = methodInvocationType(expression);
 
-        return new J.MethodInvocation(
+        return mapType(new J.MethodInvocation(
                 randomId(),
                 prefix(expression),
                 markers,
@@ -3333,7 +3369,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 name,
                 args,
                 methodType
-        );
+        ));
     }
 
     private J.ControlParentheses<Expression> buildIfCondition(KtIfExpression expression) {
@@ -3417,8 +3453,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             updated = (J2) mapType((J.Unary) tree);
         } else if (tree instanceof K.Binary) {
             updated = (J2) mapType((K.Binary) tree);
-        } else if (tree instanceof K.Unary) {
-            updated = (J2) mapType((K.Unary) tree);
         }
         return updated;
     }
@@ -3429,9 +3463,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (a.getAnnotationType().getType() instanceof JavaType.Method) {
                 a = a.withAnnotationType(a.getAnnotationType().withType(((JavaType.Method) a.getAnnotationType().getType()).getReturnType()));
             }
-//            else {
-                // Type association error, add marker for use in data table.
-//            }
         }
         return a;
     }
@@ -3444,9 +3475,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             } else if (a.getType() instanceof JavaType.Variable) {
                 a = a.withType(((JavaType.Variable) a.getType()).getType());
             }
-//            else {
-                // Type association error, add marker for use in data table.
-//            }
         }
         return a;
     }
@@ -3459,9 +3487,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             } else if (a.getType() instanceof JavaType.Variable) {
                 a = a.withType(((JavaType.Variable) a.getType()).getType());
             }
-//            else {
-                // Type association error, add marker for use in data table.
-//            }
         }
         return a;
     }
@@ -3472,9 +3497,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (b.getType() instanceof JavaType.Method) {
                 b = b.withType(((JavaType.Method) b.getType()).getReturnType());
             }
-//            else {
-                // Type association error, add marker for use in data table.
-//            }
         }
         return b;
     }
@@ -3487,31 +3509,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             } else if (f.getType() instanceof JavaType.Variable) {
                 f = f.withType(((JavaType.Variable) f.getType()).getType());
             }
-//            else {
-                // Type association error, add marker for use in data table.
-//            }
             return f;
-        }
-        if (f.getTarget() instanceof J.Identifier && isNotFullyQualified(f.getTarget().getType())) {
-            // Type association error, add marker for use in data table.
         }
         return f;
     }
 
     private J.MethodDeclaration mapType(J.MethodDeclaration tree) {
-        J.MethodDeclaration m = tree;
-        if (!(m.getName().getType() instanceof JavaType.Method)) {
-            m = m.withName(m.getName().withType(m.getMethodType()));
-        }
-        return m;
+        return tree.withName(tree.getName().withType(tree.getMethodType()));
     }
 
     private J.MethodInvocation mapType(J.MethodInvocation tree) {
-        J.MethodInvocation m = tree;
-        if (!(m.getName().getType() instanceof JavaType.Method)) {
-            m = m.withName(m.getName().withType(m.getMethodType()));
-        }
-        return m;
+        return tree.withName(tree.getName().withType(tree.getMethodType()));
     }
 
     private J.NewClass mapType(J.NewClass tree) {
@@ -3521,9 +3529,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 J.Identifier clazz = (J.Identifier) n.getClazz();
                 n = n.withClazz(clazz.withType(((JavaType.Parameterized) clazz.getType()).getType()));
             }
-//            else if (n.getClazz().getType() != null && isNotFullyQualified(n.getClazz().getType())) {
-                // Type association error, add marker for use in data table.
-//            }
         }
         return n;
     }
@@ -3535,13 +3540,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 if (((JavaType.Method) p.getType()).getReturnType() instanceof JavaType.Parameterized) {
                     p = p.withType(((JavaType.Method) p.getType()).getReturnType());
                 }
-//                else {
-                    // Type association error, add marker for use in data table.
-//                }
             }
-//            else {
-                // Type association error, add marker for use in data table.
-//            }
         }
         if (p.getClazz() != null && p.getClazz().getType() instanceof JavaType.Parameterized) {
             p = p.withClazz(p.getClazz().withType(((JavaType.Parameterized) p.getClazz().getType()).getType()));
@@ -3555,9 +3554,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (u.getType() instanceof JavaType.Method) {
                 u = u.withType(((JavaType.Method) u.getType()).getReturnType());
             }
-//            else {
-                // Type association error, add marker for use in data table.
-//            }
         }
         return u;
     }
@@ -3568,19 +3564,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (b.getType() instanceof JavaType.Method) {
                 b = b.withType(((JavaType.Method) b.getType()).getReturnType());
             }
-//            else {
-                // Type association error, add marker for use in data table.
-//            }
         }
         return b;
-    }
-
-    private K.Unary mapType(K.Unary tree) {
-        K.Unary u = tree;
-//        if (isNotFullyQualified(tree.getType())) {
-            // Type association error, add marker for use in data table.
-//        }
-        return u;
     }
 
     private boolean isNotFullyQualified(@Nullable JavaType type) {
@@ -3688,14 +3673,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     private <J2 extends J> JRightPadded<J2> maybeTrailingSemicolon(J2 j, KtElement element) {
         PsiElement maybeSemicolon = findLastNotSpaceChild(element);
-        boolean hasSemicolon = maybeSemicolon instanceof LeafPsiElement && ((LeafPsiElement) maybeSemicolon).getElementType() == KtTokens.SEMICOLON;
-
-        if (hasSemicolon) {
+        if (isSemicolon(maybeSemicolon)) {
             return new JRightPadded<>(j, prefix(maybeSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
         }
 
-        maybeSemicolon = findFirstNonSpaceNextSibling(element);
-        if (maybeSemicolon instanceof LeafPsiElement && ((LeafPsiElement) maybeSemicolon).getElementType() == KtTokens.SEMICOLON) {
+        maybeSemicolon = PsiTreeUtil.skipWhitespacesAndCommentsForward(element);
+        if (isSemicolon(maybeSemicolon)) {
             return new JRightPadded<>(j, deepPrefix(maybeSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
         }
 
@@ -3703,11 +3686,24 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     }
 
     private <J2 extends J> JRightPadded<J2> maybeFollowingSemicolon(J2 j, KtElement element) {
-        PsiElement maybeSemicolon = findFirstNonSpaceNextSibling(element);
-        if (maybeSemicolon instanceof LeafPsiElement && ((LeafPsiElement) maybeSemicolon).getElementType() == KtTokens.SEMICOLON) {
+        PsiElement maybeSemicolon = PsiTreeUtil.skipWhitespacesAndCommentsForward(element);
+        if (isSemicolon(maybeSemicolon)) {
             return new JRightPadded<>(j, deepPrefix(maybeSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
         }
+
+        PsiElement endSemicolon = findLastChild(element, this::isSemicolon, c -> !isSpace(c.getNode()));
+        if (endSemicolon != null) {
+            return new JRightPadded<>(j, prefix(endSemicolon), Markers.EMPTY.add(new Semicolon(randomId())));
+        }
+
         return padRight(j, Space.EMPTY);
+    }
+
+    private boolean isSemicolon(@Nullable PsiElement element) {
+        if (element == null) {
+            return false;
+        }
+        return element instanceof LeafPsiElement && ((LeafPsiElement) element).getElementType() == KtTokens.SEMICOLON;
     }
 
     private <T> JLeftPadded<T> padLeft(Space left, T tree) {
@@ -3807,35 +3803,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         return null;
     }
 
-    @Nullable
-    private PsiElement findFirstNonSpacePrevSibling(@Nullable PsiElement element) {
-        if (element == null) {
-            return null;
-        }
-
-        PsiElement pre = element.getPrevSibling();
-        while (pre != null) {
-            if (!isSpace(pre.getNode())) {
-                return pre;
-            }
-            pre = pre.getPrevSibling();
-        }
-
-        return null;
-    }
-
-    @Nullable
-    private PsiElement findFirstNonSpaceNextSibling(@Nullable PsiElement element) {
-        if (element == null) {
-            return null;
-        }
-        PsiElement next = element.getNextSibling();
-        while (next != null && isSpace(next.getNode())) {
-            next = next.getNextSibling();
-        }
-        return next;
-    }
-
     private Space suffix(@Nullable PsiElement element) {
         if (element == null) {
             return Space.EMPTY;
@@ -3877,7 +3844,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     }
 
     private Space endFixPrefixAndInfix(@Nullable PsiElement element) {
-        return merge(endFix(findFirstNonSpacePrevSibling(element)), prefixAndInfix(element, null));
+        return merge(endFix(PsiTreeUtil.skipWhitespacesAndCommentsBackward(element)), prefixAndInfix(element, null));
     }
 
     private Space deepPrefix(@Nullable PsiElement element) {
@@ -4220,17 +4187,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             PsiElement it = iterator.next();
             String text = it.getText();
             if (it instanceof PsiWhiteSpace) {
-                // replace `\n` to CRLF back if it's CRLF in the source
-                TextRange range = it.getTextRange();
-                int left = findFirstGreaterOrEqual(cRLFLocations, range.getStartOffset());
-                int right = left != -1 ? findFirstLessOrEqual(cRLFLocations, range.getEndOffset(), left) : -1;
-                boolean hasCRLF = left != -1 && left <= right;
-
-                if (hasCRLF) {
-                    for (int i = right; i >= left; i--) {
-                        text = replaceNewLineWithCRLF(text, cRLFLocations.get(i) - range.getStartOffset());
-                    }
-                }
+                text = replaceCRLF((PsiWhiteSpace) it);
+            } else if (it instanceof KDocSection) {
+                text = KDocSectionToString((KDocSection) it);
             }
 
             sb.append(text);
@@ -4241,6 +4200,37 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<Comment> comments = new ArrayList<>(1);
         comments.add(new TextComment(true, comment, "", Markers.EMPTY));
         return Space.build("", comments);
+    }
+
+    private String KDocSectionToString(KDocSection kDocSection) {
+        StringBuilder sb = new StringBuilder();
+        Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(kDocSection).iterator();
+        while (iterator.hasNext()) {
+            PsiElement it = iterator.next();
+            String text = it.getText();
+            if (it instanceof PsiWhiteSpace) {
+                text = replaceCRLF((PsiWhiteSpace) it);
+            }
+            sb.append(text);
+        }
+
+        return sb.toString();
+    }
+
+    // replace `\n` to CRLF back if it's CRLF in the source
+    private String replaceCRLF(PsiWhiteSpace wp) {
+        String text = wp.getText();
+        TextRange range = wp.getTextRange();
+        int left = findFirstGreaterOrEqual(cRLFLocations, range.getStartOffset());
+        int right = left != -1 ? findFirstLessOrEqual(cRLFLocations, range.getEndOffset(), left) : -1;
+        boolean hasCRLF = left != -1 && left <= right;
+
+        if (hasCRLF) {
+            for (int i = right; i >= left; i--) {
+                text = replaceNewLineWithCRLF(text, cRLFLocations.get(i) - range.getStartOffset());
+            }
+        }
+        return text;
     }
 
     private Space space(@Nullable PsiElement node) {
@@ -4256,7 +4246,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         return space;
     }
 
-    private static Space merge(@Nullable Space s1, @Nullable Space s2) {
+    public static Space merge(@Nullable Space s1, @Nullable Space s2) {
         if (s1 == null || s1.isEmpty()) {
             return s2 != null ? s2 : Space.EMPTY;
         } else if (s2 == null || s2.isEmpty()) {
@@ -4317,6 +4307,26 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         for (PsiElement child = parent.getLastChild(); child != null; child = child.getPrevSibling()) {
             if (condition.test(child)) {
                 return child;
+            }
+        }
+
+        return null;
+    }
+
+    // Search for the last child that satisfies a given condition. If at any point, a child meets a break condition before the condition is satisfied, the function should return null.
+    @Nullable
+    private static PsiElement findLastChild(@Nullable PsiElement parent, Predicate<PsiElement> condition,  Predicate<PsiElement> breakCondition) {
+        if (parent == null) {
+            return null;
+        }
+
+        for (PsiElement child = parent.getLastChild(); child != null; child = child.getPrevSibling()) {
+            if (condition.test(child)) {
+                return child;
+            }
+
+            if (breakCondition.test(child)) {
+                return null;
             }
         }
 

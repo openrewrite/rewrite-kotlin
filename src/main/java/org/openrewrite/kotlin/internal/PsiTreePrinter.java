@@ -391,6 +391,7 @@ public class PsiTreePrinter {
                 tree instanceof J.If ||
                 tree instanceof J.If.Else ||
                 tree instanceof J.EnumValueSet ||
+                tree instanceof J.ParenthesizedTypeTree ||
                 tree instanceof J.TypeParameter ||
                 tree instanceof K.ClassDeclaration ||
                 tree instanceof K.CompilationUnit ||
@@ -548,6 +549,10 @@ public class PsiTreePrinter {
             return printConeKotlinType(coneKotlinType);
         } else if (firElement instanceof FirResolvedNamedReference) {
             return ((FirResolvedNamedReference) firElement).getName().toString();
+        } else if (firElement instanceof FirResolvedQualifier) {
+            FirResolvedQualifier qualifier = (FirResolvedQualifier) firElement;
+            FqName fqName = qualifier.getRelativeClassFqName();
+            return fqName != null ? " RelativeClassFqName: " + fqName : "";
         } else if (firElement instanceof FirFunctionCall) {
             FirFunctionCall functionCall = (FirFunctionCall) firElement;
             if (functionCall.getExplicitReceiver() != null) {

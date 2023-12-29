@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.FirSuperReference
 import org.jetbrains.kotlin.fir.references.toResolvedBaseSymbol
+import org.jetbrains.kotlin.fir.resolve.calls.FirSyntheticFunctionSymbol
 import org.jetbrains.kotlin.fir.resolve.inference.ConeTypeParameterBasedTypeVariable
 import org.jetbrains.kotlin.fir.resolve.providers.toSymbol
 import org.jetbrains.kotlin.fir.resolve.toFirRegularClass
@@ -375,12 +376,12 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
                             source.className.fqNameForTopLevelClassMaybeWithDollars.asString()
                         }
                     }
+                } else if (!resolvedSymbol.fir.origin.generated &&
+                    !resolvedSymbol.fir.origin.fromSupertypes &&
+                    !resolvedSymbol.fir.origin.fromSource
+                ) {
+                    declaringSig = "kotlin.Library"
                 }
-            } else if (!resolvedSymbol.fir.origin.generated &&
-                !resolvedSymbol.fir.origin.fromSupertypes &&
-                !resolvedSymbol.fir.origin.fromSource
-            ) {
-                declaringSig = "kotlin.Library"
             }
         } else if (sym is FirFunctionSymbol<*>) {
             declaringSig = signature(function.typeRef)
@@ -390,9 +391,10 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
         }
 
         val sig = StringBuilder(declaringSig)
-        when (sym) {
-            is FirConstructorSymbol -> sig.append("{name=<constructor>,return=${signature(function.typeRef)}")
-            is FirNamedFunctionSymbol -> {
+        when {
+            sym is FirConstructorSymbol ||
+                    sym is FirSyntheticFunctionSymbol && sym.origin == FirDeclarationOrigin.SamConstructor -> sig.append("{name=<constructor>,return=${signature(function.typeRef)}")
+            sym is FirNamedFunctionSymbol -> {
                 sig.append("{name=${sym.name.asString()}")
                 sig.append(",return=${signature(function.typeRef)}")
             }
@@ -623,7 +625,7 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
             PrimitiveType.INT -> JavaType.Primitive.Int.className
             PrimitiveType.LONG -> JavaType.Primitive.Long.className
             PrimitiveType.SHORT -> JavaType.Primitive.Short.className
-            null -> JavaType.Primitive.Null.className
+            null -> JavaType.Primitive.Void.className
         }
     }
 

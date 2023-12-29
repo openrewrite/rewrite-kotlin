@@ -22,10 +22,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.marker.*;
-import org.openrewrite.kotlin.tree.K;
-import org.openrewrite.kotlin.tree.KContainer;
-import org.openrewrite.kotlin.tree.KRightPadded;
-import org.openrewrite.kotlin.tree.KSpace;
+import org.openrewrite.kotlin.tree.*;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markers;
 
@@ -82,6 +79,15 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         return ae;
     }
 
+    public J visitAnnotationType(K.AnnotationType annotationType, P p) {
+        K.AnnotationType a = annotationType;
+        a = a.withPrefix(visitSpace(a.getPrefix(), Space.Location.ANNOTATION_PREFIX, p));
+        a = a.withMarkers(visitMarkers(a.getMarkers(), p));
+        a = a.getPadding().withUseSite(visitRightPadded(a.getPadding().getUseSite(), JRightPadded.Location.ANNOTATION_ARGUMENT, p));
+        a = a.withCallee(visitAndCast(a.getCallee(), p));
+        return a;
+    }
+
     public J visitBinary(K.Binary binary, P p) {
         K.Binary b = binary;
         b = b.withPrefix(visitSpace(b.getPrefix(), KSpace.Location.BINARY_PREFIX, p));
@@ -93,7 +99,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
             b = (K.Binary) temp;
         }
         b = b.withLeft(visitAndCast(b.getLeft(), p));
-        b = b.getPadding().withOperator(visitLeftPadded(b.getPadding().getOperator(), p));
+        b = b.getPadding().withOperator(visitLeftPadded(b.getPadding().getOperator(), KLeftPadded.Location.BINARY_OPERATOR, p));
         b = b.withRight(visitAndCast(b.getRight(), p));
         b = b.withType(visitType(b.getType(), p));
         return b;
@@ -111,8 +117,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         K.Constructor c = constructor;
         c = c.withMarkers(visitMarkers(c.getMarkers(), p));
         c = c.withMethodDeclaration(visitAndCast(c.getMethodDeclaration(), p));
-        c = c.withColon(visitSpace(c.getColon(), KSpace.Location.CONSTRUCTOR_COLON, p));
-        c = c.withConstructorInvocation(visitAndCast(c.getConstructorInvocation(), p));
+        c = c.getPadding().withInvocation(visitLeftPadded(c.getPadding().getInvocation(), p));
         return c;
     }
 
@@ -145,7 +150,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
             d = (K.DestructuringDeclaration) temp;
         }
         d = d.withInitializer(visitAndCast(d.getInitializer(), p));
-        d = d.getPadding().withDestructAssignments(visitContainer(d.getPadding().getDestructAssignments(), p));
+        d = d.getPadding().withDestructAssignments(visitContainer(d.getPadding().getDestructAssignments(), KContainer.Location.DESTRUCT_ASSIGNMENTS, p));
         return d;
     }
 
@@ -157,7 +162,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         f = f.withModifiers(ListUtils.map(f.getModifiers(), e -> visitAndCast(e, p)));
         f = f.withReceiver(visitRightPadded(f.getReceiver(), p));
         if (f.getPadding().getParameters() != null) {
-            f = f.getPadding().withParameters(this.visitContainer(f.getPadding().getParameters(), KContainer.Location.FUNCTION_TYPE_PARAMETERS, p));
+            f = f.getPadding().withParameters(visitContainer(f.getPadding().getParameters(), KContainer.Location.FUNCTION_TYPE_PARAMETERS, p));
         }
         f = f.withReturnType(visitRightPadded(f.getReturnType(), p));
         return f;
@@ -242,7 +247,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         } else {
             l = (K.ListLiteral) temp;
         }
-        l = l.getPadding().withElements(visitContainer(l.getPadding().getElements(), p));
+        l = l.getPadding().withElements(visitContainer(l.getPadding().getElements(), KContainer.Location.LIST_LITERAL_ELEMENTS, p));
         l = l.withType(visitType(l.getType(), p));
         return l;
     }
@@ -252,6 +257,15 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         m = m.withMarkers(visitMarkers(m.getMarkers(), p));
         m = m.withMethodDeclaration(visitAndCast(m.getMethodDeclaration(), p));
         m = m.withTypeConstraints(visitAndCast(m.getTypeConstraints(), p));
+        return m;
+    }
+
+    public J visitMultiAnnotationType(K.MultiAnnotationType multiAnnotationType, P p) {
+        K.MultiAnnotationType m = multiAnnotationType;
+        m = m.withPrefix(visitSpace(m.getPrefix(), Space.Location.ANNOTATION_PREFIX, p));
+        m = m.withMarkers(visitMarkers(m.getMarkers(), p));
+        m = m.getPadding().withUseSite(visitRightPadded(m.getPadding().getUseSite(), JRightPadded.Location.ANNOTATION_ARGUMENT, p));
+        m = m.withAnnotations(visitContainer(m.getAnnotations(), p));
         return m;
     }
 
@@ -277,8 +291,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
 
         pr = pr.withVariableDeclarations(visitAndCast(pr.getVariableDeclarations(), p));
         pr = pr.getPadding().withReceiver(visitRightPadded(pr.getPadding().getReceiver(), p));
-        pr = pr.withGetter(visitAndCast(pr.getGetter(), p));
-        pr = pr.withSetter(visitAndCast(pr.getSetter(), p));
+        pr = pr.withAccessors(visitContainer(pr.getAccessors(), p));
         return pr;
     }
 
@@ -296,8 +309,34 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         return s;
     }
 
+    public J visitTypeAlias(K.TypeAlias typeAlias, P p) {
+        K.TypeAlias t = typeAlias;
+        t = t.withPrefix(visitSpace(t.getPrefix(), KSpace.Location.TYPE_ALIAS_PREFIX, p));
+        t = t.withMarkers(visitMarkers(t.getMarkers(), p));
+        Statement temp = (Statement) visitStatement(t, p);
+        if (!(temp instanceof K.TypeAlias)) {
+            return temp;
+        } else {
+            t = (K.TypeAlias) temp;
+        }
+        t = t.withLeadingAnnotations(ListUtils.map(t.getLeadingAnnotations(), a -> visitAndCast(a, p)));
+        t = t.withModifiers(ListUtils.map(t.getModifiers(),
+                mod -> mod.withPrefix(visitSpace(mod.getPrefix(), Space.Location.MODIFIER_PREFIX, p))));
+        t = t.withModifiers(ListUtils.map(t.getModifiers(), m -> visitAndCast(m, p)));
+        t = t.withName(visitAndCast(t.getName(), p));
+        if (t.getPadding().getTypeParameters() != null) {
+            t = t.getPadding().withTypeParameters(visitContainer(t.getPadding().getTypeParameters(), JContainer.Location.TYPE_PARAMETERS, p));
+        }
+        if (t.getPadding().getInitializer() != null) {
+            t = t.getPadding().withInitializer(visitLeftPadded(t.getPadding().getInitializer(), KLeftPadded.Location.TYPE_ALIAS_INITIALIZER, p));
+        }
+        t = t.withType(visitType(t.getType(), p));
+        return t;
+    }
+
     public J visitTypeConstraints(K.TypeConstraints typeConstraints, P p) {
         K.TypeConstraints t = typeConstraints;
+        t = t.withPrefix(visitSpace(t.getPrefix(), KSpace.Location.TYPE_CONSTRAINT_PREFIX, p));
         t = t.withMarkers(visitMarkers(t.getMarkers(), p));
         t = t.getPadding().withConstraints(visitContainer(t.getPadding().getConstraints(), p));
         return t;
@@ -351,7 +390,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
         } else {
             w = (K.WhenBranch) temp;
         }
-        w = w.getPadding().withExpressions(visitContainer(w.getPadding().getExpressions(), p));
+        w = w.getPadding().withExpressions(visitContainer(w.getPadding().getExpressions(), KContainer.Location.WHEN_BRANCH_EXPRESSION, p));
         w = w.getPadding().withBody(visitRightPadded(w.getPadding().getBody(), JRightPadded.Location.CASE_BODY, p));
         return w;
     }
@@ -390,6 +429,35 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
                 JContainer.build(before, js, container.getMarkers());
     }
 
+    public <T> JLeftPadded<T> visitLeftPadded(@Nullable JLeftPadded<T> left, KLeftPadded.Location loc, P p) {
+        if (left == null) {
+            //noinspection ConstantConditions
+            return null;
+        }
+
+        setCursor(new Cursor(getCursor(), left));
+
+        Space before = visitSpace(left.getBefore(), loc.getBeforeLocation(), p);
+        T t = left.getElement();
+
+        if (t instanceof J) {
+            //noinspection unchecked
+            t = visitAndCast((J) left.getElement(), p);
+        }
+
+        setCursor(getCursor().getParent());
+        if (t == null) {
+            // If nothing changed leave AST node the same
+            if (left.getElement() == null && before == left.getBefore()) {
+                return left;
+            }
+            //noinspection ConstantConditions
+            return null;
+        }
+
+        return (before == left.getBefore() && t == left.getElement()) ? left : new JLeftPadded<>(before, t, left.getMarkers());
+    }
+
     public <T> JRightPadded<T> visitRightPadded(@Nullable JRightPadded<T> right, KRightPadded.Location loc, P p) {
         if (right == null) {
             //noinspection ConstantConditions
@@ -419,13 +487,7 @@ public class KotlinVisitor<P> extends JavaVisitor<P> {
     @Override
     public <M extends Marker> M visitMarker(Marker marker, P p) {
         Marker m = super.visitMarker(marker, p);
-        if (m instanceof AnnotationUseSite) {
-            AnnotationUseSite acs = (AnnotationUseSite) marker;
-            m = acs.withPrefix(visitSpace(acs.getPrefix(), KSpace.Location.ANNOTATION_CALL_SITE_PREFIX, p));
-        } else if (marker instanceof IsNullable) {
-            IsNullable isn = (IsNullable) marker;
-            m = isn.withPrefix(visitSpace(isn.getPrefix(), KSpace.Location.IS_NULLABLE_PREFIX, p));
-        } else if (marker instanceof TypeReferencePrefix) {
+        if (marker instanceof TypeReferencePrefix) {
             TypeReferencePrefix tr = (TypeReferencePrefix) marker;
             m = tr.withPrefix(visitSpace(tr.getPrefix(), KSpace.Location.TYPE_REFERENCE_PREFIX, p));
         }

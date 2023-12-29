@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.modality
 import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirOuterClassTypeParameterRef
+import org.jetbrains.kotlin.fir.declarations.impl.FirPrimaryConstructor
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
 import org.jetbrains.kotlin.fir.declarations.utils.isStatic
 import org.jetbrains.kotlin.fir.declarations.utils.modality
@@ -38,6 +39,7 @@ import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.FirSuperReference
 import org.jetbrains.kotlin.fir.references.toResolvedBaseSymbol
+import org.jetbrains.kotlin.fir.resolve.calls.FirSyntheticFunctionSymbol
 import org.jetbrains.kotlin.fir.resolve.providers.toSymbol
 import org.jetbrains.kotlin.fir.resolve.toFirRegularClass
 import org.jetbrains.kotlin.fir.resolve.toSymbol
@@ -49,6 +51,7 @@ import org.jetbrains.kotlin.fir.types.jvm.FirJavaTypeRef
 import org.jetbrains.kotlin.load.java.structure.*
 import org.jetbrains.kotlin.load.java.structure.impl.classFiles.*
 import org.jetbrains.kotlin.load.kotlin.JvmPackagePartSource
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.isOneSegmentFQN
 import org.jetbrains.kotlin.resolve.jvm.JvmClassName
 import org.jetbrains.kotlin.types.ConstantValueKind
@@ -66,14 +69,14 @@ import kotlin.collections.ArrayList
 @Suppress("DuplicatedCode")
 class KotlinTypeMapping(
     private val typeCache: JavaTypeCache,
-    private val firSession: FirSession,
+    val firSession: FirSession,
     private val firFile: FirFile
 ) : JavaTypeMapping<Any> {
 
     private val signatureBuilder: KotlinTypeSignatureBuilder = KotlinTypeSignatureBuilder(firSession, firFile)
 
     override fun type(type: Any?): JavaType {
-        if (type == null || type is FirErrorTypeRef || type is FirExpression && type.typeRef is FirErrorTypeRef) {
+        if (type == null || type is FirErrorTypeRef || type is FirExpression && type.typeRef is FirErrorTypeRef || type is FirResolvedQualifier && type.classId == null) {
             return Unknown.getInstance()
         }
 
@@ -87,7 +90,7 @@ class KotlinTypeMapping(
     }
 
     fun type(type: Any?, parent: Any?): JavaType? {
-        if (type == null || type is FirErrorTypeRef || type is FirExpression && type.typeRef is FirErrorTypeRef) {
+        if (type == null || type is FirErrorTypeRef || type is FirExpression && type.typeRef is FirErrorTypeRef || type is FirResolvedQualifier && type.classId == null) {
             return Unknown.getInstance()
         }
         val signature = signatureBuilder.signature(type, parent)
@@ -98,6 +101,19 @@ class KotlinTypeMapping(
         return type(type, parent, signature)
     }
 
+    @OptIn(SymbolInternals::class)
+    fun type(classId: ClassId?, parent: Any?): JavaType? {
+        if (classId == null) {
+            return Unknown.getInstance()
+        }
+        val fir = classId.toSymbol(firSession)?.fir
+        val signature = signatureBuilder.signature(fir, parent)
+        val existing = typeCache.get<JavaType>(signature)
+        if (existing != null) {
+            return existing
+        }
+        return type(fir, parent, signature)
+    }
 
     @OptIn(SymbolInternals::class)
     fun type(type: Any?, parent: Any?, signature: String): JavaType? {
@@ -482,6 +498,23 @@ class KotlinTypeMapping(
         return clazz
     }
 
+    @OptIn(SymbolInternals::class)
+    fun methodDeclarationType(enumEntry: FirEnumEntry): Method? {
+        val type = when (val fir = enumEntry.symbol.getContainingClassSymbol(firSession)?.fir) {
+            is FirClass -> {
+                when (val primary = fir.declarations.firstOrNull { it is FirPrimaryConstructor }) {
+                    is FirPrimaryConstructor -> type(primary as FirFunction)
+                    else -> null
+                }
+            }
+            else -> null
+        }
+        return when (type) {
+            is Method -> type
+            else -> null
+        }
+    }
+
     fun methodDeclarationType(function: FirFunction, parent: Any?): Method {
         val signature = signatureBuilder.methodSignature(function, parent)
         val existing = typeCache.get<Method>(signature)
@@ -680,12 +713,10 @@ class KotlinTypeMapping(
                 }
             },
             null,
-            when (sym) {
-                is FirConstructorSymbol -> "<constructor>"
-                is FirNamedFunctionSymbol -> sym.name.asString()
-                else -> {
-                    ""
-                }
+            when {
+                sym is FirConstructorSymbol ||
+                        sym is FirSyntheticFunctionSymbol && sym.origin == FirDeclarationOrigin.SamConstructor -> "<constructor>"
+                else -> (sym as FirNamedFunctionSymbol).name.asString()
             },
             null,
             paramNames,
@@ -719,12 +750,18 @@ class KotlinTypeMapping(
                             createShallowClass(source.className.fqNameForTopLevelClassMaybeWithDollars.asString())
                         }
                     }
+                } else if (!resolvedSymbol.fir.origin.generated &&
+                    !resolvedSymbol.fir.origin.fromSupertypes &&
+                    !resolvedSymbol.fir.origin.fromSource
+                ) {
+                    declaringType = createShallowClass("kotlin.Library")
                 }
-            } else if (!resolvedSymbol.fir.origin.generated &&
-                !resolvedSymbol.fir.origin.fromSupertypes &&
-                !resolvedSymbol.fir.origin.fromSource
-            ) {
-                declaringType = createShallowClass("kotlin.Library")
+            } else if (resolvedSymbol.origin == FirDeclarationOrigin.SamConstructor) {
+                declaringType = when(val type = type(function.typeRef)) {
+                    is Class -> type
+                    is Parameterized -> type.type
+                    else -> Unknown.getInstance()
+                }
             }
         } else {
             declaringType = TypeUtils.asFullyQualified(type(function.typeRef))
@@ -1102,7 +1139,7 @@ class KotlinTypeMapping(
             PrimitiveType.INT -> Primitive.Int
             PrimitiveType.LONG -> Primitive.Long
             PrimitiveType.SHORT -> Primitive.Short
-            null -> Primitive.Null
+            null -> Primitive.Void
         }
     }
 

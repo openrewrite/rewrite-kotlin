@@ -47,15 +47,14 @@ public class ReplaceCharToIntWithCode extends Recipe {
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new KotlinVisitor<ExecutionContext>() {
             @Override
-            public J visitMethodInvocation(J.MethodInvocation method,
-                                           ExecutionContext executionContext) {
+            public J visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 if (CHAR_TO_INT_METHOD_MATCHER.matches(method) && method.getSelect() != null) {
                     return KotlinTemplate.builder("#{any(Char)}.code")
                             .build()
                             .apply(getCursor(), method.getCoordinates().replace(), method.getSelect())
                             .withPrefix(method.getPrefix());
                 }
-                return super.visitMethodInvocation(method, executionContext);
+                return super.visitMethodInvocation(method, ctx);
             }
         };
     }

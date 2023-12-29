@@ -17,10 +17,13 @@ package org.openrewrite.kotlin.internal
 
 import org.jetbrains.kotlin.KtRealPsiSourceElement
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
+import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirPackageDirective
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirDefaultPropertySetter
+import org.jetbrains.kotlin.fir.declarations.utils.classId
+import org.jetbrains.kotlin.fir.declarations.utils.nameOrSpecialName
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.impl.FirElseIfTrueCondition
 import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
@@ -28,13 +31,13 @@ import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.resolved
+import org.jetbrains.kotlin.fir.resolve.calls.FirSyntheticFunctionSymbol
+import org.jetbrains.kotlin.fir.resolve.providers.toSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
-import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.*
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.psi
 import org.jetbrains.kotlin.psi.*
 import org.openrewrite.java.tree.JavaType
@@ -45,6 +48,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
     private val elementMap: MutableMap<PsiElement, MutableList<FirInfo>> = HashMap()
     private val typeMap: MutableMap<PsiElement, ConeTypeProjection> = HashMap()
 
+    @OptIn(SymbolInternals::class)
     fun initialize() {
         var depth = 0
         object : FirDefaultVisitor<Unit, MutableMap<PsiElement, MutableList<FirInfo>>>() {
@@ -85,6 +89,9 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
             private fun visitType(firType: ConeTypeProjection, psiType: KtTypeReference,
                                   data: MutableMap<PsiElement, MutableList<FirInfo>>) {
                 if (firType is ConeClassLikeType) {
+                    if (firType.classId != null) {
+                        mapParents(firType.classId!!, PsiTreeUtil.findChildOfType(psiType, KtUserType::class.java), data)
+                    }
                     for (s in firType.attributes) {
                         if (s is CustomAnnotationTypeAttribute && s.annotations.isNotEmpty()) {
                             for (ann in s.annotations) {
@@ -100,28 +107,89 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                     for ((index, typeArgument) in firType.typeArguments.withIndex()) {
                         val psiTypeArgument = psiTypeArguments[index] ?: continue
                         visitType(typeArgument, psiTypeArgument, data)
-                        typeMap[psiTypeArgument] = typeArgument
+                        when (typeArgument) {
+                            // ConeTypeProjection In and Out are generic types defined by keywords.
+                            // The bound is set in the map so that the GenericTypeVariable isn't returned by type mapping.
+                            is ConeKotlinTypeProjectionIn -> typeMap[psiTypeArgument] = typeArgument.type
+                            is ConeKotlinTypeProjectionOut -> typeMap[psiTypeArgument] = typeArgument.type
+                            else -> typeMap[psiTypeArgument] = typeArgument
+                        }
                     }
                 } else {
-                    typeMap[psiType] = firType
+                    when (firType) {
+                        // ConeTypeProjection In and Out are generic types defined by keywords.
+                        // The bound is set in the map so that the GenericTypeVariable isn't returned by type mapping.
+                        is ConeKotlinTypeProjectionIn -> typeMap[psiType] = firType.type
+                        is ConeKotlinTypeProjectionOut -> typeMap[psiType] = firType.type
+                        else -> typeMap[psiType] = firType
+                    }
+                }
+            }
+
+            private fun mapParents(firClassId: ClassId, psiType: KtUserType?,
+                                   data: MutableMap<PsiElement, MutableList<FirInfo>>) {
+                if (firClassId.outerClassId != null && psiType?.qualifier != null) {
+                    val fir = firClassId.outerClassId?.toSymbol(typeMapping.firSession)?.fir
+                    if (fir is FirClass && fir.nameOrSpecialName.asString() == psiType.qualifier!!.text &&
+                        psiType.qualifier!!.referenceExpression != null) {
+                        data.computeIfAbsent(psiType.qualifier!!.referenceExpression!!) { ArrayList() } += FirInfo(fir, 0)
+                        if (fir.classId.outerClassId != null && psiType.qualifier!!.qualifier != null) {
+                            mapParents(fir.classId, psiType.qualifier, data)
+                        }
+                    }
                 }
             }
         }.visitFile(file, elementMap)
     }
 
     fun type(psiElement: PsiElement?, owner: FirElement?): JavaType? {
+        val parent = PsiTreeUtil.findFirstParent(psiElement) { it is KtTypeReference }
         if (psiElement != null && !elementMap.containsKey(psiElement) &&
-            typeMap.isNotEmpty() && psiElement is KtNameReferenceExpression) {
-            val type = typeMap[when (val parent = psiElement.parent.parent) {
-                is KtNullableType -> parent.parent
-                else -> parent
-            }]
-            if (type != null) {
-                return typeMapping.type(type, owner)
-            }
+            typeMap.isNotEmpty() && parent is KtTypeReference && typeMap.containsKey(parent)) {
+            return typeMapping.type(typeMap[parent], owner)
         }
         val fir = primary(psiElement)
+        if (psiElement != null && fir is FirResolvedQualifier && fir.source != null && fir.source.psi is KtDotQualifiedExpression) {
+            if (fir.symbol is FirRegularClassSymbol) {
+                val classId = (fir.symbol as FirRegularClassSymbol).classId
+                return if (isPackage(psiElement, classId)) {
+                    null
+                } else {
+                    val found = matchClassId(psiElement, classId)
+                    typeMapping.type(found, owner)
+                }
+            }
+        }
         return if (fir != null) typeMapping.type(fir, owner) else null
+    }
+
+    private fun isPackage(psi: PsiElement, classId: ClassId): Boolean {
+        return !classId.packageFqName.isRoot && psi.parent.text == classId.packageFqName.asString()
+    }
+
+    private fun matchClassId(psi: PsiElement, classId: ClassId): ClassId {
+        if (psi.parent is KtDotQualifiedExpression) {
+            val parent: KtDotQualifiedExpression = psi.parent as KtDotQualifiedExpression
+            if (classId.packageFqName.isRoot && psi !is KtDotQualifiedExpression && psi == parent.receiverExpression) {
+                // Match the current PSI to the ClassId if the PSI is the outermost class of a dot qualified expression.
+                // For a multi-nested class like A.B.A.C, the PSI#parent field will have the same result (A.B) for both the LHS A and B.
+                // To match the PSI to the ClassId the outermost class `A` should use the current PSI rather than the parent field `A.B`.
+                return matchClassId0(psi, classId)
+            }
+        }
+        return matchClassId0(psi.parent, classId)
+    }
+
+    private fun matchClassId0(psi: PsiElement, classId: ClassId): ClassId {
+        if (psi.text == classId.asFqNameString()) {
+            return classId
+        }
+
+        if (classId.outerClassId != null) {
+            return matchClassId0(psi, classId.outerClassId!!)
+        }
+
+        return classId
     }
 
     fun primary(psiElement: PsiElement?) =
@@ -129,6 +197,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
 
     fun methodDeclarationType(psi: PsiElement): JavaType.Method? {
         return when (val fir = primary(psi)) {
+            is FirEnumEntry -> typeMapping.methodDeclarationType(fir)
             is FirFunction -> typeMapping.methodDeclarationType(fir, null)
             is FirAnonymousFunctionExpression -> typeMapping.methodDeclarationType(fir.anonymousFunction, null)
             else -> {
@@ -270,6 +339,7 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                 p is KtPostfixExpression -> allFirInfos.firstOrNull { it.fir is FirResolvedTypeRef || it.fir is FirFunctionCall }?.fir
                 p is KtTypeReference -> allFirInfos.firstOrNull { it.fir is FirResolvedTypeRef }?.fir
                 p is KtWhenConditionInRange || p is KtBinaryExpression -> allFirInfos.firstOrNull { it.fir is FirFunctionCall }?.fir
+                p is KtNameReferenceExpression -> allFirInfos.firstOrNull { it.fir is FirClass }?.fir
                 else -> {
                     throw IllegalStateException("Unable to determine the FIR element associated to the PSI." + if (psi == null) "null element" else "original PSI: ${psi.javaClass.name}, mapped PSI: ${p.javaClass.name}")
                 }
@@ -294,9 +364,11 @@ class PsiElementAssociations(val typeMapping: KotlinTypeMapping, val file: FirFi
                 if (fir.calleeReference is FirErrorNamedReference)
                     return null
 
-                when (fir.calleeReference.resolved?.resolvedSymbol) {
-                    is FirConstructorSymbol -> ExpressionType.CONSTRUCTOR
-                    is FirNamedFunctionSymbol -> ExpressionType.METHOD_INVOCATION
+                val sym = fir.calleeReference.resolved?.resolvedSymbol
+                when {
+                    sym is FirConstructorSymbol ||
+                            sym is FirSyntheticFunctionSymbol && sym.origin == FirDeclarationOrigin.SamConstructor -> ExpressionType.CONSTRUCTOR
+                    sym is FirNamedFunctionSymbol -> ExpressionType.METHOD_INVOCATION
                     else -> throw UnsupportedOperationException("Unsupported resolved symbol: ${fir.calleeReference.resolved?.resolvedSymbol?.javaClass}")
                 }
             }
