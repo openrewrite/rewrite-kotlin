@@ -68,4 +68,18 @@ class UnaryTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void modAssign() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method ( n1: Int, n2: Int ) {
+                  var copy = n1
+                  copy %= n2
+              }
+              """
+          )
+        );
+    }
 }

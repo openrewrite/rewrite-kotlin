@@ -3259,6 +3259,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return K.Binary.Type.IdentityNotEquals;
         } else if (elementType == KtTokens.ELVIS) {
             return K.Binary.Type.Elvis;
+        } else if (elementType == KtTokens.PERCEQ) {
+            return K.Binary.Type.ModAssign;
         } else if (elementType == KtTokens.EQ) {
             return null;
         } else {

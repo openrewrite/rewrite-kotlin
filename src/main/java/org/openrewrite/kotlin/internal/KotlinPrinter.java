@@ -102,6 +102,9 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             case Elvis:
                 keyword = "?:";
                 break;
+            case ModAssign:
+                keyword = "%=";
+                break;
             case NotContains:
                 keyword = "!in";
                 break;
