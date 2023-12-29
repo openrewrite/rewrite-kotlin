@@ -32,7 +32,6 @@ public class KotlinTemplate extends JavaTemplate {
     private KotlinTemplate(boolean contextSensitive, KotlinParser.Builder parser, String code, Set<String> imports, Consumer<String> onAfterVariableSubstitution, Consumer<String> onBeforeParseTemplate) {
         super(
                 code,
-                StringUtils.countOccurrences(code, "#{"),
                 onAfterVariableSubstitution,
                 new KotlinTemplateParser(
                         contextSensitive,
