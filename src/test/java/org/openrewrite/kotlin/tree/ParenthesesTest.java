@@ -15,7 +15,9 @@
  */
 package org.openrewrite.kotlin.tree;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.ExpectedToFail;
 import org.junitpioneer.jupiter.Issue;
 import org.openrewrite.test.RewriteTest;
 
@@ -79,6 +81,50 @@ class ParenthesesTest implements RewriteTest {
             """
               fun x ( input : ( (  (   (    ) ->  String ?  )     ?     ) ?  ) ) {
               }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/571")
+    @Test
+    void modifierBeforeRedundantParens() {
+        rewriteRun(
+          kotlin(
+            """
+              class SomeReceiver
+              suspend inline fun SomeReceiver  .   method(
+                  crossinline body  : suspend  (    SomeReceiver .  () -> Unit    )
+              ) {}
+              """
+          )
+        );
+    }
+
+    @Test
+    void modifierInRedundantParens() {
+        rewriteRun(
+          kotlin(
+            """
+              class SomeReceiver
+              suspend inline fun SomeReceiver  .   method(
+                  crossinline body  :   (    suspend      SomeReceiver .  () -> Unit    )
+              ) {}
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/571")
+    @Test
+    void modifierInNestedRedundantParens() {
+        rewriteRun(
+          kotlin(
+            """
+              class SomeReceiver
+              suspend inline fun SomeReceiver  .   method(
+                  crossinline body  : (  ( suspend (   (    SomeReceiver .  () -> Unit    )  ) ) )
+              ) {}
               """
           )
         );
