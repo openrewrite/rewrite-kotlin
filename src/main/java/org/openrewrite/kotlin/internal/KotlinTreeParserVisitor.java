@@ -1898,15 +1898,17 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     private J.AssignmentOperation.Type mapAssignmentOperationType(KtOperationReferenceExpression operationReference) {
         IElementType elementType = operationReference.getOperationSignTokenType();
 
-        if (elementType == KtTokens.PLUSEQ)
+        if (elementType == KtTokens.PLUSEQ) {
             return J.AssignmentOperation.Type.Addition;
-        if (elementType == KtTokens.MINUSEQ)
+        } else if (elementType == KtTokens.MINUSEQ) {
             return J.AssignmentOperation.Type.Subtraction;
-        if (elementType == KtTokens.MULTEQ)
+        } else if (elementType == KtTokens.MULTEQ) {
             return J.AssignmentOperation.Type.Multiplication;
-        if (elementType == KtTokens.DIVEQ)
+        } else if (elementType == KtTokens.DIVEQ) {
             return J.AssignmentOperation.Type.Division;
-        else
+        } else if (elementType == KtTokens.PERCEQ) {
+            return J.AssignmentOperation.Type.Modulo;
+        } else
             return null;
     }
 
@@ -3259,8 +3261,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return K.Binary.Type.IdentityNotEquals;
         } else if (elementType == KtTokens.ELVIS) {
             return K.Binary.Type.Elvis;
-        } else if (elementType == KtTokens.PERCEQ) {
-            return K.Binary.Type.ModAssign;
         } else if (elementType == KtTokens.EQ) {
             return null;
         } else {

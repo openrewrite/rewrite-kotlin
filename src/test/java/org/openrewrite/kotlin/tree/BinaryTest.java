@@ -287,21 +287,6 @@ class BinaryTest implements RewriteTest {
         );
     }
 
-    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/555")
-    @Test
-    void modAssign() {
-        rewriteRun(
-          kotlin(
-            """
-              fun method ( n1: Int, n2: Int ) {
-                  var copy = n1
-                  copy %= n2
-              }
-              """
-          )
-        );
-    }
-
     @Test
     void rem() {
         rewriteRun(
