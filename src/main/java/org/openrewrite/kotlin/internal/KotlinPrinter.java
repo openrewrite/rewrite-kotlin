@@ -61,11 +61,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
     @Override
     public J visitCompilationUnit(K.CompilationUnit sourceFile, PrintOutputCapture<P> p) {
-        beforeSyntax(sourceFile, Space.Location.COMPILATION_UNIT_PREFIX, p);
-
         if (sourceFile.getShebang() != null) {
             p.append(sourceFile.getShebang());
         }
+
+        beforeSyntax(sourceFile, Space.Location.COMPILATION_UNIT_PREFIX, p);
 
         visit(sourceFile.getAnnotations(), p);
 
