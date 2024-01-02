@@ -237,4 +237,44 @@ class LambdaTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void destructuredLambdaWithTypeReference() {
+        rewriteRun(
+          kotlin(
+            """
+              fun f(m: Map<String, Int>): String {
+                  return m.map { ( k : String, v : Int) -> "$k: $v"}.toString()
+              }
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/558")
+    @Test
+    void destructuredLambdaWithPairTypeReference() {
+        rewriteRun(
+          kotlin(
+            """
+              fun f(m: Map<Any, Any>): String {
+                  return m.map { ( k, v ) :  Map . Entry < Any , Any > -> "$k: $v"}.toString()
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void destructuredLambdaWithTypeReferenceForAll() {
+        rewriteRun(
+          kotlin(
+            """
+              fun f(m: Map<String, Int>): String {
+                  return m.map { ( k : String, v : Int) : Map.Entry<String, Int> -> "$k: $v"}.toString()
+              }
+              """
+          )
+        );
+    }
 }
