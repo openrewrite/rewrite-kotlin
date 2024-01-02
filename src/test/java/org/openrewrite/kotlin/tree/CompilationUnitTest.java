@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.tree;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.Issue;
 import org.openrewrite.test.RewriteTest;
 import org.openrewrite.test.SourceSpec;
 
@@ -63,6 +64,20 @@ class CompilationUnitTest implements RewriteTest {
               // C2
               """,
             SourceSpec::noTrim
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/569")
+    @Test
+    void shebang() {
+        rewriteRun(
+          kotlin(
+            """
+              #!/usr/bin/env who
+              
+              class Foo
+              """
           )
         );
     }

@@ -63,6 +63,10 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     public J visitCompilationUnit(K.CompilationUnit sourceFile, PrintOutputCapture<P> p) {
         beforeSyntax(sourceFile, Space.Location.COMPILATION_UNIT_PREFIX, p);
 
+        if (sourceFile.getShebang() != null) {
+            p.append(sourceFile.getShebang());
+        }
+
         visit(sourceFile.getAnnotations(), p);
 
         JRightPadded<J.Package> pkg = sourceFile.getPadding().getPackageDeclaration();

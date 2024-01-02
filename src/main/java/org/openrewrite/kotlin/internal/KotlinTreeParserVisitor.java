@@ -1672,12 +1672,24 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
         }
 
+        String shebang = null;
+        Space spaceAfterShebang = null;
+        PsiElement maybeShebang = file.getFirstChild();
+        if (maybeShebang instanceof PsiComment && maybeShebang.getNode().getElementType() == KtTokens.SHEBANG_COMMENT) {
+            shebang = maybeShebang.getText();
+            spaceAfterShebang = suffix(maybeShebang);
+        }
+
         List<JRightPadded<Statement>> statements = new ArrayList<>(file.getDeclarations().size());
         List<KtDeclaration> declarations = file.getDeclarations();
         for (KtDeclaration declaration : declarations) {
             Statement statement;
             try {
                 statement = convertToStatement(declaration.accept(this, data));
+                if (spaceAfterShebang != null) {
+                    statement = statement.withPrefix(merge(spaceAfterShebang, statement.getPrefix()));
+                    spaceAfterShebang = null;
+                }
             } catch (Exception e) {
                 statement = new J.Unknown(
                         randomId(),
@@ -1697,6 +1709,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         return new K.CompilationUnit(
                 Tree.randomId(),
+                shebang,
                 prefixAndInfix(file, consumedSpaces),
                 Markers.build(styles),
                 sourcePath,
