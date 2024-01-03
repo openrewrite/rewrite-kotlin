@@ -27,7 +27,6 @@ import org.jetbrains.kotlin.fir.analysis.checkers.getContainingClassSymbol
 import org.jetbrains.kotlin.fir.analysis.checkers.modality
 import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.declarations.*
-import org.jetbrains.kotlin.fir.declarations.impl.FirOuterClassTypeParameterRef
 import org.jetbrains.kotlin.fir.declarations.impl.FirPrimaryConstructor
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
 import org.jetbrains.kotlin.fir.declarations.utils.isStatic
@@ -924,13 +923,10 @@ class KotlinTypeMapping(
     }
 
     private fun javaArrayType(type: JavaArrayType, signature: String): JavaType {
-        val arrayType = Array(
-            null,
-            null
-        )
+        val arrayType = Array(null, null, null)
         typeCache.put(signature, arrayType)
         val classType = type(type.componentType)
-        arrayType.unsafeSet(classType)
+        arrayType.unsafeSet(classType, null)
         return arrayType
     }
 
