@@ -1653,9 +1653,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         Set<PsiElement> consumedSpaces = new HashSet<>();
         Space eof = endFixAndSuffix(file);
 
+        String shebang = null;
+        Space spaceAfterShebang = null;
+        PsiElement maybeShebang = file.getFirstChild();
+        if (maybeShebang instanceof PsiComment && maybeShebang.getNode().getElementType() == KtTokens.SHEBANG_COMMENT) {
+            shebang = maybeShebang.getText();
+            spaceAfterShebang = suffix(maybeShebang);
+        }
+
         JRightPadded<J.Package> pkg = null;
         if (!file.getPackageFqName().isRoot()) {
             pkg = maybeTrailingSemicolon((J.Package) requireNonNull(file.getPackageDirective()).accept(this, data), file.getPackageDirective());
+            spaceAfterShebang = null;
             consumedSpaces.add(findFirstPrefixSpace(file.getPackageDirective()));
         }
 
@@ -1667,17 +1676,15 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 J.Import anImport = (J.Import) importDirective.accept(this, data);
                 if (i == 0) {
                     anImport = anImport.withPrefix(merge(prefix(file.getImportList()), anImport.getPrefix()));
+
+                    if (spaceAfterShebang != null) {
+                        anImport = anImport.withPrefix(merge(spaceAfterShebang, anImport.getPrefix()));
+                        spaceAfterShebang = null;
+                    }
                 }
+
                 imports.add(maybeTrailingSemicolon(anImport, importDirective));
             }
-        }
-
-        String shebang = null;
-        Space spaceAfterShebang = null;
-        PsiElement maybeShebang = file.getFirstChild();
-        if (maybeShebang instanceof PsiComment && maybeShebang.getNode().getElementType() == KtTokens.SHEBANG_COMMENT) {
-            shebang = maybeShebang.getText();
-            spaceAfterShebang = suffix(maybeShebang);
         }
 
         List<JRightPadded<Statement>> statements = new ArrayList<>(file.getDeclarations().size());
