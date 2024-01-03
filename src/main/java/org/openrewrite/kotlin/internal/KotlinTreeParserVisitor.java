@@ -1653,9 +1653,18 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         Set<PsiElement> consumedSpaces = new HashSet<>();
         Space eof = endFixAndSuffix(file);
 
+        String shebang = null;
+        Space spaceAfterShebang = null;
+        PsiElement maybeShebang = file.getFirstChild();
+        if (maybeShebang instanceof PsiComment && maybeShebang.getNode().getElementType() == KtTokens.SHEBANG_COMMENT) {
+            shebang = maybeShebang.getText();
+            spaceAfterShebang = suffix(maybeShebang);
+        }
+
         JRightPadded<J.Package> pkg = null;
         if (!file.getPackageFqName().isRoot()) {
             pkg = maybeTrailingSemicolon((J.Package) requireNonNull(file.getPackageDirective()).accept(this, data), file.getPackageDirective());
+            spaceAfterShebang = null;
             consumedSpaces.add(findFirstPrefixSpace(file.getPackageDirective()));
         }
 
@@ -1667,7 +1676,13 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 J.Import anImport = (J.Import) importDirective.accept(this, data);
                 if (i == 0) {
                     anImport = anImport.withPrefix(merge(prefix(file.getImportList()), anImport.getPrefix()));
+
+                    if (spaceAfterShebang != null) {
+                        anImport = anImport.withPrefix(merge(spaceAfterShebang, anImport.getPrefix()));
+                        spaceAfterShebang = null;
+                    }
                 }
+
                 imports.add(maybeTrailingSemicolon(anImport, importDirective));
             }
         }
@@ -1678,6 +1693,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             Statement statement;
             try {
                 statement = convertToStatement(declaration.accept(this, data));
+                if (spaceAfterShebang != null) {
+                    statement = statement.withPrefix(merge(spaceAfterShebang, statement.getPrefix()));
+                    spaceAfterShebang = null;
+                }
             } catch (Exception e) {
                 statement = new J.Unknown(
                         randomId(),
@@ -1697,6 +1716,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         return new K.CompilationUnit(
                 Tree.randomId(),
+                shebang,
                 prefixAndInfix(file, consumedSpaces),
                 Markers.build(styles),
                 sourcePath,
@@ -1941,6 +1961,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 end
         );
     }
+
 
     @Override
     public J visitCallExpression(KtCallExpression expression, ExecutionContext data) {
@@ -2436,7 +2457,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                         .withPrefix(prefix);
             } else if (j instanceof J.NewClass) {
                 J.NewClass n = (J.NewClass) j;
-                if (receiver instanceof J.FieldAccess || receiver instanceof J.Identifier) {
+                if (receiver instanceof J.FieldAccess || receiver instanceof J.Identifier || receiver instanceof J.NewClass) {
                     n = n.withPrefix(prefix);
                     if (n.getClazz() instanceof J.ParameterizedType) {
                         J.ParameterizedType pt = (J.ParameterizedType) n.getClazz();
@@ -2936,7 +2957,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         List<KtPropertyAccessor> ktPropertyAccessors = property.getAccessors();
         if (!ktPropertyAccessors.isEmpty() || receiver != null || typeConstraints != null) {
             List<JRightPadded<J.MethodDeclaration>> accessors = new ArrayList<>(ktPropertyAccessors.size());
-            PsiElement lastChild = findLastChild(property, c -> !isSpace(c.getNode()) && !isSemicolon(c));
 
             for (KtPropertyAccessor ktPropertyAccessor : ktPropertyAccessors) {
                 J.MethodDeclaration accessor = (J.MethodDeclaration) ktPropertyAccessor.accept(this, data);
@@ -4302,26 +4322,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         for (PsiElement child = parent.getLastChild(); child != null; child = child.getPrevSibling()) {
             if (condition.test(child)) {
                 return child;
-            }
-        }
-
-        return null;
-    }
-
-    // Search for the last child that satisfies a given condition. If at any point, a child meets a break condition before the condition is satisfied, the function should return null.
-    @Nullable
-    private static PsiElement findLastChild(@Nullable PsiElement parent, Predicate<PsiElement> condition,  Predicate<PsiElement> breakCondition) {
-        if (parent == null) {
-            return null;
-        }
-
-        for (PsiElement child = parent.getLastChild(); child != null; child = child.getPrevSibling()) {
-            if (condition.test(child)) {
-                return child;
-            }
-
-            if (breakCondition.test(child)) {
-                return null;
             }
         }
 

@@ -923,7 +923,11 @@ class KotlinTypeMapping(
     }
 
     private fun javaArrayType(type: JavaArrayType, signature: String): JavaType {
-        val arrayType = Array(null, null, null)
+        val arrayType = Array(
+            null,
+            null,
+            null
+        )
         typeCache.put(signature, arrayType)
         val classType = type(type.componentType)
         arrayType.unsafeSet(classType, null)
