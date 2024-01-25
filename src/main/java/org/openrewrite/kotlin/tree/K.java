@@ -1179,182 +1179,6 @@ public interface K extends J {
         }
     }
 
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    @Data
-    @With
-    final class Return implements K, Statement, Expression {
-
-        @EqualsAndHashCode.Include
-        UUID id;
-
-        /**
-         * @deprecated Wrap with {@link AnnotatedExpression} to add annotations. To be deleted.
-         */
-        @Deprecated
-        List<J.Annotation> annotations;
-        J.Return expression;
-
-        @Nullable
-        J.Identifier label;
-
-        public Return(UUID id, J.Return expression, @Nullable J.Identifier label) {
-            this(id, Collections.emptyList(), expression, label);
-        }
-
-        @Override
-        public Space getPrefix() {
-            return expression.getPrefix();
-        }
-
-        @Override
-        public <J2 extends J> J2 withPrefix(Space space) {
-            //noinspection unchecked
-            return (J2) withExpression(expression.withPrefix(space));
-        }
-
-        @Override
-        public Markers getMarkers() {
-            return expression.getMarkers();
-        }
-
-        @Override
-        public <J2 extends Tree> J2 withMarkers(Markers markers) {
-            //noinspection unchecked
-            return (J2) withExpression(expression.withMarkers(markers));
-        }
-
-        @Override
-        public @Nullable JavaType getType() {
-            //noinspection DataFlowIssue
-            return expression.getExpression().getType();
-        }
-
-        @Override
-        public <T extends J> T withType(@Nullable JavaType type) {
-            // to change the expression of a return, change the type of its expression
-            //noinspection unchecked
-            return (T) this;
-        }
-
-        @Override
-        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-            return v.visitReturn(this, p);
-        }
-
-        @Override
-        @Transient
-        public CoordinateBuilder.Statement getCoordinates() {
-            return new CoordinateBuilder.Statement(this);
-        }
-
-        @Override
-        public java.lang.String toString() {
-            return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
-        }
-    }
-
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @RequiredArgsConstructor
-    @Data
-    @With
-    final class String implements K, Statement, Expression {
-
-        @EqualsAndHashCode.Include
-        UUID id;
-
-        Space prefix;
-        Markers markers;
-        java.lang.String delimiter;
-        List<J> strings;
-
-        @Nullable
-        JavaType type;
-
-        @Override
-        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-            return v.visitString(this, p);
-        }
-
-        @Transient
-        @Override
-        public CoordinateBuilder.Statement getCoordinates() {
-            return new CoordinateBuilder.Statement(this);
-        }
-
-        @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-        @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-        @RequiredArgsConstructor
-        @Data
-        @With
-        public static final class Value implements K {
-            @EqualsAndHashCode.Include
-            UUID id;
-
-            @Nullable
-            Space prefix;
-
-            @Override
-            public Space getPrefix() {
-                return prefix == null ? Space.EMPTY : prefix;
-            }
-
-            Markers markers;
-            J tree;
-
-            @Nullable
-            Space after;
-
-            public Space getAfter() {
-                return after == null ? Space.EMPTY : after;
-            }
-
-            boolean enclosedInBraces;
-
-            @Override
-            public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-                return v.visitStringValue(this, p);
-            }
-        }
-    }
-
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @Data
-    @With
-    final class This implements K, Expression {
-
-        @EqualsAndHashCode.Include
-        UUID id;
-
-        Space prefix;
-        Markers markers;
-
-        @Nullable
-        J.Identifier label;
-
-        @Nullable
-        JavaType type;
-
-        @Override
-        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-            return v.visitThis(this, p);
-        }
-
-        @Override
-        @Transient
-        public CoordinateBuilder.Expression getCoordinates() {
-            return new CoordinateBuilder.Expression(this);
-        }
-
-        @Override
-        public java.lang.String toString() {
-            return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
-        }
-    }
-
     @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
@@ -1679,6 +1503,82 @@ public interface K extends J {
         }
     }
 
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @Data
+    @With
+    final class Return implements K, Statement, Expression {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        /**
+         * @deprecated Wrap with {@link AnnotatedExpression} to add annotations. To be deleted.
+         */
+        @Deprecated
+        List<J.Annotation> annotations;
+        J.Return expression;
+
+        @Nullable
+        J.Identifier label;
+
+        public Return(UUID id, J.Return expression, @Nullable J.Identifier label) {
+            this(id, Collections.emptyList(), expression, label);
+        }
+
+        @Override
+        public Space getPrefix() {
+            return expression.getPrefix();
+        }
+
+        @Override
+        public <J2 extends J> J2 withPrefix(Space space) {
+            //noinspection unchecked
+            return (J2) withExpression(expression.withPrefix(space));
+        }
+
+        @Override
+        public Markers getMarkers() {
+            return expression.getMarkers();
+        }
+
+        @Override
+        public <J2 extends Tree> J2 withMarkers(Markers markers) {
+            //noinspection unchecked
+            return (J2) withExpression(expression.withMarkers(markers));
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            //noinspection DataFlowIssue
+            return expression.getExpression().getType();
+        }
+
+        @Override
+        public <T extends J> T withType(@Nullable JavaType type) {
+            // to change the expression of a return, change the type of its expression
+            //noinspection unchecked
+            return (T) this;
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitReturn(this, p);
+        }
+
+        @Override
+        @Transient
+        public CoordinateBuilder.Statement getCoordinates() {
+            return new CoordinateBuilder.Statement(this);
+        }
+
+        @Override
+        public java.lang.String toString() {
+            return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
+        }
+    }
+
     @Value
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @With
@@ -1776,6 +1676,106 @@ public interface K extends J {
         @Override
         public CoordinateBuilder.Statement getCoordinates() {
             return new CoordinateBuilder.Statement(this);
+        }
+    }
+
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @RequiredArgsConstructor
+    @Data
+    @With
+    final class String implements K, Statement, Expression {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        java.lang.String delimiter;
+        List<J> strings;
+
+        @Nullable
+        JavaType type;
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitString(this, p);
+        }
+
+        @Transient
+        @Override
+        public CoordinateBuilder.Statement getCoordinates() {
+            return new CoordinateBuilder.Statement(this);
+        }
+
+        @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+        @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+        @RequiredArgsConstructor
+        @Data
+        @With
+        public static final class Value implements K {
+            @EqualsAndHashCode.Include
+            UUID id;
+
+            @Nullable
+            Space prefix;
+
+            @Override
+            public Space getPrefix() {
+                return prefix == null ? Space.EMPTY : prefix;
+            }
+
+            Markers markers;
+            J tree;
+
+            @Nullable
+            Space after;
+
+            public Space getAfter() {
+                return after == null ? Space.EMPTY : after;
+            }
+
+            boolean enclosedInBraces;
+
+            @Override
+            public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+                return v.visitStringValue(this, p);
+            }
+        }
+    }
+
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @Data
+    @With
+    final class This implements K, Expression {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+
+        @Nullable
+        J.Identifier label;
+
+        @Nullable
+        JavaType type;
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitThis(this, p);
+        }
+
+        @Override
+        @Transient
+        public CoordinateBuilder.Expression getCoordinates() {
+            return new CoordinateBuilder.Expression(this);
+        }
+
+        @Override
+        public java.lang.String toString() {
+            return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
     }
 
