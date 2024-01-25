@@ -252,19 +252,19 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public J visitKReturn(K.KReturn kReturn, PrintOutputCapture<P> p) {
+    public J visitReturn(K.Return kReturn, PrintOutputCapture<P> p) {
         // backwards compatibility: leave this in until `K.KReturn#annotations` has been deleted
         // visit(kReturn.getAnnotations(), p);
-        J.Return return_ = kReturn.getExpression();
+        J.Return jReturn = kReturn.getExpression();
         if (kReturn.getLabel() != null) {
-            beforeSyntax(return_, Space.Location.RETURN_PREFIX, p);
+            beforeSyntax(jReturn, Space.Location.RETURN_PREFIX, p);
             p.append("return");
             p.append("@");
             visit(kReturn.getLabel(), p);
-            if (return_.getExpression() != null) {
-                visit(return_.getExpression(), p);
+            if (jReturn.getExpression() != null) {
+                visit(jReturn.getExpression(), p);
             }
-            afterSyntax(return_, p);
+            afterSyntax(jReturn, p);
         } else {
             visit(kReturn.getExpression(), p);
         }
@@ -272,36 +272,36 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public J visitKString(K.KString kString, PrintOutputCapture<P> p) {
-        beforeSyntax(kString, KSpace.Location.KSTRING_PREFIX, p);
+    public J visitString(K.String string, PrintOutputCapture<P> p) {
+        beforeSyntax(string, KSpace.Location.STRING_PREFIX, p);
 
-        String delimiter = kString.getDelimiter();
+        String delimiter = string.getDelimiter();
         p.append(delimiter);
 
-        visit(kString.getStrings(), p);
+        visit(string.getStrings(), p);
         p.append(delimiter);
 
-        afterSyntax(kString, p);
-        return kString;
+        afterSyntax(string, p);
+        return string;
     }
 
     @Override
-    public J visitKThis(K.KThis kThis, PrintOutputCapture<P> p) {
-        beforeSyntax(kThis, KSpace.Location.KTHIS_PREFIX, p);
+    public J visitThis(K.This aThis, PrintOutputCapture<P> p) {
+        beforeSyntax(aThis, KSpace.Location.THIS_PREFIX, p);
 
         p.append("this");
-        if (kThis.getLabel() != null) {
+        if (aThis.getLabel() != null) {
             p.append("@");
-            visit(kThis.getLabel(), p);
+            visit(aThis.getLabel(), p);
         }
 
-        afterSyntax(kThis, p);
-        return kThis;
+        afterSyntax(aThis, p);
+        return aThis;
     }
 
     @Override
-    public J visitKStringValue(K.KString.Value value, PrintOutputCapture<P> p) {
-        beforeSyntax(value, KSpace.Location.KSTRING_PREFIX, p);
+    public J visitStringValue(K.String.Value value, PrintOutputCapture<P> p) {
+        beforeSyntax(value, KSpace.Location.STRING_PREFIX, p);
         if (value.isEnclosedInBraces()) {
             p.append("${");
         } else {
@@ -309,7 +309,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         }
         visit(value.getTree(), p);
         if (value.isEnclosedInBraces()) {
-            visitSpace(value.getAfter(), KSpace.Location.KSTRING_SUFFIX, p);
+            visitSpace(value.getAfter(), KSpace.Location.STRING_SUFFIX, p);
             p.append('}');
         }
         afterSyntax(value, p);
