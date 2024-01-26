@@ -422,6 +422,88 @@ public interface K extends J {
         }
     }
 
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @RequiredArgsConstructor
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    final class AnnotationType implements K, NameTree {
+        @Nullable
+        @NonFinal
+        transient WeakReference<K.AnnotationType.Padding> padding;
+
+        @Getter
+        @With
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        @Getter
+        @With
+        Space prefix;
+
+        @Getter
+        @With
+        Markers markers;
+
+        JRightPadded<Expression> useSite;
+
+        @Getter
+        @With
+        J.Annotation callee;
+
+        public Expression getUseSite() {
+            return useSite.getElement();
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            return callee.getType();
+        }
+
+        @Override
+        public <T extends J> T withType(@Nullable JavaType type) {
+            //noinspection unchecked
+            return (T) withCallee(callee.withType(type));
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitAnnotationType(this, p);
+        }
+
+        public K.AnnotationType.Padding getPadding() {
+            K.AnnotationType.Padding p;
+            if (this.padding == null) {
+                p = new K.AnnotationType.Padding(this);
+                this.padding = new WeakReference<>(p);
+            } else {
+                p = this.padding.get();
+                if (p == null || p.t != this) {
+                    p = new K.AnnotationType.Padding(this);
+                    this.padding = new WeakReference<>(p);
+                }
+            }
+            return p;
+        }
+
+        @RequiredArgsConstructor
+        public static class Padding {
+            private final K.AnnotationType t;
+
+            public JRightPadded<Expression> getUseSite() {
+                return t.useSite;
+            }
+
+            public K.AnnotationType withUseSite(JRightPadded<Expression> useSite) {
+                return t.useSite == useSite ? t : new K.AnnotationType(t.id,
+                        t.prefix,
+                        t.markers,
+                        useSite,
+                        t.callee
+                );
+            }
+        }
+    }
+
     @SuppressWarnings("unused")
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
@@ -1307,6 +1389,121 @@ public interface K extends J {
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @RequiredArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    final class MultiAnnotationType implements K, NameTree {
+        @Nullable
+        @NonFinal
+        transient WeakReference<K.MultiAnnotationType.Padding> padding;
+
+        @Getter
+        @With
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        @Getter
+        @With
+        Space prefix;
+
+        @Getter
+        @With
+        Markers markers;
+
+        JRightPadded<Expression> useSite;
+
+        @Getter
+        @With
+        JContainer<J.Annotation> annotations;
+
+        public Expression getUseSite() {
+            return useSite.getElement();
+        }
+
+        @Override
+        public @Nullable JavaType getType() {
+            // use site has no type
+            return null;
+        }
+
+        @Override
+        public <T extends J> T withType(@Nullable JavaType type) {
+            return (T) this;
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitMultiAnnotationType(this, p);
+        }
+
+        public K.MultiAnnotationType.Padding getPadding() {
+            K.MultiAnnotationType.Padding p;
+            if (this.padding == null) {
+                p = new K.MultiAnnotationType.Padding(this);
+                this.padding = new WeakReference<>(p);
+            } else {
+                p = this.padding.get();
+                if (p == null || p.t != this) {
+                    p = new K.MultiAnnotationType.Padding(this);
+                    this.padding = new WeakReference<>(p);
+                }
+            }
+            return p;
+        }
+
+        @RequiredArgsConstructor
+        public static class Padding {
+            private final K.MultiAnnotationType t;
+
+            public JRightPadded<Expression> getUseSite() {
+                return t.useSite;
+            }
+
+            public K.MultiAnnotationType withUseSite(JRightPadded<Expression> useSite) {
+                return t.useSite == useSite ? t : new K.MultiAnnotationType(t.id,
+                        t.prefix,
+                        t.markers,
+                        useSite,
+                        t.annotations
+                );
+            }
+        }
+    }
+
+    @Value
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @With
+    class NamedVariableInitializer implements K, Expression {
+
+        @EqualsAndHashCode.Include
+        UUID id;
+
+        Space prefix;
+        Markers markers;
+        List<J> initializations;
+
+        @Override
+        public @Nullable JavaType getType() {
+            return null;
+        }
+
+        @Override
+        public <T extends J> T withType(@Nullable JavaType type) {
+            throw new UnsupportedOperationException("NamedVariableInitializer cannot have a type");
+        }
+
+        @Override
+        public CoordinateBuilder.Expression getCoordinates() {
+            return new CoordinateBuilder.Expression(this);
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitNamedVariableInitializer(this, p);
+        }
+    }
+
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @RequiredArgsConstructor
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     @With
     @Data
     final class Property implements K, Statement {
@@ -1467,39 +1664,6 @@ public interface K extends J {
                 return t.receiver == receiver ? t : new Property(t.id, t.prefix, t.markers, t.typeParameters,
                         t.paddedVariableDeclarations, t.typeConstraints, t.accessors, receiver);
             }
-        }
-    }
-
-    @Value
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @With
-    class NamedVariableInitializer implements K, Expression {
-
-        @EqualsAndHashCode.Include
-        UUID id;
-
-        Space prefix;
-        Markers markers;
-        List<J> initializations;
-
-        @Override
-        public @Nullable JavaType getType() {
-            return null;
-        }
-
-        @Override
-        public <T extends J> T withType(@Nullable JavaType type) {
-            throw new UnsupportedOperationException("NamedVariableInitializer cannot have a type");
-        }
-
-        @Override
-        public CoordinateBuilder.Expression getCoordinates() {
-            return new CoordinateBuilder.Expression(this);
-        }
-
-        @Override
-        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-            return v.visitNamedVariableInitializer(this, p);
         }
     }
 
@@ -2042,6 +2206,116 @@ public interface K extends J {
         }
     }
 
+    @SuppressWarnings("unused")
+    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
+    @RequiredArgsConstructor
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    final class Unary implements K, Statement, Expression, TypedTree {
+        @Nullable
+        @NonFinal
+        transient WeakReference<K.Unary.Padding> padding;
+
+        @With
+        @EqualsAndHashCode.Include
+        @Getter
+        UUID id;
+
+        @With
+        @Getter
+        Space prefix;
+
+        @With
+        @Getter
+        Markers markers;
+
+        JLeftPadded<Type> operator;
+
+        public Type getOperator() {
+            return operator.getElement();
+        }
+
+        public K.Unary withOperator(Type operator) {
+            return getPadding().withOperator(this.operator.withElement(operator));
+        }
+
+        @With
+        @Getter
+        Expression expression;
+
+        @With
+        @Nullable
+        @Getter
+        JavaType type;
+
+        @Override
+        public <R extends Tree, P> R accept(TreeVisitor<R, P> v, P p) {
+            return K.super.accept(v, p);
+        }
+
+        @Override
+        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
+            return v.visitUnary(this, p);
+        }
+
+        @Override
+        public CoordinateBuilder.Statement getCoordinates() {
+            return new CoordinateBuilder.Statement(this);
+        }
+
+        @Override
+        @Transient
+        public List<J> getSideEffects() {
+            return getOperator().isModifying() ? singletonList(this) : expression.getSideEffects();
+        }
+
+        @SuppressWarnings("SwitchStatementWithTooFewBranches")
+        public enum Type {
+            NotNull;
+
+            public boolean isModifying() {
+                switch (this) {
+                    case NotNull:
+                    default:
+                        return false;
+                }
+            }
+        }
+
+        public K.Unary.Padding getPadding() {
+            K.Unary.Padding p;
+            if (this.padding == null) {
+                p = new K.Unary.Padding(this);
+                this.padding = new WeakReference<>(p);
+            } else {
+                p = this.padding.get();
+                if (p == null || p.t != this) {
+                    p = new K.Unary.Padding(this);
+                    this.padding = new WeakReference<>(p);
+                }
+            }
+            return p;
+        }
+
+        @Override
+        public String toString() {
+            return withPrefix(Space.EMPTY).printTrimmed(new JavaPrinter<>());
+        }
+
+        @RequiredArgsConstructor
+        public static class Padding {
+            private final K.Unary t;
+
+            public JLeftPadded<K.Unary.Type> getOperator() {
+                return t.operator;
+            }
+
+            public K.Unary withOperator(JLeftPadded<K.Unary.Type> operator) {
+                return t.operator == operator ? t : new K.Unary(t.id, t.prefix, t.markers, operator, t.expression, t.type);
+            }
+        }
+    }
+
     @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @Data
@@ -2185,280 +2459,6 @@ public interface K extends J {
 
             public WhenBranch withExpressions(JContainer<Expression> expressions) {
                 return t.expressions == expressions ? t : new WhenBranch(t.id, t.prefix, t.markers, expressions, t.body);
-            }
-        }
-    }
-
-    @SuppressWarnings("unused")
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @RequiredArgsConstructor
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    final class Unary implements K, Statement, Expression, TypedTree {
-        @Nullable
-        @NonFinal
-        transient WeakReference<K.Unary.Padding> padding;
-
-        @With
-        @EqualsAndHashCode.Include
-        @Getter
-        UUID id;
-
-        @With
-        @Getter
-        Space prefix;
-
-        @With
-        @Getter
-        Markers markers;
-
-        JLeftPadded<Type> operator;
-
-        public Type getOperator() {
-            return operator.getElement();
-        }
-
-        public K.Unary withOperator(Type operator) {
-            return getPadding().withOperator(this.operator.withElement(operator));
-        }
-
-        @With
-        @Getter
-        Expression expression;
-
-        @With
-        @Nullable
-        @Getter
-        JavaType type;
-
-        @Override
-        public <R extends Tree, P> R accept(TreeVisitor<R, P> v, P p) {
-            return K.super.accept(v, p);
-        }
-
-        @Override
-        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-            return v.visitUnary(this, p);
-        }
-
-        @Override
-        public CoordinateBuilder.Statement getCoordinates() {
-            return new CoordinateBuilder.Statement(this);
-        }
-
-        @Override
-        @Transient
-        public List<J> getSideEffects() {
-            return getOperator().isModifying() ? singletonList(this) : expression.getSideEffects();
-        }
-
-        @SuppressWarnings("SwitchStatementWithTooFewBranches")
-        public enum Type {
-            NotNull;
-
-            public boolean isModifying() {
-                switch (this) {
-                    case NotNull:
-                    default:
-                        return false;
-                }
-            }
-        }
-
-        public K.Unary.Padding getPadding() {
-            K.Unary.Padding p;
-            if (this.padding == null) {
-                p = new K.Unary.Padding(this);
-                this.padding = new WeakReference<>(p);
-            } else {
-                p = this.padding.get();
-                if (p == null || p.t != this) {
-                    p = new K.Unary.Padding(this);
-                    this.padding = new WeakReference<>(p);
-                }
-            }
-            return p;
-        }
-
-        @Override
-        public String toString() {
-            return withPrefix(Space.EMPTY).printTrimmed(new JavaPrinter<>());
-        }
-
-        @RequiredArgsConstructor
-        public static class Padding {
-            private final K.Unary t;
-
-            public JLeftPadded<K.Unary.Type> getOperator() {
-                return t.operator;
-            }
-
-            public K.Unary withOperator(JLeftPadded<K.Unary.Type> operator) {
-                return t.operator == operator ? t : new K.Unary(t.id, t.prefix, t.markers, operator, t.expression, t.type);
-            }
-        }
-    }
-
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @RequiredArgsConstructor
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    final class AnnotationType implements K, NameTree {
-        @Nullable
-        @NonFinal
-        transient WeakReference<K.AnnotationType.Padding> padding;
-
-        @Getter
-        @With
-        @EqualsAndHashCode.Include
-        UUID id;
-
-        @Getter
-        @With
-        Space prefix;
-
-        @Getter
-        @With
-        Markers markers;
-
-        JRightPadded<Expression> useSite;
-
-        @Getter
-        @With
-        J.Annotation callee;
-
-        public Expression getUseSite() {
-            return useSite.getElement();
-        }
-
-        @Override
-        public @Nullable JavaType getType() {
-            return callee.getType();
-        }
-
-        @Override
-        public <T extends J> T withType(@Nullable JavaType type) {
-            //noinspection unchecked
-            return (T) withCallee(callee.withType(type));
-        }
-
-        @Override
-        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-            return v.visitAnnotationType(this, p);
-        }
-
-        public K.AnnotationType.Padding getPadding() {
-            K.AnnotationType.Padding p;
-            if (this.padding == null) {
-                p = new K.AnnotationType.Padding(this);
-                this.padding = new WeakReference<>(p);
-            } else {
-                p = this.padding.get();
-                if (p == null || p.t != this) {
-                    p = new K.AnnotationType.Padding(this);
-                    this.padding = new WeakReference<>(p);
-                }
-            }
-            return p;
-        }
-
-        @RequiredArgsConstructor
-        public static class Padding {
-            private final K.AnnotationType t;
-
-            public JRightPadded<Expression> getUseSite() {
-                return t.useSite;
-            }
-
-            public K.AnnotationType withUseSite(JRightPadded<Expression> useSite) {
-                return t.useSite == useSite ? t : new K.AnnotationType(t.id,
-                        t.prefix,
-                        t.markers,
-                        useSite,
-                        t.callee
-                );
-            }
-        }
-    }
-
-    @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-    @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-    @RequiredArgsConstructor
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    final class MultiAnnotationType implements K, NameTree {
-        @Nullable
-        @NonFinal
-        transient WeakReference<K.MultiAnnotationType.Padding> padding;
-
-        @Getter
-        @With
-        @EqualsAndHashCode.Include
-        UUID id;
-
-        @Getter
-        @With
-        Space prefix;
-
-        @Getter
-        @With
-        Markers markers;
-
-        JRightPadded<Expression> useSite;
-
-        @Getter
-        @With
-        JContainer<J.Annotation> annotations;
-
-        public Expression getUseSite() {
-            return useSite.getElement();
-        }
-
-        @Override
-        public @Nullable JavaType getType() {
-            // use site has no type
-            return null;
-        }
-
-        @Override
-        public <T extends J> T withType(@Nullable JavaType type) {
-            return (T) this;
-        }
-
-        @Override
-        public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-            return v.visitMultiAnnotationType(this, p);
-        }
-
-        public K.MultiAnnotationType.Padding getPadding() {
-            K.MultiAnnotationType.Padding p;
-            if (this.padding == null) {
-                p = new K.MultiAnnotationType.Padding(this);
-                this.padding = new WeakReference<>(p);
-            } else {
-                p = this.padding.get();
-                if (p == null || p.t != this) {
-                    p = new K.MultiAnnotationType.Padding(this);
-                    this.padding = new WeakReference<>(p);
-                }
-            }
-            return p;
-        }
-
-        @RequiredArgsConstructor
-        public static class Padding {
-            private final K.MultiAnnotationType t;
-
-            public JRightPadded<Expression> getUseSite() {
-                return t.useSite;
-            }
-
-            public K.MultiAnnotationType withUseSite(JRightPadded<Expression> useSite) {
-                return t.useSite == useSite ? t : new K.MultiAnnotationType(t.id,
-                        t.prefix,
-                        t.markers,
-                        useSite,
-                        t.annotations
-                );
             }
         }
     }
