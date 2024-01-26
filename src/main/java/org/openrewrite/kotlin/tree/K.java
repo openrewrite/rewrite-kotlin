@@ -99,7 +99,7 @@ public interface K extends J {
         @With
         @Getter
         @Nullable
-        java.lang.String shebang;
+        String shebang;
 
         @With
         @Getter
@@ -120,7 +120,7 @@ public interface K extends J {
 
         @Nullable // for backwards compatibility
         @With(AccessLevel.PRIVATE)
-        java.lang.String charsetName;
+        String charsetName;
 
         @With
         @Getter
@@ -342,7 +342,7 @@ public interface K extends J {
         @Override
         @SuppressWarnings("unchecked")
         public <S> S service(Class<S> service) {
-            java.lang.String serviceName = service.getName();
+            String serviceName = service.getName();
             try {
                 Class<S> serviceClass;
                 if (KotlinImportService.class.getName().equals(serviceName)) {
@@ -417,7 +417,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
     }
@@ -519,7 +519,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
     }
@@ -656,7 +656,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
 
@@ -771,7 +771,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
     }
@@ -818,7 +818,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withBy(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
     }
@@ -927,7 +927,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
     }
@@ -1429,7 +1429,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
 
@@ -1574,7 +1574,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
     }
@@ -1684,14 +1684,14 @@ public interface K extends J {
     @RequiredArgsConstructor
     @Data
     @With
-    final class String implements K, Statement, Expression {
+    final class StringTemplate implements K, Statement, Expression {
 
         @EqualsAndHashCode.Include
         UUID id;
 
         Space prefix;
         Markers markers;
-        java.lang.String delimiter;
+        String delimiter;
         List<J> strings;
 
         @Nullable
@@ -1699,7 +1699,7 @@ public interface K extends J {
 
         @Override
         public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-            return v.visitString(this, p);
+            return v.visitStringTemplate(this, p);
         }
 
         @Transient
@@ -1713,7 +1713,7 @@ public interface K extends J {
         @RequiredArgsConstructor
         @Data
         @With
-        public static final class Value implements K {
+        public static final class Expression implements K {
             @EqualsAndHashCode.Include
             UUID id;
 
@@ -1739,7 +1739,7 @@ public interface K extends J {
 
             @Override
             public <P> J acceptKotlin(KotlinVisitor<P> v, P p) {
-                return v.visitStringValue(this, p);
+                return v.visitStringTemplateExpression(this, p);
             }
         }
     }
@@ -1774,7 +1774,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
     }
@@ -1849,7 +1849,7 @@ public interface K extends J {
             return allAnnotations;
         }
 
-        public java.lang.String getSimpleName() {
+        public String getSimpleName() {
             return name.getSimpleName();
         }
 
@@ -1875,7 +1875,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
 
@@ -1962,7 +1962,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
 
@@ -2163,7 +2163,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new KotlinPrinter<>());
         }
 
@@ -2281,7 +2281,7 @@ public interface K extends J {
         }
 
         @Override
-        public java.lang.String toString() {
+        public String toString() {
             return withPrefix(Space.EMPTY).printTrimmed(new JavaPrinter<>());
         }
 

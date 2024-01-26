@@ -246,7 +246,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         J tree = requireNonNull(entry.getExpression()).accept(this, data);
         boolean inBraces = true;
 
-        return new K.String.Value(
+        return new K.StringTemplate.Expression(
                 randomId(),
                 Space.EMPTY,
                 Markers.EMPTY,
@@ -1216,7 +1216,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     @Override
     public J visitSimpleNameStringTemplateEntry(KtSimpleNameStringTemplateEntry entry, ExecutionContext data) {
-        return new K.String.Value(
+        return new K.StringTemplate.Expression(
                 randomId(),
                 Space.EMPTY,
                 Markers.EMPTY,
@@ -3105,7 +3105,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 values.add(entry.accept(this, data));
             }
 
-            return new K.String(
+            return new K.StringTemplate(
                     randomId(),
                     deepPrefix(expression),
                     Markers.EMPTY,

@@ -272,17 +272,17 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public J visitString(K.String string, PrintOutputCapture<P> p) {
-        beforeSyntax(string, KSpace.Location.STRING_PREFIX, p);
+    public J visitStringTemplate(K.StringTemplate stringTemplate, PrintOutputCapture<P> p) {
+        beforeSyntax(stringTemplate, KSpace.Location.STRING_TEMPLATE_PREFIX, p);
 
-        String delimiter = string.getDelimiter();
+        String delimiter = stringTemplate.getDelimiter();
         p.append(delimiter);
 
-        visit(string.getStrings(), p);
+        visit(stringTemplate.getStrings(), p);
         p.append(delimiter);
 
-        afterSyntax(string, p);
-        return string;
+        afterSyntax(stringTemplate, p);
+        return stringTemplate;
     }
 
     @Override
@@ -300,20 +300,20 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public J visitStringValue(K.String.Value value, PrintOutputCapture<P> p) {
-        beforeSyntax(value, KSpace.Location.STRING_PREFIX, p);
-        if (value.isEnclosedInBraces()) {
+    public J visitStringTemplateExpression(K.StringTemplate.Expression expression, PrintOutputCapture<P> p) {
+        beforeSyntax(expression, KSpace.Location.STRING_TEMPLATE_PREFIX, p);
+        if (expression.isEnclosedInBraces()) {
             p.append("${");
         } else {
             p.append("$");
         }
-        visit(value.getTree(), p);
-        if (value.isEnclosedInBraces()) {
-            visitSpace(value.getAfter(), KSpace.Location.STRING_SUFFIX, p);
+        visit(expression.getTree(), p);
+        if (expression.isEnclosedInBraces()) {
+            visitSpace(expression.getAfter(), KSpace.Location.STRING_TEMPLATE_SUFFIX, p);
             p.append('}');
         }
-        afterSyntax(value, p);
-        return value;
+        afterSyntax(expression, p);
+        return expression;
     }
 
     @Override

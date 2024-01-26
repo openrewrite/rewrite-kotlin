@@ -396,8 +396,8 @@ public class PsiTreePrinter {
             tree instanceof K.CompilationUnit ||
             tree instanceof K.SpreadArgument ||
             tree instanceof K.StatementExpression ||
-            tree instanceof K.String ||
-            tree instanceof K.String.Value ||
+            tree instanceof K.StringTemplate ||
+            tree instanceof K.StringTemplate.Expression ||
             tree instanceof K.ExpressionStatement ||
             tree instanceof K.FunctionType ||
             tree instanceof K.ListLiteral ||

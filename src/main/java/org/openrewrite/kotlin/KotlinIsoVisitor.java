@@ -78,13 +78,13 @@ public class KotlinIsoVisitor<P> extends KotlinVisitor<P> {
     }
 
     @Override
-    public K.String visitString(K.String string, P p) {
-        return (K.String) super.visitString(string, p);
+    public K.StringTemplate visitStringTemplate(K.StringTemplate stringTemplate, P p) {
+        return (K.StringTemplate) super.visitStringTemplate(stringTemplate, p);
     }
 
     @Override
-    public K.String.Value visitStringValue(K.String.Value value, P p) {
-        return (K.String.Value) super.visitStringValue(value, p);
+    public K.StringTemplate.Expression visitStringTemplateExpression(K.StringTemplate.Expression expression, P p) {
+        return (K.StringTemplate.Expression) super.visitStringTemplateExpression(expression, p);
     }
 
     @Override
