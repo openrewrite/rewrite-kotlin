@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.format;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.tree.J;
@@ -40,6 +41,7 @@ class AutoFormatVisitorTest implements RewriteTest {
         spec.recipe(new AutoFormat());
     }
 
+    @DocumentExample
     @Test
     void keepMaximumBetweenHeaderAndPackage() {
         rewriteRun(
@@ -157,7 +159,7 @@ class AutoFormatVisitorTest implements RewriteTest {
                       try {
                           when (test) {
                               12 -> println("foo")
-                               in 10..42 -> println("baz")
+                              in 10..42 -> println("baz")
                               else -> println("bar")
                           }
                       } catch (e: Exception) {
@@ -432,4 +434,3 @@ class AutoFormatVisitorTest implements RewriteTest {
         );
     }
 }
-

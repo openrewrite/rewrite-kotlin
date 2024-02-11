@@ -23,10 +23,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.marker.ImplicitReturn;
 import org.openrewrite.java.tree.*;
 import org.openrewrite.kotlin.KotlinIsoVisitor;
-import org.openrewrite.kotlin.marker.Extension;
-import org.openrewrite.kotlin.marker.Implicit;
-import org.openrewrite.kotlin.marker.PrimaryConstructor;
-import org.openrewrite.kotlin.marker.Semicolon;
+import org.openrewrite.kotlin.marker.*;
 import org.openrewrite.kotlin.tree.K;
 
 import java.util.List;
@@ -207,6 +204,8 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
         boolean hasReceiverType = method.getMarkers().findFirst(Extension.class).isPresent();
         if (!first && !hasReceiverType) {
             m = m.withName(m.getName().withPrefix(updateSpace(m.getName().getPrefix(), true)));
+        } else if (m.getPrefix().isEmpty() && getCursor().getParentTreeCursor().getValue() instanceof K.Property) {
+            m = spaceBefore(m, true);
         }
 
         if (m.getPadding().getThrows() != null) {
@@ -216,6 +215,17 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
             }
         }
 
+        return m;
+    }
+
+    @Override
+    public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, P p) {
+        J.MethodInvocation m = super.visitMethodInvocation(method, p);
+        boolean infix = m.getMarkers().findFirst(Infix.class).isPresent();
+        if (infix) {
+            m = m.withName(m.getName().withPrefix(updateSpace(m.getName().getPrefix(), true)));
+            m = m.getPadding().withArguments(spaceBefore(m.getPadding().getArguments(), true));
+        }
         return m;
     }
 
@@ -254,7 +264,9 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
     public K.Binary visitBinary(K.Binary binary, P p) {
         K.Binary kb = super.visitBinary(binary, p);
         if (kb.getOperator() == K.Binary.Type.Contains || kb.getOperator() == K.Binary.Type.NotContains) {
-            kb = kb.getPadding().withOperator(kb.getPadding().getOperator().withBefore(updateSpace(kb.getPadding().getOperator().getBefore(), true)));
+            if (!(kb.getLeft() instanceof J.Empty)) {
+                kb = kb.getPadding().withOperator(spaceBefore(kb.getPadding().getOperator(), true));
+            }
             kb = kb.withRight(spaceBefore(kb.getRight(), true));
         }
         return kb;
@@ -334,18 +346,30 @@ public class MinimumViableSpacingVisitor<P> extends KotlinIsoVisitor<P> {
     }
 
     @SuppressWarnings("SameParameterValue")
+    private static <T> JLeftPadded<T> spaceBefore(JLeftPadded<T> padded, boolean spaceBefore) {
+        if (!padded.getBefore().getComments().isEmpty()) {
+            return padded;
+        }
+
+        return padded.withBefore(updateSpace(padded.getBefore(), spaceBefore));
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static <T extends J> JContainer<T> spaceBefore(JContainer<T> container, boolean spaceBefore) {
+        if (!container.getBefore().getComments().isEmpty()) {
+            return container;
+        }
+
+        return container.withBefore(updateSpace(container.getBefore(), spaceBefore));
+    }
+
+    @SuppressWarnings("SameParameterValue")
     private static <T extends J> T spaceBefore(T j, boolean spaceBefore) {
         if (!j.getComments().isEmpty()) {
             return j;
         }
 
-        if (spaceBefore && notSingleSpace(j.getPrefix().getWhitespace())) {
-            return j.withPrefix(j.getPrefix().withWhitespace(" "));
-        } else if (!spaceBefore && onlySpacesAndNotEmpty(j.getPrefix().getWhitespace())) {
-            return j.withPrefix(j.getPrefix().withWhitespace(""));
-        } else {
-            return j;
-        }
+        return j.withPrefix(updateSpace(j.getPrefix(), spaceBefore));
     }
 
     @SuppressWarnings("SameParameterValue")

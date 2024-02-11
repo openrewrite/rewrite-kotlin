@@ -93,6 +93,7 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
         if (tree instanceof JavaSourceFile ||
                 tree instanceof J.Package ||
                 tree instanceof J.Import ||
+                tree instanceof J.ClassDeclaration ||
                 tree instanceof J.Label ||
                 tree instanceof J.DoWhileLoop ||
                 tree instanceof J.ArrayDimension) {
@@ -111,19 +112,18 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
                 tree instanceof J.Case ||
                 tree instanceof J.EnumValueSet ||
                 (tree instanceof J.Ternary && !wrappingStyle.getElvisExpressions().getUseContinuationIndent()) ||
-                tree instanceof J.ClassDeclaration ||
-                tree instanceof K.ClassDeclaration ||
                 (tree instanceof J.FieldAccess || tree instanceof J.MethodInvocation)
                         && !wrappingStyle.getChainedFunctionCalls().getUseContinuationIndent() ||
                 tree instanceof J.Annotation
         ) {
             getCursor().putMessage("indentType", IndentType.INDENT);
         } else if (tree instanceof K.ExpressionStatement ||
-                tree instanceof K.StatementExpression ||
-                tree instanceof K.KReturn ||
-                tree instanceof K.When ||
-                tree instanceof K.WhenBranch ||
-                (tree != null && tree.getMarkers().findFirst(ImplicitReturn.class).isPresent())) {
+                   tree instanceof K.StatementExpression ||
+                   tree instanceof K.Return ||
+                   tree instanceof K.When ||
+                   tree instanceof K.WhenBranch ||
+                   tree instanceof K.ClassDeclaration ||
+                   (tree != null && tree.getMarkers().findFirst(ImplicitReturn.class).isPresent())) {
             // skip, do nothing
         } else {
             getCursor().putMessage("indentType", IndentType.CONTINUATION_INDENT);
@@ -134,9 +134,9 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
 
     @Override
     public Space visitSpace(Space space, KSpace.Location loc, P p) {
-        if (loc == KSpace.Location.KRETURN_PREFIX &&
-                getCursor().<K.KReturn>getValue().getExpression().getMarkers().findFirst(ImplicitReturn.class).isPresent() &&
-                getCursor().<K.KReturn>getValue().getExpression().getExpression() == null) {
+        if (loc == KSpace.Location.RETURN_PREFIX &&
+            getCursor().<K.Return>getValue().getExpression().getMarkers().findFirst(ImplicitReturn.class).isPresent() &&
+            getCursor().<K.Return>getValue().getExpression().getExpression() == null) {
             // implicit returns without any expression are not indented
             return space;
         }

@@ -95,7 +95,12 @@ class ImportTest implements RewriteTest {
     void methodName() {
         rewriteRun(
           kotlin("fun <T : Any> Class<T>.createInstance() {}"),
-          kotlin("import   createInstance /*C1*/")
+          kotlin(
+            "import   createInstance /*C1*/",
+            spec -> spec.afterRecipe(cu -> {
+                assertThat(cu.getImports().get(0).getPackageName()).isEmpty();
+            })
+          )
         );
     }
 
@@ -160,6 +165,18 @@ class ImportTest implements RewriteTest {
             """
               import org.`should be equal to`
               """)
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/564")
+    @Test
+    void quotedImportWithDollar() {
+        rewriteRun(
+          kotlin(
+            """
+              import my.org.`$x`
+              """
+          )
         );
     }
 }

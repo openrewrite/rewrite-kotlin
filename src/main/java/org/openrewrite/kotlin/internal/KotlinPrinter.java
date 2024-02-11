@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin.internal;
 
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.Cursor;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Tree;
@@ -61,6 +60,10 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
     @Override
     public J visitCompilationUnit(K.CompilationUnit sourceFile, PrintOutputCapture<P> p) {
+        if (sourceFile.getShebang() != null) {
+            p.append(sourceFile.getShebang());
+        }
+
         beforeSyntax(sourceFile, Space.Location.COMPILATION_UNIT_PREFIX, p);
 
         visit(sourceFile.getAnnotations(), p);
@@ -249,19 +252,19 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public J visitKReturn(K.KReturn kReturn, PrintOutputCapture<P> p) {
+    public J visitReturn(K.Return kReturn, PrintOutputCapture<P> p) {
         // backwards compatibility: leave this in until `K.KReturn#annotations` has been deleted
         // visit(kReturn.getAnnotations(), p);
-        J.Return return_ = kReturn.getExpression();
+        J.Return jReturn = kReturn.getExpression();
         if (kReturn.getLabel() != null) {
-            beforeSyntax(return_, Space.Location.RETURN_PREFIX, p);
+            beforeSyntax(jReturn, Space.Location.RETURN_PREFIX, p);
             p.append("return");
             p.append("@");
             visit(kReturn.getLabel(), p);
-            if (return_.getExpression() != null) {
-                visit(return_.getExpression(), p);
+            if (jReturn.getExpression() != null) {
+                visit(jReturn.getExpression(), p);
             }
-            afterSyntax(return_, p);
+            afterSyntax(jReturn, p);
         } else {
             visit(kReturn.getExpression(), p);
         }
@@ -269,48 +272,48 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public J visitKString(K.KString kString, PrintOutputCapture<P> p) {
-        beforeSyntax(kString, KSpace.Location.KSTRING_PREFIX, p);
+    public J visitStringTemplate(K.StringTemplate stringTemplate, PrintOutputCapture<P> p) {
+        beforeSyntax(stringTemplate, KSpace.Location.STRING_TEMPLATE_PREFIX, p);
 
-        String delimiter = kString.getDelimiter();
+        String delimiter = stringTemplate.getDelimiter();
         p.append(delimiter);
 
-        visit(kString.getStrings(), p);
+        visit(stringTemplate.getStrings(), p);
         p.append(delimiter);
 
-        afterSyntax(kString, p);
-        return kString;
+        afterSyntax(stringTemplate, p);
+        return stringTemplate;
     }
 
     @Override
-    public J visitKThis(K.KThis kThis, PrintOutputCapture<P> p) {
-        beforeSyntax(kThis, KSpace.Location.KTHIS_PREFIX, p);
+    public J visitThis(K.This aThis, PrintOutputCapture<P> p) {
+        beforeSyntax(aThis, KSpace.Location.THIS_PREFIX, p);
 
         p.append("this");
-        if (kThis.getLabel() != null) {
+        if (aThis.getLabel() != null) {
             p.append("@");
-            visit(kThis.getLabel(), p);
+            visit(aThis.getLabel(), p);
         }
 
-        afterSyntax(kThis, p);
-        return kThis;
+        afterSyntax(aThis, p);
+        return aThis;
     }
 
     @Override
-    public J visitKStringValue(K.KString.Value value, PrintOutputCapture<P> p) {
-        beforeSyntax(value, KSpace.Location.KSTRING_PREFIX, p);
-        if (value.isEnclosedInBraces()) {
+    public J visitStringTemplateExpression(K.StringTemplate.Expression expression, PrintOutputCapture<P> p) {
+        beforeSyntax(expression, KSpace.Location.STRING_TEMPLATE_PREFIX, p);
+        if (expression.isEnclosedInBraces()) {
             p.append("${");
         } else {
             p.append("$");
         }
-        visit(value.getTree(), p);
-        if (value.isEnclosedInBraces()) {
-            visitSpace(value.getAfter(), KSpace.Location.KSTRING_SUFFIX, p);
+        visit(expression.getTree(), p);
+        if (expression.isEnclosedInBraces()) {
+            visitSpace(expression.getAfter(), KSpace.Location.STRING_TEMPLATE_SUFFIX, p);
             p.append('}');
         }
-        afterSyntax(value, p);
-        return value;
+        afterSyntax(expression, p);
+        return expression;
     }
 
     @Override
@@ -375,6 +378,11 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
         if (property.getTypeConstraints() != null) {
             delegate.visitContainer("where", property.getTypeConstraints().getPadding().getConstraints(), JContainer.Location.TYPE_PARAMETERS, ",", "", p);
+        }
+
+        visitSpace(property.getPadding().getVariableDeclarations().getAfter(), Space.Location.VARIABLE_INITIALIZER, p);
+        if (property.getPadding().getVariableDeclarations().getMarkers().findFirst(Semicolon.class).isPresent()) {
+            p.append(";");
         }
 
         visitContainer(property.getAccessors(), p);
@@ -630,7 +638,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             return visitClassDeclaration0(classDecl, null, p);
         }
 
-        @NotNull
         private J.ClassDeclaration visitClassDeclaration0(J.ClassDeclaration classDecl, @Nullable K.TypeConstraints typeConstraints, PrintOutputCapture<P> p) {
             beforeSyntax(classDecl, Space.Location.CLASS_DECLARATION_PREFIX, p);
             visit(classDecl.getLeadingAnnotations(), p);
@@ -753,9 +760,10 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                 return ident;
             }
 
-            visit(ident.getAnnotations(), p);
-            beforeSyntax(ident, Space.Location.IDENTIFIER_PREFIX, p);
             visitSpace(Space.EMPTY, Space.Location.ANNOTATIONS, p);
+            visit(ident.getAnnotations(), p);
+
+            beforeSyntax(ident, Space.Location.IDENTIFIER_PREFIX, p);
             boolean isQuoted = ident.getMarkers().findFirst(Quoted.class).isPresent();
             if (isQuoted) {
                 p.append("`");
@@ -869,7 +877,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             return visitMethodDeclaration0(method, null, p);
         }
 
-        @NotNull
         private J.MethodDeclaration visitMethodDeclaration0(J.MethodDeclaration method, @Nullable K.TypeConstraints typeConstraints, PrintOutputCapture<P> p) {
             // Do not print generated methods.
             for (Marker marker : method.getMarkers().getMarkers()) {
@@ -980,6 +987,17 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
 
             afterSyntax(method, p);
             return method;
+        }
+
+        @Override
+        public J visitNullableType(J.NullableType nt, PrintOutputCapture<P> p) {
+            visit(nt.getAnnotations(), p);
+            beforeSyntax(nt, Space.Location.NULLABLE_TYPE_PREFIX, p);
+            visit(nt.getTypeTree(), p);
+            visitSpace(nt.getPadding().getTypeTree().getAfter(), Space.Location.NULLABLE_TYPE_SUFFIX, p);
+            p.append("?");
+            afterSyntax(nt, p);
+            return nt;
         }
 
         private void visitArgumentsContainer(JContainer<Expression> argContainer, Space.Location argsLocation, PrintOutputCapture<P> p) {
@@ -1325,7 +1343,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         }
     }
 
-    @NotNull
     private static String getClassKind(J.ClassDeclaration classDecl) {
         String kind;
         if (classDecl.getKind() == J.ClassDeclaration.Kind.Type.Class || classDecl.getKind() == J.ClassDeclaration.Kind.Type.Enum || classDecl.getKind() == J.ClassDeclaration.Kind.Type.Annotation) {
@@ -1440,7 +1457,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
         }
     }
 
-    @NotNull
     private static String getEqualsText(J.VariableDeclarations vd) {
         String equals = "=";
         for (Marker marker : vd.getMarkers().getMarkers()) {
