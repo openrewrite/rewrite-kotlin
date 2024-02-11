@@ -98,6 +98,7 @@ class ImportTest implements RewriteTest {
           kotlin(
             "import   createInstance /*C1*/",
             spec -> spec.afterRecipe(cu -> {
+                assertThat(cu.getImports().get(0).getPackageName()).isEmpty();
             })
           )
         );
