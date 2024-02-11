@@ -35,7 +35,7 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-class AddImportTest implements RewriteTest {
+public class AddImportTest implements RewriteTest {
 
     @Test
     void normalClass() {
