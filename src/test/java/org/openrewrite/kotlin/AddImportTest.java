@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.Recipe;
@@ -34,7 +35,7 @@ import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.kotlin.Assertions.kotlin;
 import static org.openrewrite.test.RewriteTest.toRecipe;
 
-public class AddImportTest implements RewriteTest {
+class AddImportTest implements RewriteTest {
 
     @Test
     void normalClass() {
@@ -70,6 +71,7 @@ public class AddImportTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
     @Test
     void jvmStaticMember() {
         rewriteRun(
