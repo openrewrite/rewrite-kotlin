@@ -27,7 +27,7 @@ import org.openrewrite.kotlin.KotlinVisitor;
 
 
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class ReplaceCharToIntWithCode extends Recipe {
     private static final MethodMatcher CHAR_TO_INT_METHOD_MATCHER = new MethodMatcher("kotlin.Char toInt()");
 

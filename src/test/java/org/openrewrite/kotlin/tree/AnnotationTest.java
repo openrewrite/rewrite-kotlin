@@ -581,6 +581,23 @@ class AnnotationTest implements RewriteTest {
         );
     }
 
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/565")
+    @Test
+    void useSiteMultiAnnotationAfterAnnotation() {
+        rewriteRun(
+          kotlin(
+            """
+              annotation class Anno
+              class Example(
+                  @Deprecated("")
+                  @get : [Anno]
+                  val bar : String
+              )
+              """
+          )
+        );
+    }
+
     @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/397")
     @Test
     void fieldUseSiteWithSingleAnnotationInBracket() {
@@ -743,6 +760,23 @@ class AnnotationTest implements RewriteTest {
             """
               annotation class Anno
               internal @Anno fun method() {}
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/557")
+    @Test
+    void annotatedTypeInFunctionTypeParens() {
+        rewriteRun(
+          kotlin(
+            """
+              @Target(AnnotationTarget.TYPE)
+              @Retention(AnnotationRetention.SOURCE)
+              annotation class Anno
+              fun method ( ) {
+                  val lambda : suspend (   @Anno Int ) -> Int = { number : Int -> number * number }
+              }
               """
           )
         );

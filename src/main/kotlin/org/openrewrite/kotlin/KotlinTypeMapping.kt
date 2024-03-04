@@ -27,7 +27,6 @@ import org.jetbrains.kotlin.fir.analysis.checkers.getContainingClassSymbol
 import org.jetbrains.kotlin.fir.analysis.checkers.modality
 import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.declarations.*
-import org.jetbrains.kotlin.fir.declarations.impl.FirOuterClassTypeParameterRef
 import org.jetbrains.kotlin.fir.declarations.impl.FirPrimaryConstructor
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
 import org.jetbrains.kotlin.fir.declarations.utils.isStatic
@@ -794,8 +793,12 @@ class KotlinTypeMapping(
             }
             val t = type(p.returnTypeRef)
             if (t is GenericTypeVariable) {
-                if (mapNames && args != null && args.containsKey(p.name.asString())) {
-                    paramTypes.add(type(args[p.name.asString()]!!.typeRef, function)!!)
+                if (mapNames && args != null) {
+                    if (args.containsKey(p.name.asString())) {
+                        paramTypes.add(type(args[p.name.asString()]!!.typeRef, function)!!)
+                    } else {
+                        paramTypes.add(t)
+                    }
                 } else if (index < valueParams.size) {
                     paramTypes.add(type(function.arguments[index].typeRef, function)!!)
                 }
@@ -926,11 +929,12 @@ class KotlinTypeMapping(
     private fun javaArrayType(type: JavaArrayType, signature: String): JavaType {
         val arrayType = Array(
             null,
+            null,
             null
         )
         typeCache.put(signature, arrayType)
         val classType = type(type.componentType)
-        arrayType.unsafeSet(classType)
+        arrayType.unsafeSet(classType, null)
         return arrayType
     }
 

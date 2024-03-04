@@ -17,9 +17,7 @@ package org.openrewrite.kotlin.cleanup;
 
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.Recipe;
-import org.openrewrite.TreeVisitor;
+import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
@@ -34,22 +32,24 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.openrewrite.Tree.randomId;
+
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class EqualsMethodUsage extends Recipe {
     @Nullable
     private static J.Binary equalsBinaryTemplate;
 
     @Override
     public String getDisplayName() {
-        return "Structural equality tests should use \"==\" or \"!=\"";
+        return "Structural equality tests should use `==` or `!=`";
     }
 
     @Override
     public String getDescription() {
         return "In Kotlin, `==` means structural equality and `!=` structural inequality and both map to the left-side " +
                "term’s `equals()` function. It is, therefore, redundant to call `equals()` as a function. Also, `==` and `!=`" +
-               " are more general than `equals()` and `!equals()` because it allows either of both operands to be null.\n" +
+               " are more general than `equals()` and `!equals()` because it allows either of both operands to be `null`.\n" +
                "Developers using `equals()` instead of `==` or `!=` is often the result of adapting styles from other " +
                "languages like Java, where `==` means reference equality and `!=` means reference inequality.\n" +
                "The `==` and `!=` operators are a more concise and elegant way to test structural equality than calling a function.";
@@ -103,8 +103,10 @@ public class EqualsMethodUsage extends Recipe {
                 ) {
                     Expression lhs = method.getSelect();
                     Expression rhs = method.getArguments().get(0);
-                    getCursor().getParentTreeCursor().putMessage("replaced", true);
-                    return buildEqualsBinary(lhs, rhs);
+                    Cursor parentCursor = getCursor().getParentTreeCursor();
+                    parentCursor.putMessage("replaced", true);
+                    J.Binary binary = buildEqualsBinary(lhs, rhs);
+                    return parentCursor.getValue() instanceof J.Block ? new K.ExpressionStatement(randomId(), binary) : binary;
                 }
                 return method;
             }

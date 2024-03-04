@@ -16,6 +16,7 @@
 package org.openrewrite.kotlin.format;
 
 import org.junit.jupiter.api.Test;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Issue;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -36,7 +37,7 @@ class MinimumViableSpacingTest implements RewriteTest {
           toRecipe(() -> new JavaIsoVisitor<>() {
               @Override
               public Space visitSpace(Space space, Space.Location loc, ExecutionContext ctx) {
-                  if (ctx.getMessage("cyclesThatResultedInChanges", 0) == 0) {
+                  if (ctx.getCycle() == 1) {
                       return space.withWhitespace("");
                   }
                   return space;
@@ -46,6 +47,7 @@ class MinimumViableSpacingTest implements RewriteTest {
         );
     }
 
+    @DocumentExample
     @Test
     void classDeclaration() {
         rewriteRun(
@@ -411,6 +413,51 @@ class MinimumViableSpacingTest implements RewriteTest {
                   it == 1
               }
               """
+          )
+        );
+    }
+
+    @Test
+    void infixOperator() {
+        rewriteRun(
+          kotlin(
+            """
+              val l = listOf('a'to 1)
+              """,
+            """
+              val l=listOf('a' to 1)
+              """
+          )
+        );
+    }
+
+    @Test
+    void doNotFoldImport() {
+        rewriteRun(
+          kotlin(
+            """
+              val a = when (5) {
+                  null, !in listOf(1, 2) -> 3
+                  else -> 4
+              }
+              """,
+            """
+              val a=when(5){null,!in listOf(1,2)->3
+              else->4}
+              """
+          )
+        );
+    }
+
+    @Test
+    void propertyName() {
+        rewriteRun(
+          kotlin(
+            """
+              val containingFiles: Int
+                  get() = 1
+              """,
+            "val containingFiles:Int get()=1"
           )
         );
     }

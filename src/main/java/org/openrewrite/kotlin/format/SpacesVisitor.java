@@ -31,7 +31,8 @@ import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.Markers;
 
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
 
@@ -92,13 +93,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
             return container;
         }
 
-        if (spaceBefore && notSingleSpace(container.getBefore().getWhitespace())) {
-            return container.withBefore(container.getBefore().withWhitespace(" "));
-        } else if (!spaceBefore && onlySpacesAndNotEmpty(container.getBefore().getWhitespace())) {
-            return container.withBefore(container.getBefore().withWhitespace(""));
-        } else {
-            return container;
-        }
+        return container.withBefore(updateSpace(container.getBefore(), spaceBefore));
     }
 
     <T extends J> JLeftPadded<T> spaceBefore(JLeftPadded<T> container, boolean spaceBefore) {
@@ -106,13 +101,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
             return container;
         }
 
-        if (spaceBefore && notSingleSpace(container.getBefore().getWhitespace())) {
-            return container.withBefore(container.getBefore().withWhitespace(" "));
-        } else if (!spaceBefore && onlySpacesAndNotEmpty(container.getBefore().getWhitespace())) {
-            return container.withBefore(container.getBefore().withWhitespace(""));
-        } else {
-            return container;
-        }
+        return container.withBefore(updateSpace(container.getBefore(), spaceBefore));
     }
 
     <T extends J> JLeftPadded<T> spaceBeforeLeftPaddedElement(JLeftPadded<T> container, boolean spaceBefore) {
@@ -131,13 +120,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
             return container.withAfter(container.getAfter().withComments(comments));
         }
 
-        if (spaceAfter && notSingleSpace(container.getAfter().getWhitespace())) {
-            return container.withAfter(container.getAfter().withWhitespace(" "));
-        } else if (!spaceAfter && onlySpacesAndNotEmpty(container.getAfter().getWhitespace())) {
-            return container.withAfter(container.getAfter().withWhitespace(""));
-        } else {
-            return container;
-        }
+        return container.withAfter(updateSpace(container.getAfter(), spaceAfter));
     }
 
     private static List<Comment> spaceLastCommentSuffix(List<Comment> comments, boolean spaceSuffix) {
@@ -352,13 +335,13 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         if (prop.getPadding().getReceiver() != null) {
             prop = prop.getPadding().withReceiver(prop.getPadding().getReceiver().withAfter(updateSpace(prop.getPadding().getReceiver().getAfter(), false)));
         }
-        if (prop.getVariableDeclarations() != null && !prop.getVariableDeclarations().getVariables().isEmpty()) {
-            prop = prop.withVariableDeclarations(
-                    prop.getVariableDeclarations().withVariables(
-                            ListUtils.mapFirst(prop.getVariableDeclarations().getVariables(),
-                                    v -> spaceBefore(v, false))
-                    )
-            );
+
+        if (!requireNonNull(prop).getVariableDeclarations().getVariables().isEmpty()) {
+            List<J.VariableDeclarations.NamedVariable> variables = ListUtils.mapFirst(prop.getVariableDeclarations().getVariables(),
+                    v -> spaceBefore(v, property.getReceiver() == null));
+            JRightPadded<J.VariableDeclarations> rp = prop.getPadding().getVariableDeclarations();
+            rp = rp.withElement(rp.getElement().withVariables(variables));
+            prop = prop.getPadding().withVariableDeclarations(rp);
         }
         return prop;
     }
@@ -383,13 +366,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
         J.MethodInvocation m = super.visitMethodInvocation(method, p);
 
         boolean noParens = m.getPadding().getArguments().getMarkers().findFirst(OmitParentheses.class).isPresent();
-        boolean infix = m.getMarkers().findFirst(Infix.class).isPresent();
 
-        if (infix && m.getPadding().getSelect() != null) {
-            m = m.getPadding().withSelect(
-                    spaceAfter(m.getPadding().getSelect(), true)
-            );
-        }
         // Defaulted to `false` if parens exist and to `true` if parens are omitted in Kotlin's formatting.
         m = m.getPadding().withArguments(spaceBefore(m.getPadding().getArguments(), false, false));
         if (m.getArguments().isEmpty() || m.getArguments().get(0) instanceof J.Empty) {
@@ -972,7 +949,7 @@ public class SpacesVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     public J.Lambda visitLambda(J.Lambda lambda, P p) {
         J.Lambda l = super.visitLambda(lambda, p);
-        boolean isFunctionType = Objects.requireNonNull(getCursor().getParent()).getValue() instanceof K.FunctionType;
+        boolean isFunctionType = requireNonNull(getCursor().getParent()).getValue() instanceof K.FunctionType;
         if (isFunctionType) {
             return lambda;
         }
