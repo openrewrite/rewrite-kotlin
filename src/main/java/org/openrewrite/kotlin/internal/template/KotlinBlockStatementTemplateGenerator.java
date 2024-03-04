@@ -29,7 +29,7 @@ public class KotlinBlockStatementTemplateGenerator extends BlockStatementTemplat
     }
 
     @Override
-    protected void contextFreeTemplate(Cursor cursor, J j, StringBuilder before, StringBuilder after, J insertionPoint, JavaCoordinates.Mode mode) {
+    protected void contextFreeTemplate(Cursor cursor, J j, StringBuilder before, StringBuilder after) {
         if (!(j instanceof Expression)) {
             throw new IllegalArgumentException(
                     "Kotlin templating is currently only implemented for context-free expressions and not for `" + j.getClass() + "` instances.");
