@@ -286,7 +286,10 @@ public class KotlinParser implements Parser {
             return this;
         }
 
-        Builder addClasspath(Path classpath) {
+        /**
+         * This is an internal API which is subject to removal or change.
+         */
+        public Builder addClasspathEntry(Path classpath) {
             if (this.classpath.isEmpty()) {
                 this.classpath = Collections.singletonList(classpath);
             } else {

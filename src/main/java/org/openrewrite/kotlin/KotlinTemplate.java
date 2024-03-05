@@ -44,7 +44,7 @@ public class KotlinTemplate extends JavaTemplate {
     }
 
     private static KotlinParser.Builder augmentClasspath(KotlinParser.Builder parserBuilder) {
-        return parserBuilder.addClasspath(getTemplateClasspathDir());
+        return parserBuilder.addClasspathEntry(getTemplateClasspathDir());
     }
 
     @Override
