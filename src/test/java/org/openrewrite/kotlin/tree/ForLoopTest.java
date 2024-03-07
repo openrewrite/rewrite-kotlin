@@ -121,6 +121,20 @@ class ForLoopTest implements RewriteTest {
     }
 
     @Test
+    void destructuring() {
+        rewriteRun(
+          kotlin(
+            """
+              fun method (array: Array<Array<String>>) {
+                  for ( (s:String) in array ) {
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void downToWithStep() {
         rewriteRun(
           kotlin(
