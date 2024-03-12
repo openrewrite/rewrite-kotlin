@@ -29,7 +29,7 @@ class RemoveTrailingWhitespaceTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(toRecipe(() -> new RemoveTrailingWhitespaceVisitor<>()));
+        spec.recipe(toRecipe(RemoveTrailingWhitespaceVisitor::new));
     }
 
     @DocumentExample
