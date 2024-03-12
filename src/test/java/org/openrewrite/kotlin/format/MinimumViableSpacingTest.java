@@ -211,7 +211,7 @@ class MinimumViableSpacingTest implements RewriteTest {
     void variableDeclarationsInClass2() {
         rewriteRun(
           spec -> spec.recipes(
-            toRecipe(MinimumViableSpacingVisitor::new)
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
           ),
           kotlin(
             """
@@ -312,7 +312,7 @@ class MinimumViableSpacingTest implements RewriteTest {
         rewriteRun(
           spec -> spec.parser(KotlinParser.builder().classpath("junit-jupiter-api"))
             .recipes(
-              toRecipe(MinimumViableSpacingVisitor::new)
+              toRecipe(() -> new MinimumViableSpacingVisitor<>())
             ),
           kotlin(
             """
@@ -332,7 +332,7 @@ class MinimumViableSpacingTest implements RewriteTest {
     void classConstructor() {
         rewriteRun(
           spec -> spec.recipes(
-            toRecipe(MinimumViableSpacingVisitor::new)
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
           ),
           kotlin(
             """
@@ -351,7 +351,7 @@ class MinimumViableSpacingTest implements RewriteTest {
     void spaceAfterPublic() {
         rewriteRun(
           spec -> spec.recipes(
-            toRecipe(MinimumViableSpacingVisitor::new)
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
           ),
           kotlin(
             """
@@ -369,7 +369,7 @@ class MinimumViableSpacingTest implements RewriteTest {
     void statementWithCommentInPrefix() {
         rewriteRun(
           spec -> spec.recipes(
-            toRecipe(MinimumViableSpacingVisitor::new)
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
           ),
           kotlin(
             """
@@ -387,7 +387,7 @@ class MinimumViableSpacingTest implements RewriteTest {
     void compilationUnitDeclarations() {
         rewriteRun(
           spec -> spec.recipes(
-            toRecipe(MinimumViableSpacingVisitor::new)
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
           ),
           kotlin(
             """
@@ -404,7 +404,7 @@ class MinimumViableSpacingTest implements RewriteTest {
     void blockWithImplicitReturn() {
         rewriteRun(
           spec -> spec.recipes(
-            toRecipe(MinimumViableSpacingVisitor::new)
+            toRecipe(() -> new MinimumViableSpacingVisitor<>())
           ),
           kotlin(
             """
