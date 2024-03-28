@@ -18,7 +18,7 @@ package org.openrewrite.kotlin.internal
 import org.jetbrains.kotlin.ir.IrElement
 import org.openrewrite.kotlin.internal.PsiTreePrinter.TreePrinterContext
 
-open class IrTreePrinterVisitor(val IrPrinter : PsiTreePrinter.IrPrinter) : IrTreeVisitor<TreePrinterContext>() {
+open class IrTreePrinterVisitor(val irPrinter : PsiTreePrinter.IrPrinter) : IrTreeVisitor<TreePrinterContext>() {
 
     override fun visitElement(element: IrElement, ctx: TreePrinterContext) {
         IrPrinter.printElement(element, ctx)

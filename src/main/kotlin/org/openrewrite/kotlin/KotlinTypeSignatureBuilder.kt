@@ -60,7 +60,11 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
     fun signature(type: Any?, parent: Any?): String {
         return when (type) {
             is ConeClassLikeType -> {
-                if (type.typeArguments.isNotEmpty()) parameterizedSignature(type) else classSignature(type)
+                if (type.typeArguments.isNotEmpty()) {
+                    parameterizedSignature(type)
+                } else {
+                    classSignature(type)
+                }
             }
 
             is ConeFlexibleType -> {
@@ -92,11 +96,19 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
             }
 
             is FirAnonymousObject -> {
-                if (type.typeParameters.isNotEmpty()) anonymousParameterizedSignature(type) else anonymousClassSignature(type)
+                if (type.typeParameters.isNotEmpty()) {
+                    anonymousParameterizedSignature(type)
+                } else {
+                    anonymousClassSignature(type)
+                }
             }
 
             is FirClass -> {
-                if (type.typeParameters.isNotEmpty()) parameterizedSignature(type) else classSignature(type)
+                if (type.typeParameters.isNotEmpty()) {
+                    parameterizedSignature(type)
+                } else {
+                    classSignature(type)
+                }
             }
 
             is FirErrorNamedReference -> {
@@ -140,7 +152,11 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
             }
 
             is FirResolvedQualifier -> {
-                if (type.typeArguments.isNotEmpty()) parameterizedSignature(type) else classSignature(type)
+                if (type.typeArguments.isNotEmpty()) {
+                    parameterizedSignature(type)
+                } else {
+                    classSignature(type)
+                }
             }
 
             is FirStringConcatenationCall -> {
@@ -441,7 +457,9 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
     }
 
     private fun resolveImport(type: FirResolvedImport): String {
-        return signature(type.importedFqName) + (if (type.isAllUnder) ".*" else "")
+        return signature(type.importedFqName) + (if (type.isAllUnder) { ".*"
+        } else { ""
+        })
     }
 
     @OptIn(SymbolInternals::class)
@@ -539,14 +557,22 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
             is JavaArrayType -> javaArraySignature(type)
             is JavaPrimitiveType -> javaPrimitiveSignature(type)
             // The classifier is evaluated separately, because the BinaryJavaClass may have type parameters.
-            is JavaClassifierType -> if (type.typeArguments.isNotEmpty()) javaParameterizedSignature(type) else signature(
-                type.classifier
-            )
+            is JavaClassifierType -> if (type.typeArguments.isNotEmpty()) {
+                javaParameterizedSignature(type)
+            } else {
+                signature(
+                    type.classifier
+                )
+            }
 
             is BinaryJavaAnnotation -> signature(type.classId.toSymbol(firSession)?.fir)
-            is BinaryJavaClass -> if (type.typeParameters.isNotEmpty()) javaParameterizedSignature(type) else javaClassSignature(
-                type
-            )
+            is BinaryJavaClass -> if (type.typeParameters.isNotEmpty()) {
+                javaParameterizedSignature(type)
+            } else {
+                javaClassSignature(
+                    type
+                )
+            }
 
             is BinaryJavaTypeParameter -> javaTypeParameterSignature(type)
             is JavaWildcardType -> javaWildCardSignature(type)

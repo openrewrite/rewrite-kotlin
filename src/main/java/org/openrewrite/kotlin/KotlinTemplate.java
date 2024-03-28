@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public class KotlinTemplate extends JavaTemplate {
+public final class KotlinTemplate extends JavaTemplate {
     private KotlinTemplate(boolean contextSensitive, KotlinParser.Builder parser, String code, Set<String> imports, Consumer<String> onAfterVariableSubstitution, Consumer<String> onBeforeParseTemplate) {
         super(
                 code,

@@ -403,7 +403,7 @@ public class ImportLayoutStyle implements KotlinStyle {
         private final List<Block> packagesToFold = new ArrayList<>();
         private int topLevelSymbolsToUseStarImport = 5;
         private int javaStaticsAndEnumsToUseStarImport = 3;
-        private boolean importAliasesSeparately = false;
+        private boolean importAliasesSeparately;
 
         public Builder importAllOthers() {
             blocks.add(new Block.AllOthers(!importAliasesSeparately));
@@ -502,7 +502,7 @@ public class ImportLayoutStyle implements KotlinStyle {
         private final Collection<JavaType.FullyQualified> classpath;
         private final List<JRightPadded<J.Import>> originalImports;
         private final Set<String> jvmClasspathNames = new HashSet<>();
-        private @Nullable Set<String> containsClassNameConflict = null;
+        private @Nullable Set<String> containsClassNameConflict;
 
         ImportLayoutConflictDetection(Collection<JavaType.FullyQualified> classpath, List<JRightPadded<J.Import>> originalImports) {
             this.classpath = classpath;
@@ -688,7 +688,7 @@ public class ImportLayoutStyle implements KotlinStyle {
                     JRightPadded<J.Import> toStar = importGroup.get(0);
                     int threshold = toStar.getElement().isStatic() ? nameCountToUseStarImport : classCountToUseStarImport;
                     boolean starImportExists = importGroup.stream()
-                            .anyMatch(it -> it.getElement().getQualid().getSimpleName().equals("*"));
+                            .anyMatch(it -> "*".equals(it.getElement().getQualid().getSimpleName()));
 
                     // Disable folding imports in Kotlin due to https://github.com/openrewrite/rewrite-kotlin/issues/370
                     boolean disableFoldingImports = true;

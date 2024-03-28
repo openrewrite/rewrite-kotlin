@@ -193,7 +193,10 @@ class KotlinIrTypeMapping(typeCache: JavaTypeCache) : JavaTypeMapping<Any> {
         val irClass = if (type is IrClass) type else (type as IrSimpleType).classifier.owner as IrClass
         val fqn: String = signatureBuilder.classSignature(irClass)
         val fq: JavaType.FullyQualified? = typeCache.get(fqn)
-        var clazz: JavaType.Class? = (if (fq is JavaType.Parameterized) fq.type else fq) as JavaType.Class?
+        var clazz: JavaType.Class? = (if (fq is JavaType.Parameterized) {
+            fq.type
+        } else { fq
+        }) as JavaType.Class?
         if (clazz == null) {
             clazz = JavaType.Class(
                 null,

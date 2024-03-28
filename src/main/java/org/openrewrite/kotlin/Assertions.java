@@ -497,7 +497,7 @@ public final class Assertions {
             Tree value = getCursor().getParentTreeCursor().getValue();
             return value instanceof J.FieldAccess
                    && (ident == ((J.FieldAccess) value).getName() ||
-                       ident == ((J.FieldAccess) value).getTarget() && !((J.FieldAccess) value).getSimpleName().equals("class"));
+                       ident == ((J.FieldAccess) value).getTarget() && !"class".equals(((J.FieldAccess) value).getSimpleName()));
         }
 
         private boolean isBeingDeclared(J.Identifier ident) {
@@ -557,7 +557,7 @@ public final class Assertions {
         }
 
         private boolean isValidated(J.Identifier i) {
-            J j = getCursor().dropParentUntil(it -> it instanceof J).getValue();
+            J j = getCursor().dropParentUntil(J.class::isInstance).getValue();
             // TODO: replace with AnnotationUseSite tree.
             return !(j instanceof K.Return);
         }

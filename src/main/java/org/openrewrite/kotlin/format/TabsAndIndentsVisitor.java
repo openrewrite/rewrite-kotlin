@@ -77,7 +77,7 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
             }
         }
         Iterator<Object> itr = parent.getPath(J.class::isInstance);
-        J next = (itr.hasNext()) ? (J) itr.next() : null;
+        J next = itr.hasNext() ? (J) itr.next() : null;
         if (next != null) {
             preVisit(next, p);
         }
@@ -90,13 +90,7 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
     @Override
     @Nullable
     public J preVisit(@Nullable J tree, P p) {
-        if (tree instanceof JavaSourceFile ||
-                tree instanceof J.Package ||
-                tree instanceof J.Import ||
-                tree instanceof J.ClassDeclaration ||
-                tree instanceof J.Label ||
-                tree instanceof J.DoWhileLoop ||
-                tree instanceof J.ArrayDimension) {
+        if (tree instanceof JavaSourceFile) {
             getCursor().putMessage("indentType", IndentType.ALIGN);
         } else if (tree instanceof J.Block && tree.getMarkers().findFirst(SingleExpressionBlock.class).isPresent()) {
             getCursor().putMessage("indentType", wrappingStyle.getExpressionBodyFunctions().getUseContinuationIndent() ? IndentType.CONTINUATION_INDENT : IndentType.INDENT);
@@ -419,7 +413,7 @@ public class TabsAndIndentsVisitor<P> extends KotlinIsoVisitor<P> {
         }
 
         setCursor(getCursor().getParent());
-        return (after == right.getAfter() && t == right.getElement()) ? right : new JRightPadded<>(t, after, right.getMarkers());
+        return after == right.getAfter() && t == right.getElement() ? right : new JRightPadded<>(t, after, right.getMarkers());
     }
 
     @SuppressWarnings("NullableProblems")

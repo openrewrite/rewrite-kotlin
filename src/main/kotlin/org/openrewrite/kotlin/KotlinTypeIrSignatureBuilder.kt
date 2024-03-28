@@ -150,8 +150,10 @@ class KotlinTypeIrSignatureBuilder : JavaTypeSignatureBuilder {
 
     private fun fileSignature(type: IrFile): String {
         return (if (type.packageFqName.asString()
-                .isNotEmpty()
-        ) type.packageFqName.asString() + "." else "") + type.name.replace(".kt", "Kt")
+            .isNotEmpty()
+        ) { type.packageFqName.asString() + "."
+        } else { ""
+        }) + type.name.replace(".kt", "Kt")
     }
 
     /**

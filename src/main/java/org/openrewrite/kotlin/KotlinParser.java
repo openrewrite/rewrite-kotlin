@@ -252,7 +252,7 @@ public class KotlinParser implements Parser {
         private final List<NamedStyles> styles = new ArrayList<>();
         private String moduleName = "main";
         private KotlinLanguageLevel languageLevel = KotlinLanguageLevel.KOTLIN_1_9;
-        private boolean isKotlinScript = false;
+        private boolean isKotlinScript;
 
         public Builder() {
             super(K.CompilationUnit.class);

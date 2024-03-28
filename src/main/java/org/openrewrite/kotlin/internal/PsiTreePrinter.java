@@ -65,7 +65,7 @@ public class PsiTreePrinter {
     private static final KotlinIrTypeMapping irTypeMapping = new KotlinIrTypeMapping(new JavaTypeCache());
 
     // Set to true to print types and verify, otherwise just verify the parse to print idempotent.
-    private final static boolean printTypes = true;
+    private static final boolean printTypes = true;
 
     private final List<StringBuilder> outputLines;
 
@@ -581,9 +581,9 @@ public class PsiTreePrinter {
         } else if (firElement instanceof FirWhenBranch) {
             FirWhenBranch whenBranch = (FirWhenBranch) firElement;
             return "when(" + firElementToString(whenBranch.getCondition()) + ")" + " -> " + firElementToString(whenBranch.getResult());
-        } else if (firElement.getClass().getSimpleName().equals("FirElseIfTrueCondition")) {
+        } else if ("FirElseIfTrueCondition".equals(firElement.getClass().getSimpleName())) {
             return PsiElementAssociations.Companion.printElement(firElement);
-        } else if (firElement.getClass().getSimpleName().equals("FirSingleExpressionBlock")) {
+        } else if ("FirSingleExpressionBlock".equals(firElement.getClass().getSimpleName())) {
             return PsiElementAssociations.Companion.printElement(firElement);
         }
         return "";

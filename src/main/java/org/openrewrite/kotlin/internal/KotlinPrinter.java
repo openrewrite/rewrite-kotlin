@@ -571,7 +571,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                     keyword = "ushr";
                     break;
                 case Or:
-                    keyword = (binary.getMarkers().findFirst(LogicalComma.class).isPresent()) ? "," : "||";
+                    keyword = binary.getMarkers().findFirst(LogicalComma.class).isPresent() ? "," : "||";
                     break;
                 case And:
                     keyword = "&&";
@@ -656,8 +656,8 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             visit(classDecl.getAnnotations().getKind().getAnnotations(), p);
             visitSpace(classDecl.getAnnotations().getKind().getPrefix(), Space.Location.CLASS_KIND, p);
 
-            KObject KObject = classDecl.getMarkers().findFirst(KObject.class).orElse(null);
-            if (KObject != null) {
+            KObject kObject = classDecl.getMarkers().findFirst(KObject.class).orElse(null);
+            if (kObject != null) {
                 p.append("object");
                 if (!classDecl.getName().getMarkers().findFirst(Implicit.class).isPresent()) {
                     visit(classDecl.getName(), p);
@@ -979,7 +979,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                     p.append("?");
                 }
 
-                if (!method.getName().getSimpleName().equals("<empty>") &&
+                if (!"<empty>".equals(method.getName().getSimpleName()) &&
                     !method.getName().getMarkers().findFirst(Implicit.class).isPresent()) {
                     p.append(".");
                 }
@@ -1179,7 +1179,7 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
                     p.append("val");
                 }
 
-                if (m.getType() == J.Modifier.Type.LanguageExtension && m.getKeyword() != null && m.getKeyword().equals("typealias")) {
+                if (m.getType() == J.Modifier.Type.LanguageExtension && m.getKeyword() != null && "typealias".equals(m.getKeyword())) {
                     isTypeAlias = true;
                 }
             }

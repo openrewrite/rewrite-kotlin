@@ -280,7 +280,11 @@ class KotlinTypeMapping(
                 }
                 variance = when {
                     classifierSymbol.variance == Variance.INVARIANT -> {
-                        if (bounds == null) JavaType.GenericTypeVariable.Variance.INVARIANT else JavaType.GenericTypeVariable.Variance.COVARIANT
+                        if (bounds == null) {
+                            JavaType.GenericTypeVariable.Variance.INVARIANT
+                        } else {
+                            JavaType.GenericTypeVariable.Variance.COVARIANT
+                        }
                     }
 
                     classifierSymbol.variance == Variance.IN_VARIANCE && bounds != null -> {
@@ -351,7 +355,10 @@ class KotlinTypeMapping(
 
             else -> throw UnsupportedOperationException("Unexpected classType: ${type.javaClass}")
         }
-        var clazz: Class? = (if (fq is Parameterized) fq.type else fq) as Class?
+        var clazz: Class? = (if (fq is Parameterized) {
+            fq.type
+        } else { fq
+        }) as Class?
         if (clazz == null) {
             clazz = Class(
                 null,
@@ -563,7 +570,9 @@ class KotlinTypeMapping(
         val returnType = type(function.returnTypeRef)
         val parameterTypes: MutableList<JavaType>? = when {
             function.receiverParameter != null || function.valueParameters.isNotEmpty() -> {
-                ArrayList(function.valueParameters.size + (if (function.receiverParameter != null) 1 else 0))
+                ArrayList(function.valueParameters.size + (if (function.receiverParameter != null) { 1
+                } else { 0
+                }))
             }
 
             else -> null
@@ -684,7 +693,9 @@ class KotlinTypeMapping(
         val paramNames: MutableList<String>? = when {
             sym is FirFunctionSymbol<*> && (receiver != null ||
                     sym.valueParameterSymbols.isNotEmpty()) -> {
-                ArrayList(sym.valueParameterSymbols.size + (if (receiver != null) 1 else 0))
+                ArrayList(sym.valueParameterSymbols.size + (if (receiver != null) { 1
+                } else { 0
+                }))
             }
 
             else -> null

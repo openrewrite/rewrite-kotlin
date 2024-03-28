@@ -114,7 +114,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         assert expression.getExpression() != null;
 
         PsiElement rPar = expression.getLastChild();
-        if (rPar == null || !(")".equals(rPar.getText()))) {
+        if (rPar == null || !")".equals(rPar.getText())) {
             throw new UnsupportedOperationException("TODO");
         }
 
@@ -1937,8 +1937,9 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return J.AssignmentOperation.Type.Division;
         } else if (elementType == KtTokens.PERCEQ) {
             return J.AssignmentOperation.Type.Modulo;
-        } else
+        } else {
             return null;
+        }
     }
 
     @Override
@@ -2260,7 +2261,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 (JavaType.FullyQualified) type(klass)
         );
 
-        return (typeConstraints != null) ? new K.ClassDeclaration(randomId(), Markers.EMPTY, classDeclaration, typeConstraints) : classDeclaration;
+        return typeConstraints != null ? new K.ClassDeclaration(randomId(), Markers.EMPTY, classDeclaration, typeConstraints) : classDeclaration;
     }
 
     @Override
@@ -2750,7 +2751,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 type
         ));
 
-        return (typeConstraints == null) ? methodDeclaration : new K.MethodDeclaration(randomId(), Markers.EMPTY, methodDeclaration, typeConstraints);
+        return typeConstraints == null ? methodDeclaration : new K.MethodDeclaration(randomId(), Markers.EMPTY, methodDeclaration, typeConstraints);
     }
 
     private List<JRightPadded<J.TypeParameter>> mapTypeParameters(KtTypeParameterList list, ExecutionContext data) {
@@ -3353,34 +3354,35 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             }
         }
 
-        if (elementType == KtTokens.PLUS)
+        if (elementType == KtTokens.PLUS) {
             return J.Binary.Type.Addition;
-        else if (elementType == KtTokens.MINUS)
+        } else if (elementType == KtTokens.MINUS) {
             return J.Binary.Type.Subtraction;
-        else if (elementType == KtTokens.MUL)
+        } else if (elementType == KtTokens.MUL) {
             return J.Binary.Type.Multiplication;
-        else if (elementType == KtTokens.DIV)
+        } else if (elementType == KtTokens.DIV) {
             return J.Binary.Type.Division;
-        else if (elementType == KtTokens.EQEQ)
+        } else if (elementType == KtTokens.EQEQ) {
             return J.Binary.Type.Equal;
-        else if (elementType == KtTokens.EXCLEQ)
+        } else if (elementType == KtTokens.EXCLEQ) {
             return J.Binary.Type.NotEqual;
-        else if (elementType == KtTokens.GT)
+        } else if (elementType == KtTokens.GT) {
             return J.Binary.Type.GreaterThan;
-        else if (elementType == KtTokens.GTEQ)
+        } else if (elementType == KtTokens.GTEQ) {
             return J.Binary.Type.GreaterThanOrEqual;
-        else if (elementType == KtTokens.LT)
+        } else if (elementType == KtTokens.LT) {
             return J.Binary.Type.LessThan;
-        else if (elementType == KtTokens.LTEQ)
+        } else if (elementType == KtTokens.LTEQ) {
             return J.Binary.Type.LessThanOrEqual;
-        else if (elementType == KtTokens.PERC)
+        } else if (elementType == KtTokens.PERC) {
             return J.Binary.Type.Modulo;
-        else if (elementType == KtTokens.ANDAND)
+        } else if (elementType == KtTokens.ANDAND) {
             return J.Binary.Type.And;
-        else if (elementType == KtTokens.OROR)
+        } else if (elementType == KtTokens.OROR) {
             return J.Binary.Type.Or;
-        else
+        } else {
             return null;
+        }
     }
 
     @Nullable
@@ -3959,7 +3961,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     }
 
     private static boolean isCRLF(ASTNode node) {
-        return node instanceof PsiErrorElementImpl && node.getText().equals("\r");
+        return node instanceof PsiErrorElementImpl && "\r".equals(node.getText());
     }
 
     private String nodeRangeText(@Nullable ASTNode first, @Nullable ASTNode last) {
@@ -4262,7 +4264,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             if (it instanceof PsiWhiteSpace) {
                 text = replaceCRLF((PsiWhiteSpace) it);
             } else if (it instanceof KDocSection) {
-                text = KDocSectionToString((KDocSection) it);
+                text = kDocSectionToString((KDocSection) it);
             }
 
             sb.append(text);
@@ -4275,7 +4277,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         return Space.build("", comments);
     }
 
-    private String KDocSectionToString(KDocSection kDocSection) {
+    private String kDocSectionToString(KDocSection kDocSection) {
         StringBuilder sb = new StringBuilder();
         Iterator<PsiElement> iterator = PsiUtilsKt.getAllChildren(kDocSection).iterator();
         while (iterator.hasNext()) {
