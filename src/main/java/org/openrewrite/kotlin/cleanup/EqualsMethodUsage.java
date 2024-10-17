@@ -18,7 +18,10 @@ package org.openrewrite.kotlin.cleanup;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.*;
+import org.openrewrite.Cursor;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.Space;
@@ -37,8 +40,6 @@ import static org.openrewrite.Tree.randomId;
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class EqualsMethodUsage extends Recipe {
-
-    private static J.@Nullable Binary equalsBinaryTemplate;
 
     @Override
     public String getDisplayName() {
@@ -68,6 +69,9 @@ public class EqualsMethodUsage extends Recipe {
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new KotlinVisitor<ExecutionContext>() {
+
+            private J.@Nullable Binary equalsBinaryTemplate;
+
             @Override
             public J visitUnary(J.Unary unary, ExecutionContext ctx) {
                 unary = (J.Unary) super.visitUnary(unary, ctx);
@@ -110,31 +114,31 @@ public class EqualsMethodUsage extends Recipe {
                 }
                 return method;
             }
-        };
-    }
 
-    @SuppressWarnings("all")
-    private static J.Binary buildEqualsBinary(Expression left, Expression right) {
-        if (equalsBinaryTemplate == null) {
-            K.CompilationUnit kcu = KotlinParser.builder().build()
-                    .parse("fun method(a : String, b : String) {val isSame = a == b}")
-                    .map(K.CompilationUnit.class::cast)
-                    .findFirst()
-                    .get();
+            @SuppressWarnings("all")
+            private J.Binary buildEqualsBinary(Expression left, Expression right) {
+                if (equalsBinaryTemplate == null) {
+                    K.CompilationUnit kcu = KotlinParser.builder().build()
+                            .parse("fun method(a : String, b : String) {val isSame = a == b}")
+                            .map(K.CompilationUnit.class::cast)
+                            .findFirst()
+                            .get();
 
-            equalsBinaryTemplate = new KotlinVisitor<AtomicReference<J.Binary>>() {
-                @Override
-                public J visitBinary(J.Binary binary, AtomicReference<J.Binary> target) {
-                    target.set(binary);
-                    return binary;
+                    equalsBinaryTemplate = new KotlinVisitor<AtomicReference<J.Binary>>() {
+                        @Override
+                        public J visitBinary(J.Binary binary, AtomicReference<J.Binary> target) {
+                            target.set(binary);
+                            return binary;
+                        }
+                    }.reduce(kcu, new AtomicReference<J.Binary>()).get();
                 }
-            }.reduce(kcu, new AtomicReference<J.Binary>()).get();
-        }
 
-        Space rhsPrefix = right.getPrefix();
-        if (rhsPrefix.getWhitespace().isEmpty()) {
-            rhsPrefix = rhsPrefix.withWhitespace(" ");
-        }
-        return equalsBinaryTemplate.withLeft(left.withPrefix(left.getPrefix())).withRight(right.withPrefix(rhsPrefix));
+                Space rhsPrefix = right.getPrefix();
+                if (rhsPrefix.getWhitespace().isEmpty()) {
+                    rhsPrefix = rhsPrefix.withWhitespace(" ");
+                }
+                return equalsBinaryTemplate.withLeft(left.withPrefix(left.getPrefix())).withRight(right.withPrefix(rhsPrefix));
+            }
+        };
     }
 }
