@@ -19,6 +19,7 @@ import kotlin.Pair;
 import kotlin.Unit;
 import kotlin.annotation.AnnotationTarget;
 import kotlin.jvm.functions.Function1;
+import kotlin.random.Random;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.intellij.lang.annotations.Language;
@@ -101,6 +102,7 @@ import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.LINK_VIA_SIGNATURES;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
+import static org.openrewrite.java.JavaParser.resolveSourcePathFromSourceText;
 
 @SuppressWarnings("CommentedOutCode")
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -114,6 +116,9 @@ public class KotlinParser implements Parser {
 
     @Nullable
     private final Collection<Path> classpath;
+
+    @Nullable
+    private final Collection<Input> dependsOn;
 
     private final List<NamedStyles> styles;
     private final boolean logCompilationWarningsAndErrors;
@@ -139,7 +144,7 @@ public class KotlinParser implements Parser {
                             String pkg = packageMatcher.find() ? packageMatcher.group(1).replace('.', '/') + "/" : "";
 
                             String className = Optional.ofNullable(simpleName.apply(sourceFile))
-                                                       .orElse(Long.toString(System.nanoTime())) + ".kt";
+                                    .orElse(Long.toString(System.nanoTime())) + ".kt";
 
                             Path path = Paths.get(pkg + className);
                             return new Input(
@@ -162,10 +167,12 @@ public class KotlinParser implements Parser {
         // TODO: FIR and disposable may not be necessary using the IR.
         Disposable disposable = Disposer.newDisposable();
         CompiledSource compilerCus;
+        List<Input> acceptedInputs = dependsOn == null ? new ArrayList<>() : new ArrayList<>(dependsOn);
+        acceptedInputs.addAll(acceptedInputs(sources).collect(Collectors.toList()));
         try {
-            compilerCus = parse(acceptedInputs(sources).collect(Collectors.toList()), disposable, pctx);
+            compilerCus = parse(acceptedInputs, disposable, pctx);
         } catch (Exception e) {
-            return acceptedInputs(sources).map(input -> ParseError.build(this, input, relativeTo, ctx, e));
+            return acceptedInputs.stream().map(input -> ParseError.build(this, input, relativeTo, ctx, e));
         }
 
         FirSession firSession = compilerCus.getFirSession();
@@ -201,7 +208,8 @@ public class KotlinParser implements Parser {
                                     return (SourceFile) null;
                                 })
                                 .limit(1))
-                .filter(Objects::nonNull);
+                .filter(Objects::nonNull)
+                .filter(source -> !source.getSourcePath().getFileName().toString().matches("dependsOn-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.kt"));
     }
 
     @Override
@@ -252,6 +260,7 @@ public class KotlinParser implements Parser {
         @Nullable
         private Collection<Path> classpath = emptyList();
 
+        private Collection<Input> dependsOn = emptyList();
         private JavaTypeCache typeCache = new JavaTypeCache();
         private boolean logCompilationWarningsAndErrors;
         private final List<NamedStyles> styles = new ArrayList<>();
@@ -303,6 +312,13 @@ public class KotlinParser implements Parser {
             return this;
         }
 
+        public Builder dependsOn(@Language("kotlin") String... inputsAsStrings) {
+            this.dependsOn = Arrays.stream(inputsAsStrings)
+                    .map(input -> Input.fromString(Paths.get("dependsOn-" + UUID.randomUUID() + ".kt"), input))
+                    .collect(toList());
+            return this;
+        }
+
         public Builder typeCache(JavaTypeCache typeCache) {
             this.typeCache = typeCache;
             return this;
@@ -335,7 +351,7 @@ public class KotlinParser implements Parser {
 
         @Override
         public KotlinParser build() {
-            return new KotlinParser(resolvedClasspath(), styles, logCompilationWarningsAndErrors, typeCache, moduleName, languageLevel, isKotlinScript);
+            return new KotlinParser(resolvedClasspath(), dependsOn, styles, logCompilationWarningsAndErrors, typeCache, moduleName, languageLevel, isKotlinScript);
         }
 
         @Override
