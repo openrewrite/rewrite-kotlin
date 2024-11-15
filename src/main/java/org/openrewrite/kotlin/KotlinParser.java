@@ -19,7 +19,6 @@ import kotlin.Pair;
 import kotlin.Unit;
 import kotlin.annotation.AnnotationTarget;
 import kotlin.jvm.functions.Function1;
-import kotlin.random.Random;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import org.intellij.lang.annotations.Language;
@@ -102,7 +101,6 @@ import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.LINK_VIA_SIGNATURES;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
-import static org.openrewrite.java.JavaParser.resolveSourcePathFromSourceText;
 
 @SuppressWarnings("CommentedOutCode")
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
