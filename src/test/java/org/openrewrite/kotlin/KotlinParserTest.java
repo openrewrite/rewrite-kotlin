@@ -25,9 +25,9 @@ class KotlinParserTest implements RewriteTest {
 
     @Language("kotlin")
     private String myClassDefinition = """
-        package foo.bar
+      package foo.bar
 
-        class MyClass
+      class MyClass
       """;
 
     @Test

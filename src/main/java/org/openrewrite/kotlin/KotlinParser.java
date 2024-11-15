@@ -101,6 +101,7 @@ import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.LINK_VIA_SIGNATURES;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
+import static org.openrewrite.kotlin.KotlinParser.SourcePathFromSourceTextResolver.*;
 
 @SuppressWarnings("CommentedOutCode")
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -207,7 +208,7 @@ public class KotlinParser implements Parser {
                                 })
                                 .limit(1))
                 .filter(Objects::nonNull)
-                .filter(source -> !source.getSourcePath().getFileName().toString().matches("dependsOn-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.kt"));
+                .filter(source -> !source.getSourcePath().getFileName().toString().startsWith("dependsOn-"));
     }
 
     @Override
@@ -312,7 +313,7 @@ public class KotlinParser implements Parser {
 
         public Builder dependsOn(@Language("kotlin") String... inputsAsStrings) {
             this.dependsOn = Arrays.stream(inputsAsStrings)
-                    .map(input -> Input.fromString(Paths.get("dependsOn-" + UUID.randomUUID() + ".kt"), input))
+                    .map(input -> Input.fromString(determinePath("dependsOn-", input), input))
                     .collect(toList());
             return this;
         }
@@ -622,5 +623,30 @@ public class KotlinParser implements Parser {
         }
 
         return cRLFIndices;
+    }
+
+    static class SourcePathFromSourceTextResolver {
+        static Pattern packagePattern = Pattern.compile("^package\\s+(.+)\\s");
+        static Pattern classPattern = Pattern.compile("(class|interface|enum class)\\s*(<[^>]*>)?\\s+(\\w+)");
+        static Pattern publicClassPattern = Pattern.compile("public\\s+" + classPattern.pattern());
+
+        private static Optional<String> matchClassPattern(Pattern pattern, String source) {
+            Matcher classMatcher = pattern.matcher(source);
+            if (classMatcher.find()) {
+                return Optional.of(classMatcher.group(3));
+            }
+            return Optional.empty();
+        }
+
+        static Path determinePath(String prefix, String sourceCode) {
+            String className = matchClassPattern(publicClassPattern, sourceCode)
+                    .orElseGet(() -> matchClassPattern(classPattern, sourceCode).orElse(Long.toString(System.nanoTime())));
+
+            Matcher packageMatcher = packagePattern.matcher(sourceCode);
+            String pkg = packageMatcher.find() ? packageMatcher.group(1).replace('.', '/') + "/" : "";
+
+            return Paths.get(pkg, prefix + className + ".kt");
+        }
+
     }
 }
