@@ -15,7 +15,6 @@
  */
 package org.openrewrite.kotlin;
 
-import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.test.RewriteTest;
 
@@ -23,17 +22,14 @@ import static org.openrewrite.kotlin.Assertions.kotlin;
 
 class KotlinParserTest implements RewriteTest {
 
-    @Language("kotlin")
-    private String myClassDefinition = """
-      package foo.bar
-
-      class MyClass
-      """;
-
     @Test
     void classDefinitionFromDependsOn() {
         rewriteRun(
-          spec -> spec.parser(KotlinParser.builder().dependsOn(myClassDefinition)),
+          spec -> spec.parser(KotlinParser.builder().dependsOn("""
+            package foo.bar
+
+            class MyClass
+            """)),
           kotlin(
             """
               import foo.bar.MyClass
@@ -43,4 +39,5 @@ class KotlinParserTest implements RewriteTest {
           )
         );
     }
+
 }

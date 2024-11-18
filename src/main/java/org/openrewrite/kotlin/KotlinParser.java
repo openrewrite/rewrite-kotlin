@@ -65,6 +65,7 @@ import org.jetbrains.kotlin.resolve.jvm.platform.JvmPlatformAnalyzerServices;
 import org.jetbrains.kotlin.utils.PathUtil;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.*;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaSourceSet;
@@ -87,7 +88,6 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -101,7 +101,7 @@ import static org.jetbrains.kotlin.config.CommonConfigurationKeys.*;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.DO_NOT_CLEAR_BINDING_CONTEXT;
 import static org.jetbrains.kotlin.config.JVMConfigurationKeys.LINK_VIA_SIGNATURES;
 import static org.jetbrains.kotlin.incremental.IncrementalFirJvmCompilerRunnerKt.configureBaseRoots;
-import static org.openrewrite.kotlin.KotlinParser.SourcePathFromSourceTextResolver.*;
+import static org.openrewrite.kotlin.KotlinParser.SourcePathFromSourceTextResolver.determinePath;
 
 @SuppressWarnings("CommentedOutCode")
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -117,7 +117,7 @@ public class KotlinParser implements Parser {
     private final Collection<Path> classpath;
 
     @Nullable
-    private final Collection<Input> dependsOn;
+    private final List<Input> dependsOn;
 
     private final List<NamedStyles> styles;
     private final boolean logCompilationWarningsAndErrors;
@@ -143,7 +143,7 @@ public class KotlinParser implements Parser {
                             String pkg = packageMatcher.find() ? packageMatcher.group(1).replace('.', '/') + "/" : "";
 
                             String className = Optional.ofNullable(simpleName.apply(sourceFile))
-                                    .orElse(Long.toString(System.nanoTime())) + ".kt";
+                                                       .orElse(Long.toString(System.nanoTime())) + ".kt";
 
                             Path path = Paths.get(pkg + className);
                             return new Input(
@@ -166,8 +166,7 @@ public class KotlinParser implements Parser {
         // TODO: FIR and disposable may not be necessary using the IR.
         Disposable disposable = Disposer.newDisposable();
         CompiledSource compilerCus;
-        List<Input> acceptedInputs = dependsOn == null ? new ArrayList<>() : new ArrayList<>(dependsOn);
-        acceptedInputs.addAll(acceptedInputs(sources).collect(Collectors.toList()));
+        List<Input> acceptedInputs = ListUtils.concatAll(dependsOn, acceptedInputs(sources).collect(toList()));
         try {
             compilerCus = parse(acceptedInputs, disposable, pctx);
         } catch (Exception e) {
@@ -259,7 +258,7 @@ public class KotlinParser implements Parser {
         @Nullable
         private Collection<Path> classpath = emptyList();
 
-        private Collection<Input> dependsOn = emptyList();
+        private List<Input> dependsOn = emptyList();
         private JavaTypeCache typeCache = new JavaTypeCache();
         private boolean logCompilationWarningsAndErrors;
         private final List<NamedStyles> styles = new ArrayList<>();
@@ -626,9 +625,9 @@ public class KotlinParser implements Parser {
     }
 
     static class SourcePathFromSourceTextResolver {
-        static Pattern packagePattern = Pattern.compile("^package\\s+(.+)\\s");
-        static Pattern classPattern = Pattern.compile("(class|interface|enum class)\\s*(<[^>]*>)?\\s+(\\w+)");
-        static Pattern publicClassPattern = Pattern.compile("public\\s+" + classPattern.pattern());
+        private static final Pattern packagePattern = Pattern.compile("^package\\s+(\\S+)");
+        private static final Pattern classPattern = Pattern.compile("(class|interface|enum class)\\s*(<[^>]*>)?\\s+(\\w+)");
+        private static final Pattern publicClassPattern = Pattern.compile("public\\s+" + classPattern.pattern());
 
         private static Optional<String> matchClassPattern(Pattern pattern, String source) {
             Matcher classMatcher = pattern.matcher(source);
@@ -640,13 +639,11 @@ public class KotlinParser implements Parser {
 
         static Path determinePath(String prefix, String sourceCode) {
             String className = matchClassPattern(publicClassPattern, sourceCode)
-                    .orElseGet(() -> matchClassPattern(classPattern, sourceCode).orElse(Long.toString(System.nanoTime())));
-
+                    .orElseGet(() -> matchClassPattern(classPattern, sourceCode)
+                            .orElse(Long.toString(System.nanoTime())));
             Matcher packageMatcher = packagePattern.matcher(sourceCode);
             String pkg = packageMatcher.find() ? packageMatcher.group(1).replace('.', '/') + "/" : "";
-
             return Paths.get(pkg, prefix + className + ".kt");
         }
-
     }
 }
