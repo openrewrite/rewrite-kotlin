@@ -343,7 +343,7 @@ public class KotlinTypeMappingTest {
         JavaType.Class c = (JavaType.Class) firstMethodParameter("javaType");
         assertThat(c.getFullyQualifiedName()).isEqualTo("java.lang.Object");
         assertThat(c.getSupertype()).isNull();
-        assertThat(c.getMethods()).hasSize(13);
+        assertThat(c.getMethods()).hasSize(12);
 
         // Assert generic type parameters have the correct type bounds.
         JavaType.Method method = c.getMethods().stream().filter(it -> "getClass".equals(it.getName())).findFirst().orElse(null);
