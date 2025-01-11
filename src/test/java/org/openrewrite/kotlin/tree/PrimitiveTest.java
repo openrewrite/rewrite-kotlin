@@ -27,7 +27,7 @@ class PrimitiveTest implements RewriteTest {
 
     @Issue("https://github.com/openrewrite/rewrite-spring/pull/663")
     @Test
-    void intValueIsInteger() {
+    void intZeroValueIsInteger() {
         rewriteRun(
           kotlin(
             """
@@ -45,4 +45,26 @@ class PrimitiveTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-spring/pull/663")
+    @Test
+    void longZeroValueIsLong() {
+        rewriteRun(
+          kotlin(
+            """
+              fun foo() {
+                  val bar = 0L
+              }
+              """,
+            spec -> spec.afterRecipe(cu -> {
+                J.MethodDeclaration foo = (J.MethodDeclaration) cu.getStatements().get(0);
+                J.VariableDeclarations bar = (J.VariableDeclarations) foo.getBody().getStatements().get(0);
+                J.Literal zero = (J.Literal) bar.getVariables().get(0).getInitializer();
+                assertThat(zero.getType().getKeyword()).isEqualTo("long");
+                assertThat(zero.getValue()).isInstanceOf(Long.class);
+            })
+          )
+        );
+    }
+
 }
