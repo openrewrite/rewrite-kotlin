@@ -58,4 +58,64 @@ class MethodMatcherTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void matchesMethodPatternOfJavaMethodWithAnyArgument() {
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new KotlinIsoVisitor<>() {
+              private static final MethodMatcher methodMatcher = new MethodMatcher("java.lang.Math max(..)");
+              @Override
+              public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext p) {
+                  if (methodMatcher.matches(method)) {
+                      return SearchResult.found(method);
+                  }
+                  return super.visitMethodInvocation(method, p);
+              }
+          })),
+          kotlin(
+            """
+              import java.lang.Math
+              fun max(a: Int, b: Int) : Int {
+                  return Math.max(a, b)
+              }
+              """,
+            """
+              import java.lang.Math
+              fun max(a: Int, b: Int) : Int {
+                  return /*~~>*/Math.max(a, b)
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void matchesMethodPatternOfJavaMethodWithIntArgument() {
+        rewriteRun(
+          spec -> spec.recipe(toRecipe(() -> new KotlinIsoVisitor<>() {
+              private static final MethodMatcher methodMatcher = new MethodMatcher("java.lang.Math max(int, int)");
+              @Override
+              public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext p) {
+                  if (methodMatcher.matches(method)) {
+                      return SearchResult.found(method);
+                  }
+                  return super.visitMethodInvocation(method, p);
+              }
+          })),
+          kotlin(
+            """
+              import java.lang.Math
+              fun max(a: Int, b: Int) : Int {
+                  return Math.max(a, b)
+              }
+              """,
+            """
+              import java.lang.Math
+              fun max(a: Int, b: Int) : Int {
+                  return /*~~>*/Math.max(a, b)
+              }
+              """
+          )
+        );
+    }
 }
