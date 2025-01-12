@@ -787,7 +787,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         String value = maybeAdjustCRLF(entry);
         boolean quoted = entry.getPrevSibling().getNode().getElementType() == KtTokens.OPEN_QUOTE &&
-                         entry.getNextSibling().getNode().getElementType() == KtTokens.CLOSING_QUOTE;
+                entry.getNextSibling().getNode().getElementType() == KtTokens.CLOSING_QUOTE;
 
         String valueSource = quoted ? "\"" + value + "\"" : value;
 
@@ -827,8 +827,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         TypeTree typeTree = (TypeTree) requireNonNull(innerType).accept(this, data);
         Set<PsiElement> consumedSpaces = new HashSet<>();
         if (innerType.getNextSibling() != null &&
-            isSpace(innerType.getNextSibling().getNode()) &&
-            !(innerType instanceof KtNullableType)) {
+                isSpace(innerType.getNextSibling().getNode()) &&
+                !(innerType instanceof KtNullableType)) {
             consumedSpaces.add(innerType.getNextSibling());
         }
 
@@ -2569,8 +2569,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         PsiElement first = PsiTreeUtil.skipWhitespacesAndCommentsForward(importPsi);
         PsiElement last = findLastChild(importDirective, psi -> !(psi instanceof KtImportAlias) &&
-                                                                !isSpace(psi.getNode()) &&
-                                                                psi.getNode().getElementType() != KtTokens.SEMICOLON);
+                !isSpace(psi.getNode()) &&
+                psi.getNode().getElementType() != KtTokens.SEMICOLON);
 
         String text = nodeRangeText(getNodeOrNull(first), getNodeOrNull(last));
         TypeTree reference = TypeTree.build(text, '`');
@@ -3098,7 +3098,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         KtStringTemplateEntry[] entries = expression.getEntries();
         boolean hasStringTemplateEntry = Arrays.stream(entries).anyMatch(x ->
                 x instanceof KtBlockStringTemplateEntry ||
-                x instanceof KtSimpleNameStringTemplateEntry);
+                        x instanceof KtSimpleNameStringTemplateEntry);
 
         if (hasStringTemplateEntry) {
             String delimiter = expression.getFirstChild().getText();
@@ -3139,8 +3139,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         PsiElement openQuote = expression.getFirstChild();
         PsiElement closingQuota = expression.getLastChild();
         if (openQuote == null || closingQuota == null ||
-            openQuote.getNode().getElementType() != KtTokens.OPEN_QUOTE ||
-            closingQuota.getNode().getElementType() != KtTokens.CLOSING_QUOTE) {
+                openQuote.getNode().getElementType() != KtTokens.OPEN_QUOTE ||
+                closingQuota.getNode().getElementType() != KtTokens.CLOSING_QUOTE) {
             throw new UnsupportedOperationException("This should never happen");
         }
 
@@ -3642,15 +3642,51 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     }
 
     private JavaType.@Nullable Variable variableType(PsiElement psi, @Nullable FirElement parent) {
-        return psiElementAssociations.variableType(psi, parent);
+        JavaType.Variable psiType = psiElementAssociations.variableType(psi, parent);
+        return psiType == null ? null : psiType.withType(mapPrimitiveType(psiType.getType()));
     }
 
     private JavaType.@Nullable Method methodDeclarationType(PsiElement psi) {
-        return psiElementAssociations.methodDeclarationType(psi);
+        JavaType.Method psiType = psiElementAssociations.methodDeclarationType(psi);
+        return psiType == null ? null : psiType.withParameterTypes(mapPrimitiveTypes(psiType.getParameterTypes()));
     }
 
     private JavaType.@Nullable Method methodInvocationType(PsiElement psi) {
-        return psiElementAssociations.methodInvocationType(psi);
+        JavaType.Method psiType = psiElementAssociations.methodInvocationType(psi);
+        return psiType == null ? null : psiType.withParameterTypes(mapPrimitiveTypes(psiType.getParameterTypes()));
+    }
+
+    private static List<JavaType> mapPrimitiveTypes(List<JavaType> types) {
+        return ListUtils.map(types, KotlinTreeParserVisitor::mapPrimitiveType);
+    }
+
+    private static JavaType mapPrimitiveType(JavaType type) {
+        if (type instanceof JavaType.Class) {
+            String fullyQualifiedName = ((JavaType.Class) type).getFullyQualifiedName();
+            switch (fullyQualifiedName) {
+                case "kotlin.Boolean":
+                    return JavaType.Primitive.Boolean;
+                case "kotlin.Byte":
+                    return JavaType.Primitive.Byte;
+                case "kotlin.Char":
+                    return JavaType.Primitive.Char;
+                case "kotlin.Double":
+                    return JavaType.Primitive.Double;
+                case "kotlin.Float":
+                    return JavaType.Primitive.Float;
+                case "kotlin.Int":
+                    return JavaType.Primitive.Int;
+                case "kotlin.Long":
+                    return JavaType.Primitive.Long;
+                case "kotlin.Short":
+                    return JavaType.Primitive.Short;
+                case "kotlin.String":
+                    return JavaType.Primitive.String;
+                case "kotlin.Void":
+                    return JavaType.Primitive.Void;
+            }
+        }
+        return type;
     }
 
     /*====================================================================
@@ -3673,7 +3709,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
     private J.Identifier createIdentifier(String name, Space prefix,
                                           @Nullable JavaType type,
-            JavaType.@Nullable Variable fieldType) {
+                                          JavaType.@Nullable Variable fieldType) {
         Markers markers = Markers.EMPTY;
         String updated = name;
         if (name.startsWith("`")) {
@@ -3914,10 +3950,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
     private static boolean isSpace(ASTNode node) {
         IElementType elementType = node.getElementType();
         return elementType == KtTokens.WHITE_SPACE ||
-               elementType == KtTokens.BLOCK_COMMENT ||
-               elementType == KtTokens.EOL_COMMENT ||
-               elementType == KtTokens.DOC_COMMENT ||
-               isCRLF(node);
+                elementType == KtTokens.BLOCK_COMMENT ||
+                elementType == KtTokens.EOL_COMMENT ||
+                elementType == KtTokens.DOC_COMMENT ||
+                isCRLF(node);
     }
 
     private static boolean isLPAR(PsiElement element) {
@@ -4116,7 +4152,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
                 );
                 superTypes.add(padRight(delegationCall, suffix(superTypeCallEntry)));
             } else if (superTypeListEntry instanceof KtSuperTypeEntry ||
-                       superTypeListEntry instanceof KtDelegatedSuperTypeEntry) {
+                    superTypeListEntry instanceof KtDelegatedSuperTypeEntry) {
                 TypeTree typeTree = (TypeTree) superTypeListEntry.accept(this, data);
 
                 if (i == 0) {
@@ -4207,7 +4243,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         if (elementType == KtTokens.WHITE_SPACE) {
             return Space.build(maybeAdjustCRLF(element), emptyList());
         } else if (elementType == KtTokens.EOL_COMMENT ||
-                   elementType == KtTokens.BLOCK_COMMENT) {
+                elementType == KtTokens.BLOCK_COMMENT) {
             String nodeText = maybeAdjustCRLF(element);
             boolean isBlockComment = ((PsiComment) element).getTokenType() == KtTokens.BLOCK_COMMENT;
             String comment = isBlockComment ? nodeText.substring(2, nodeText.length() - 2) : nodeText.substring(2);
