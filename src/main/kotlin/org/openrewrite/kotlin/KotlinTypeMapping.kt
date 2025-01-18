@@ -25,7 +25,6 @@ import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.analysis.checkers.getContainingClassSymbol
 import org.jetbrains.kotlin.fir.analysis.checkers.modality
-import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirPrimaryConstructor
 import org.jetbrains.kotlin.fir.declarations.utils.isLocal
@@ -39,8 +38,8 @@ import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.FirSuperReference
 import org.jetbrains.kotlin.fir.references.toResolvedBaseSymbol
 import org.jetbrains.kotlin.fir.resolve.calls.FirSyntheticFunctionSymbol
-import org.jetbrains.kotlin.fir.resolve.providers.toSymbol
 import org.jetbrains.kotlin.fir.resolve.toFirRegularClass
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.*
@@ -75,7 +74,7 @@ class KotlinTypeMapping(
     private val signatureBuilder: KotlinTypeSignatureBuilder = KotlinTypeSignatureBuilder(firSession, firFile)
 
     override fun type(type: Any?): JavaType {
-        if (type == null || type is FirErrorTypeRef || type is FirExpression && type.typeRef is FirErrorTypeRef || type is FirResolvedQualifier && type.classId == null) {
+        if (type.isInvalid()) {
             return Unknown.getInstance()
         }
 
@@ -89,7 +88,7 @@ class KotlinTypeMapping(
     }
 
     fun type(type: Any?, parent: Any?): JavaType? {
-        if (type == null || type is FirErrorTypeRef || type is FirExpression && type.typeRef is FirErrorTypeRef || type is FirResolvedQualifier && type.classId == null) {
+        if (type.isInvalid()) {
             return Unknown.getInstance()
         }
         val signature = signatureBuilder.signature(type, parent)
@@ -99,6 +98,11 @@ class KotlinTypeMapping(
         }
         return type(type, parent, signature)
     }
+
+    private fun Any?.isInvalid() = this == null
+            || this is FirErrorTypeRef
+            || this is FirExpression && this.resolvedType is ConeErrorType
+            || this is FirResolvedQualifier && classId == null
 
     @OptIn(SymbolInternals::class)
     fun type(classId: ClassId?, parent: Any?): JavaType? {
@@ -201,11 +205,11 @@ class KotlinTypeMapping(
             }
 
             is FirVariableAssignment -> {
-                type(type.lValue.typeRef, parent, signature)
+                type(type.lValue.resolvedType, parent, signature)
             }
 
             is FirExpression -> {
-                type(type.typeRef, parent, signature)
+                type(type.resolvedType, parent, signature)
             }
 
             is JavaElement -> {
@@ -225,7 +229,10 @@ class KotlinTypeMapping(
         }
 
         // If the symbol is not resolvable we return a NEW ShallowClass to prevent caching on a potentially resolvable class type.
-        val sym = type.importedFqName!!.topLevelClassAsmType().classId.toSymbol(firSession) ?: return ShallowClass.build(signature)
+        val sym =
+            type.importedFqName!!.topLevelClassAsmType().classId.toSymbol(firSession) ?: return ShallowClass.build(
+                signature
+            )
         return type(sym.fir, signature)
     }
 
@@ -312,7 +319,7 @@ class KotlinTypeMapping(
         val firClass = when (type) {
             is FirClass -> type
             is FirResolvedQualifier -> {
-                val ref = type.typeRef.toRegularClassSymbol(firSession)
+                val ref = type.resolvedType.toRegularClassSymbol(firSession)
                 if (type.typeArguments.isNotEmpty()) {
                     params = type.typeArguments
                 }
@@ -326,7 +333,7 @@ class KotlinTypeMapping(
             is ConeClassLikeType -> {
                 if (type.toSymbol(firSession) is FirTypeAliasSymbol) {
                     return classType(
-                        (type.toSymbol(firSession) as FirTypeAliasSymbol).resolvedExpandedTypeRef.type,
+                        (type.toSymbol(firSession) as FirTypeAliasSymbol).resolvedExpandedTypeRef.coneType,
                         parent,
                         signature
                     )
@@ -352,7 +359,7 @@ class KotlinTypeMapping(
             else -> throw UnsupportedOperationException("Unexpected classType: ${type.javaClass}")
         }
         var clazz: Class? = (if (fq is Parameterized) fq.type else fq) as Class?
-        if (clazz == null) {
+        if (clazz === null) {
             clazz = Class(
                 null,
                 mapToFlagsBitmap(firClass.visibility, firClass.modality(), firClass.isStatic),
@@ -480,7 +487,7 @@ class KotlinTypeMapping(
         // The signature for a ConeClassLikeType may be aliases without type parameters.
         if (firClass.typeParameters.isNotEmpty() && signature.contains("<")) {
             var pt = typeCache.get<Parameterized>(signature)
-            if (pt == null) {
+            if (pt === null) {
                 val typeParameters: MutableList<JavaType> = ArrayList(firClass.typeParameters.size)
                 pt = Parameterized(null, null, null)
                 typeCache.put(signature, pt)
@@ -506,6 +513,7 @@ class KotlinTypeMapping(
                     else -> null
                 }
             }
+
             else -> null
         }
         return when (type) {
@@ -517,7 +525,7 @@ class KotlinTypeMapping(
     fun methodDeclarationType(function: FirFunction, parent: Any?): Method {
         val signature = signatureBuilder.methodSignature(function, parent)
         val existing = typeCache.get<Method>(signature)
-        if (existing != null) {
+        if (existing !== null) {
             return existing
         }
         return methodDeclarationType(function, parent, signature)
@@ -593,7 +601,7 @@ class KotlinTypeMapping(
     ): Method? {
         val signature = signatureBuilder.javaMethodSignature(javaMethod)
         val existing = typeCache.get<Method>(signature)
-        if (existing != null) {
+        if (existing !== null) {
             return existing
         }
         return methodDeclarationType(javaMethod, declaringType, signature)
@@ -666,12 +674,12 @@ class KotlinTypeMapping(
     }
 
     fun methodInvocationType(fir: FirFunctionCall): Method? {
-        if (fir.typeRef is FirErrorTypeRef) {
+        if (fir.resolvedType is ConeErrorType) {
             return null
         }
         val signature = signatureBuilder.methodCallSignature(fir)
         val existing = typeCache.get<Method>(signature)
-        if (existing != null) {
+        if (existing !== null) {
             return existing
         }
         return methodInvocationType(fir, signature)
@@ -715,6 +723,7 @@ class KotlinTypeMapping(
             when {
                 sym is FirConstructorSymbol ||
                         sym is FirSyntheticFunctionSymbol && sym.origin == FirDeclarationOrigin.SamConstructor -> "<constructor>"
+
                 else -> (sym as FirNamedFunctionSymbol).name.asString()
             },
             null,
@@ -756,19 +765,19 @@ class KotlinTypeMapping(
                     declaringType = createShallowClass("kotlin.Library")
                 }
             } else if (resolvedSymbol.origin == FirDeclarationOrigin.SamConstructor) {
-                declaringType = when(val type = type(function.typeRef)) {
+                declaringType = when (val type = type(function.resolvedType)) {
                     is Class -> type
                     is Parameterized -> type.type
                     else -> Unknown.getInstance()
                 }
             }
         } else {
-            declaringType = TypeUtils.asFullyQualified(type(function.typeRef))
+            declaringType = TypeUtils.asFullyQualified(type(function.resolvedType))
         }
         if (declaringType == null) {
             declaringType = TypeUtils.asFullyQualified(type(firFile))
         }
-        val returnType = type(function.typeRef)
+        val returnType = type(function.resolvedType)
 
         if (function.toResolvedCallableSymbol()?.receiverParameter != null) {
             paramTypes!!.add(type(function.toResolvedCallableSymbol()?.receiverParameter!!.typeRef))
@@ -795,12 +804,12 @@ class KotlinTypeMapping(
             if (t is GenericTypeVariable) {
                 if (mapNames && args != null) {
                     if (args.containsKey(p.name.asString())) {
-                        paramTypes.add(type(args[p.name.asString()]!!.typeRef, function)!!)
+                        paramTypes.add(type(args[p.name.asString()]!!.resolvedType, function)!!)
                     } else {
                         paramTypes.add(t)
                     }
                 } else if (index < valueParams.size) {
-                    paramTypes.add(type(function.arguments[index].typeRef, function)!!)
+                    paramTypes.add(type(function.arguments[index].resolvedType, function)!!)
                 }
             } else {
                 paramTypes.add(t)
@@ -864,7 +873,7 @@ class KotlinTypeMapping(
     fun variableType(variable: FirVariable, parent: Any?): Variable {
         val signature = signatureBuilder.variableSignature(variable, parent)
         val existing = typeCache.get<Variable>(signature)
-        if (existing != null) {
+        if (existing !== null) {
             return existing
         }
         return variableType(variable, parent, signature)
@@ -886,9 +895,9 @@ class KotlinTypeMapping(
                 declaringType = type(variable.symbol.dispatchReceiverType)
             }
 
-            variable.symbol.getContainingClassSymbol(firSession) != null -> {
-                if (variable.symbol.getContainingClassSymbol(firSession) !is FirAnonymousObjectSymbol) {
-                    declaringType = type(variable.symbol.getContainingClassSymbol(firSession)!!.fir)
+            variable.symbol.getContainingClassSymbol() != null -> {
+                if (variable.symbol.getContainingClassSymbol() !is FirAnonymousObjectSymbol) {
+                    declaringType = type(variable.symbol.getContainingClassSymbol()!!.fir)
                 }
             }
 
@@ -944,7 +953,7 @@ class KotlinTypeMapping(
         }
         val fqn = type.fqName.asString()
         var clazz = typeCache.get<Class>(fqn)
-        if (clazz == null) {
+        if (clazz === null) {
             clazz = Class(
                 null,
                 type.access.toLong(),
@@ -989,7 +998,7 @@ class KotlinTypeMapping(
                 methods = ArrayList(type.methods.size)
                 for (method: JavaMethod in type.methods) {
                     val mt = methodDeclarationType(method, clazz)
-                    if (mt != null) {
+                    if (mt !== null) {
                         methods.add(mt)
                     }
                 }
@@ -1003,7 +1012,7 @@ class KotlinTypeMapping(
                         // Filter out the same methods as JavaTypeMapping: Flags.SYNTHETIC | Flags.BRIDGE | Flags.HYPOTHETICAL | Flags.ANONCONSTR
                         if (method.access.toLong() and ((1 shl 12).toLong() or (1L shl 31) or (1L shl 37) or (1 shl 29).toLong()) == 0L) {
                             val ms = javaConstructorType(method, clazz)
-                            if (ms != null) {
+                            if (ms !== null) {
                                 methods.add(ms)
                             }
                         }
@@ -1029,7 +1038,7 @@ class KotlinTypeMapping(
         }
         if (type.typeParameters.isNotEmpty()) {
             var pt = typeCache.get<Parameterized>(signature)
-            if (pt == null) {
+            if (pt === null) {
                 pt = Parameterized(null, null, null)
                 typeCache.put(signature, pt)
                 val typeParameters: MutableList<JavaType> = ArrayList(type.typeParameters.size)
@@ -1044,7 +1053,7 @@ class KotlinTypeMapping(
     }
 
     private fun javaClassType(type: JavaClassifierType, signature: String): JavaType? {
-        var clazz : FullyQualified?
+        var clazz: FullyQualified?
         clazz = if (type.classifier != null) {
             TypeUtils.asFullyQualified(type(type.classifier!!))
         } else {
@@ -1054,7 +1063,7 @@ class KotlinTypeMapping(
         if (type.typeArguments.isNotEmpty()) {
             val ptSig = signatureBuilder.signature(type)
             var pt = typeCache.get<Parameterized>(ptSig)
-            if (pt == null) {
+            if (pt === null) {
                 pt = Parameterized(null, null, null)
                 typeCache.put(signature, pt)
                 val typeParameters: MutableList<JavaType> = ArrayList(type.typeArguments.size)
@@ -1077,7 +1086,7 @@ class KotlinTypeMapping(
     ): Method? {
         val signature = signatureBuilder.javaConstructorSignature(constructor)
         val existing = typeCache.get<Method>(signature)
-        if (existing != null) {
+        if (existing !== null) {
             return existing
         }
         var paramNames: MutableList<String>? = null
@@ -1197,7 +1206,7 @@ class KotlinTypeMapping(
     private fun javaVariableType(javaField: JavaField, owner: JavaType?): Variable {
         val signature = signatureBuilder.javaVariableSignature(javaField)
         val existing = typeCache.get<Variable>(signature)
-        if (existing != null) {
+        if (existing !== null) {
             return existing
         }
         val variable = Variable(
@@ -1220,7 +1229,7 @@ class KotlinTypeMapping(
     private fun listAnnotations(firAnnotations: List<FirAnnotation>): MutableList<FullyQualified>? {
         var annotations: MutableList<FullyQualified>? = null
         for (firAnnotation in firAnnotations) {
-            val fir = firAnnotation.typeRef.toRegularClassSymbol(firSession)?.fir
+            val fir = firAnnotation.resolvedType.toRegularClassSymbol(firSession)?.fir
             if (fir != null && isNotSourceRetention(fir.annotations)) {
                 if (annotations == null) {
                     annotations = ArrayList()
@@ -1254,7 +1263,7 @@ class KotlinTypeMapping(
 
     private fun isNotSourceRetention(annotations: List<FirAnnotation>): Boolean {
         for (ann in annotations) {
-            if ("kotlin.annotation.Retention" == convertClassIdToFqn(ann.typeRef.coneType.classId)) {
+            if ("kotlin.annotation.Retention" == convertClassIdToFqn(ann.resolvedType.classId)) {
                 for (v in ann.argumentMapping.mapping.values) {
                     if (v.calleeReference is FirResolvedNamedReference && (v.calleeReference as FirResolvedNamedReference).name.asString() == "SOURCE") {
                         return false
@@ -1286,6 +1295,7 @@ class KotlinTypeMapping(
                 bitMask += 1L shl 2
                 bitMask += 1L shl 3 // static
             }
+
             "internal", "package", "local" -> {}
             else -> throw UnsupportedOperationException("Unsupported visibility: ${visibility.name.lowercase()}")
         }
@@ -1332,7 +1342,7 @@ class KotlinTypeMapping(
 
     fun primitive(type: FirElement): Primitive {
         return when (type) {
-            is FirConstExpression<*> -> {
+            is FirLiteralExpression -> {
                 when (type.kind) {
                     ConstantValueKind.Boolean -> Primitive.Boolean
                     ConstantValueKind.Byte, ConstantValueKind.UnsignedByte -> Primitive.Byte
