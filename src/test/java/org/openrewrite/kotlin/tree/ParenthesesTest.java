@@ -83,4 +83,48 @@ class ParenthesesTest implements RewriteTest {
           )
         );
     }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/571")
+    @Test
+    void modifierBeforeRedundantParens() {
+        rewriteRun(
+          kotlin(
+            """
+              class SomeReceiver
+              suspend inline fun SomeReceiver  .   method(
+                  crossinline body  : suspend  (    SomeReceiver .  () -> Unit    )
+              ) {}
+              """
+          )
+        );
+    }
+
+    @Test
+    void modifierInRedundantParens() {
+        rewriteRun(
+          kotlin(
+            """
+              class SomeReceiver
+              suspend inline fun SomeReceiver  .   method(
+                  crossinline body  :   (    suspend      SomeReceiver .  () -> Unit    )
+              ) {}
+              """
+          )
+        );
+    }
+
+    @Issue("https://github.com/openrewrite/rewrite-kotlin/issues/571")
+    @Test
+    void modifierInNestedRedundantParens() {
+        rewriteRun(
+          kotlin(
+            """
+              class SomeReceiver
+              suspend inline fun SomeReceiver  .   method(
+                  crossinline body  : (  ( suspend (   (    SomeReceiver .  () -> Unit    )  ) ) )
+              ) {}
+              """
+          )
+        );
+    }
 }

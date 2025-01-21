@@ -331,13 +331,6 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
     }
 
     @Override
-    public J visitParenthesizedTypeTree(J.ParenthesizedTypeTree parTree, PrintOutputCapture<P> p) {
-        visitSpace(parTree.getPrefix(), Space.Location.PARENTHESES_PREFIX, p);
-        visitParentheses(parTree.getParenthesizedType(), p);
-        return parTree;
-    }
-
-    @Override
     public J visitProperty(K.Property property, PrintOutputCapture<P> p) {
         beforeSyntax(property, KSpace.Location.PROPERTY_PREFIX, p);
 
@@ -1073,6 +1066,26 @@ public class KotlinPrinter<P> extends KotlinVisitor<PrintOutputCapture<P>> {
             visit(newClass.getBody(), p);
             afterSyntax(newClass, p);
             return newClass;
+        }
+
+        @SuppressWarnings("ConstantValue")
+        @Override
+        public J visitParenthesizedTypeTree(J.ParenthesizedTypeTree parTree, PrintOutputCapture<P> p) {
+            visitSpace(parTree.getPrefix(), Space.Location.PARENTHESES_PREFIX, p);
+            if (!parTree.getAnnotations().isEmpty()) {
+                for (J.Annotation anno : parTree.getAnnotations()) {
+                    visitAnnotation(anno, p);
+                }
+            }
+
+            if (parTree.getModifiers() != null && !parTree.getModifiers().isEmpty()) {
+                for (J.Modifier mod : parTree.getModifiers()) {
+                    visitModifier(mod, p);
+                }
+            }
+            visitParentheses(parTree.getParenthesizedType(), p);
+
+            return parTree;
         }
 
         @Override

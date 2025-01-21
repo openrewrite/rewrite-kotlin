@@ -824,7 +824,6 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             throw new UnsupportedOperationException("This should never happen");
         }
 
-        TypeTree typeTree = (TypeTree) requireNonNull(innerType).accept(this, data);
         Set<PsiElement> consumedSpaces = new HashSet<>();
         if (innerType.getNextSibling() != null &&
             isSpace(innerType.getNextSibling().getNode()) &&
@@ -832,6 +831,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             consumedSpaces.add(innerType.getNextSibling());
         }
 
+        TypeTree typeTree = (TypeTree) requireNonNull(innerType).accept(this, data);
         if (typeTree instanceof K.FunctionType && nullableType.getModifierList() != null) {
             List<J.Annotation> leadingAnnotations = new ArrayList<>();
             List<J.Modifier> modifiers = mapModifiers(nullableType.getModifierList(), leadingAnnotations, emptyList(), data);
@@ -845,37 +845,7 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             typeTree = ((K.FunctionType) typeTree).withModifiers(modifiers).withLeadingAnnotations(leadingAnnotations);
         }
 
-        // Handle parentheses or potential nested parentheses
-        Stack<Pair<Integer, Integer>> parenPairs = new Stack<>();
-        List<PsiElement> allChildren = getAllChildren(nullableType);
-
-        TypeTree j = typeTree;
-        int l = 0;
-        int r = allChildren.size() - 1;
-        while (l < r) {
-            l = findFirstLPAR(allChildren, l);
-            r = findLastRPAR(allChildren, r);
-            if (l * r < 0) {
-                throw new UnsupportedOperationException("Unpaired parentheses!");
-            }
-            if (l < 0 || r < 0) {
-                break;
-            }
-            parenPairs.add(new Pair<>(l++, r--));
-        }
-
-        while (!parenPairs.empty()) {
-            Pair<Integer, Integer> parenPair = parenPairs.pop();
-            PsiElement lPAR = allChildren.get(parenPair.getFirst());
-            PsiElement rPAR = allChildren.get(parenPair.getSecond());
-            j = new J.ParenthesizedTypeTree(randomId(),
-                    Space.EMPTY,
-                    Markers.EMPTY,
-                    emptyList(),
-                    new J.Parentheses<>(randomId(), prefix(lPAR), Markers.EMPTY, padRight(j, prefix(rPAR, consumedSpaces)))
-            );
-        }
-
+        TypeTree j = maybeNestedParensType(typeTree, nullableType, emptyList(), -1);
         return new J.NullableType(randomId(),
                 merge(deepPrefix(nullableType), j.getPrefix()),
                 Markers.EMPTY,
@@ -3182,6 +3152,10 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
         Set<PsiElement> consumedSpaces = preConsumedInfix(typeReference);
 
         List<J.Modifier> modifiers = mapModifiers(typeReference.getModifierList(), leadingAnnotations, lastAnnotations, data);
+        int modifierOffSet = typeReference.getModifierList() != null ? typeReference.getModifierList().getTextOffset() : -1;
+        PsiElement maybeLastLPAR = findLastChild(typeReference, KotlinTreeParserVisitor::isLPAR);
+        boolean modifierBeforeParens = maybeLastLPAR != null && modifierOffSet > 0 && maybeLastLPAR.getTextOffset() > modifierOffSet;
+
         if (!leadingAnnotations.isEmpty()) {
             leadingAnnotations = ListUtils.mapFirst(leadingAnnotations, anno -> anno.withPrefix(prefix(typeReference)));
             consumedSpaces.add(findFirstPrefixSpace(typeReference));
@@ -3203,7 +3177,12 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
 
         if (j instanceof K.FunctionType && typeReference.getModifierList() != null) {
             K.FunctionType functionType = (K.FunctionType) j;
-            functionType = functionType.withModifiers(modifiers).withLeadingAnnotations(leadingAnnotations);
+
+            if (!modifierBeforeParens) {
+                functionType = functionType.withModifiers(modifiers);
+            }
+
+            functionType = functionType.withLeadingAnnotations(leadingAnnotations);
 
             if (functionType.getReceiver() != null) {
                 functionType = functionType.withReceiver(
@@ -3224,35 +3203,8 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             j = ((J.NullableType) j).withAnnotations(leadingAnnotations);
         }
 
-        // Handle potential redundant nested parentheses
-        Stack<Pair<Integer, Integer>> parenPairs = new Stack<>();
-        List<PsiElement> allChildren = getAllChildren(typeReference);
-
-        int l = 0;
-        int r = allChildren.size() - 1;
-        while (l < r) {
-            l = findFirstLPAR(allChildren, l);
-            r = findLastRPAR(allChildren, r);
-            if (l * r < 0) {
-                throw new UnsupportedOperationException("Unpaired parentheses!");
-            }
-            if (l < 0 || r < 0) {
-                break;
-            }
-            parenPairs.add(new Pair<>(l++, r--));
-        }
-
-        while (!parenPairs.empty()) {
-            Pair<Integer, Integer> parenPair = parenPairs.pop();
-            PsiElement lPAR = allChildren.get(parenPair.getFirst());
-            PsiElement rPAR = allChildren.get(parenPair.getSecond());
-            TypeTree typeTree = j instanceof K.FunctionType ? ((K.FunctionType) j).withReturnType(((K.FunctionType) j).getReturnType().withAfter(Space.EMPTY)) : (TypeTree) j;
-            j = new J.ParenthesizedTypeTree(randomId(),
-                    Space.EMPTY,
-                    Markers.EMPTY,
-                    emptyList(),
-                    new J.Parentheses<>(randomId(), prefix(lPAR), Markers.EMPTY, padRight(typeTree, prefix(rPAR)))
-            );
+        if (j instanceof TypeTree) {
+            j = maybeNestedParensType((TypeTree) j, typeReference, modifiers, modifierOffSet);
         }
 
         return j.withPrefix(merge(prefix(typeReference, consumedSpaces), j.getPrefix()));
@@ -3755,6 +3707,54 @@ public class KotlinTreeParserVisitor extends KtVisitor<J, ExecutionContext> {
             return false;
         }
         return element instanceof LeafPsiElement && ((LeafPsiElement) element).getElementType() == KtTokens.SEMICOLON;
+    }
+
+    // Handle parentheses or potential nested parentheses
+    private TypeTree maybeNestedParensType(TypeTree typeTree, KtElement parent, List<J.Modifier> modifiers, int modifierOffset) {
+        Stack<Pair<Integer, Integer>> parenPairs = new Stack<>();
+        List<PsiElement> allChildren = getAllChildren(parent);
+        TypeTree j = typeTree;
+        int l = 0;
+        int r = allChildren.size() - 1;
+        while (l < r) {
+            l = findFirstLPAR(allChildren, l);
+            r = findLastRPAR(allChildren, r);
+            if (l * r < 0) {
+                throw new UnsupportedOperationException("Unpaired parentheses!");
+            }
+            if (l < 0 || r < 0) {
+                break;
+            }
+            parenPairs.add(new Pair<>(l++, r--));
+        }
+
+        while (!parenPairs.empty()) {
+            Pair<Integer, Integer> parenPair = parenPairs.pop();
+            PsiElement lPAR = allChildren.get(parenPair.getFirst());
+            PsiElement rPAR = allChildren.get(parenPair.getSecond());
+            TypeTree tt = j instanceof K.FunctionType ? ((K.FunctionType) j).withReturnType(((K.FunctionType) j).getReturnType().withAfter(Space.EMPTY)) : j;
+            List<J.Modifier> mods = emptyList();
+
+            if (modifierOffset > 0 && lPAR.getTextOffset() < modifierOffset) {
+                if (tt instanceof J.ParenthesizedTypeTree) {
+                    tt = ((J.ParenthesizedTypeTree) j).withModifiers(modifiers);
+                }
+                modifierOffset = -1;
+            }
+
+            j = new J.ParenthesizedTypeTree(randomId(),
+                    Space.EMPTY,
+                    Markers.EMPTY,
+                    emptyList(),
+                    mods,
+                    new J.Parentheses<>(randomId(), prefix(lPAR), Markers.EMPTY, padRight(tt, prefix(rPAR)))
+            );
+        }
+
+        if (modifierOffset > 0 && j instanceof J.ParenthesizedTypeTree) {
+            j = ((J.ParenthesizedTypeTree) j).withModifiers(modifiers);
+        }
+        return j;
     }
 
     private <T> JLeftPadded<T> padLeft(Space left, T tree) {
