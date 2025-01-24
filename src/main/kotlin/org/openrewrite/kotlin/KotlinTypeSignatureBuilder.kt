@@ -67,9 +67,10 @@ class KotlinTypeSignatureBuilder(private val firSession: FirSession, private val
                 signature(type.lowerBound)
             }
 
-            is ConeStubTypeForChainInference -> {
-                signature(type.constructor.variable)
-            }
+            //TODO fix?
+//            is ConeStubTypeForChainInference -> {
+//                signature(type.constructor.variable)
+//            }
 
             is ConeTypeProjection -> {
                 coneTypeProjectionSignature(type)

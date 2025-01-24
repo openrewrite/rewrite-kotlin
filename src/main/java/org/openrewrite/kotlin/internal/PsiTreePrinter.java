@@ -29,7 +29,6 @@ import org.jetbrains.kotlin.fir.declarations.FirFile;
 import org.jetbrains.kotlin.fir.declarations.FirProperty;
 import org.jetbrains.kotlin.fir.expressions.*;
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference;
-import org.jetbrains.kotlin.fir.symbols.ConeClassLikeLookupTag;
 import org.jetbrains.kotlin.fir.types.*;
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor;
 import org.jetbrains.kotlin.ir.IrElement;
@@ -135,11 +134,11 @@ public class PsiTreePrinter {
             @Override
             public @Nullable Void visitElement(FirElement firElement, TreePrinterContext ctx) {
                 StringBuilder line = new StringBuilder();
-                line.append(leftPadding(ctx.getDepth()))
+                line.append(leftPadding(ctx.depth))
                         .append(printFirElement(firElement));
-                connectToLatestSibling(ctx.getDepth(), ctx.getLines());
-                ctx.getLines().add(line);
-                ctx.setDepth(ctx.getDepth() + 1);
+                connectToLatestSibling(ctx.depth, ctx.lines);
+                ctx.lines.add(line);
+                ctx.depth++;
                 firElement.acceptChildren(this, ctx);
 
                 if (firElement instanceof FirResolvedTypeRef) {
@@ -150,7 +149,7 @@ public class PsiTreePrinter {
                     }
                 }
 
-                ctx.setDepth(ctx.getDepth() - 1);
+                ctx.depth--;
                 return null;
             }
         }.visitFile(file, context);
@@ -167,11 +166,11 @@ public class PsiTreePrinter {
             @Override
             public @Nullable Void visitElement(FirElement fir, TreePrinterContext ctx) {
                 StringBuilder line = new StringBuilder();
-                line.append(leftPadding(ctx.getDepth()))
+                line.append(leftPadding(ctx.depth))
                         .append(printFirElement(fir));
-                connectToLatestSibling(ctx.getDepth(), ctx.getLines());
-                ctx.getLines().add(line);
-                ctx.setDepth(ctx.getDepth() + 1);
+                connectToLatestSibling(ctx.depth, ctx.lines);
+                ctx.lines.add(line);
+                ctx.depth++;
                 fir.acceptChildren(this, ctx);
 
                 if (fir instanceof FirResolvedTypeRef) {
@@ -182,7 +181,7 @@ public class PsiTreePrinter {
                     }
                 }
 
-                ctx.setDepth(ctx.getDepth() - 1);
+                ctx.depth--;
                 return null;
             }
         }.visitElement(firElement, context);
@@ -193,10 +192,10 @@ public class PsiTreePrinter {
     public static class IrPrinter {
         public void printElement(IrElement element, PsiTreePrinter.TreePrinterContext ctx) {
             StringBuilder line = new StringBuilder();
-            line.append(leftPadding(ctx.getDepth()))
+            line.append(leftPadding(ctx.depth))
                     .append(printIrElement(element));
-            connectToLatestSibling(ctx.getDepth(), ctx.getLines());
-            ctx.getLines().add(line);
+            connectToLatestSibling(ctx.depth, ctx.lines);
+            ctx.lines.add(line);
         }
     }
 
@@ -545,7 +544,7 @@ public class PsiTreePrinter {
             return ((FirProperty) firElement).getName().toString();
         } else if (firElement instanceof FirResolvedTypeRef) {
             FirResolvedTypeRef resolvedTypeRef = (FirResolvedTypeRef) firElement;
-            ConeKotlinType coneKotlinType = resolvedTypeRef.getType();
+            ConeKotlinType coneKotlinType = resolvedTypeRef.getConeType();
             return printConeKotlinType(coneKotlinType);
         } else if (firElement instanceof FirResolvedNamedReference) {
             return ((FirResolvedNamedReference) firElement).getName().toString();
@@ -575,8 +574,8 @@ public class PsiTreePrinter {
                 }
                 return sb.toString();
             }
-        } else if (firElement instanceof FirConstExpression) {
-            Object value = ((FirConstExpression<?>) firElement).getValue();
+        } else if (firElement instanceof FirLiteralExpression) {
+            Object value = ((FirLiteralExpression) firElement).getValue();
             return value != null ? value.toString() : null;
             // return ((FirConstExpression<?>) firElement).getKind().toString();
         } else if (firElement instanceof FirWhenBranch) {
