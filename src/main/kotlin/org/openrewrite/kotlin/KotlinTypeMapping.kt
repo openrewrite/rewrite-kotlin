@@ -1263,7 +1263,7 @@ class KotlinTypeMapping(
         for (ann in annotations) {
             if ("kotlin.annotation.Retention" == convertClassIdToFqn(ann.resolvedType.classId)) {
                 for (v in ann.argumentMapping.mapping.values) {
-                    if (v.calleeReference is FirResolvedNamedReference && (v.calleeReference as FirResolvedNamedReference).name.asString() == "SOURCE") {
+                    if (v is FirQualifiedAccessExpression && v.calleeReference is FirResolvedNamedReference && (v.calleeReference as FirResolvedNamedReference).name.asString() == "SOURCE") {
                         return false
                     }
                 }
