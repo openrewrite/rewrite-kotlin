@@ -38,7 +38,6 @@ import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.FirSuperReference
 import org.jetbrains.kotlin.fir.references.toResolvedBaseSymbol
 import org.jetbrains.kotlin.fir.resolve.calls.FirSyntheticFunctionSymbol
-import org.jetbrains.kotlin.fir.resolve.toFirRegularClass
 import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
@@ -62,7 +61,6 @@ import org.openrewrite.java.tree.TypeUtils
 import org.openrewrite.kotlin.KotlinTypeSignatureBuilder.Companion.convertClassIdToFqn
 import org.openrewrite.kotlin.KotlinTypeSignatureBuilder.Companion.methodName
 import org.openrewrite.kotlin.KotlinTypeSignatureBuilder.Companion.variableName
-import kotlin.collections.ArrayList
 
 @Suppress("DuplicatedCode")
 class KotlinTypeMapping(
@@ -506,7 +504,7 @@ class KotlinTypeMapping(
 
     @OptIn(SymbolInternals::class)
     fun methodDeclarationType(enumEntry: FirEnumEntry): Method? {
-        val type = when (val fir = enumEntry.symbol.getContainingClassSymbol(firSession)?.fir) {
+        val type = when (val fir = enumEntry.symbol.getContainingClassSymbol()?.fir) {
             is FirClass -> {
                 when (val primary = fir.declarations.firstOrNull { it is FirPrimaryConstructor }) {
                     is FirPrimaryConstructor -> type(primary as FirFunction)
@@ -554,8 +552,8 @@ class KotlinTypeMapping(
         var parentType = when {
             function.symbol is FirConstructorSymbol -> type(function.returnTypeRef)
             function.dispatchReceiverType != null -> type(function.dispatchReceiverType!!)
-            function.symbol.getOwnerLookupTag()?.toFirRegularClass(firSession) != null -> {
-                type(function.symbol.getOwnerLookupTag()!!.toFirRegularClass(firSession)!!)
+            function.symbol.getOwnerLookupTag()?.toRegularClassSymbol(firSession) != null -> {
+                type(function.symbol.getOwnerLookupTag()!!.toRegularClassSymbol(firSession)!!)
             }
 
             parent is FirRegularClass || parent != null -> type(parent)
@@ -741,11 +739,11 @@ class KotlinTypeMapping(
             if (resolvedSymbol.dispatchReceiverType is ConeClassLikeType) {
                 declaringType = TypeUtils.asFullyQualified(type(resolvedSymbol.dispatchReceiverType))
             } else if (resolvedSymbol.containingClassLookupTag() != null &&
-                resolvedSymbol.containingClassLookupTag()!!.toFirRegularClass(firSession) != null
+                resolvedSymbol.containingClassLookupTag()!!.toRegularClassSymbol(firSession) != null
             ) {
                 declaringType = TypeUtils.asFullyQualified(
                     type(
-                        resolvedSymbol.containingClassLookupTag()!!.toFirRegularClass(firSession)
+                        resolvedSymbol.containingClassLookupTag()!!.toRegularClassSymbol(firSession)
                     )
                 )
             } else if (resolvedSymbol.origin == FirDeclarationOrigin.Library) {
