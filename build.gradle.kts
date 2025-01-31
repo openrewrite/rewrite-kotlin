@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("org.openrewrite.build.recipe-library") version "latest.release"
-    kotlin("jvm") version "2.1.0"
+    kotlin("jvm") version "2.1.10"
 }
 group = "org.openrewrite"
 description = "Rewrite Kotlin"
@@ -13,7 +13,7 @@ val latest = if (project.hasProperty("releasing")) {
     "latest.integration"
 }
 
-val kotlinVersion = "2.1.0"
+val kotlinVersion = "2.1.10"
 
 dependencies {
     annotationProcessor("org.projectlombok:lombok:latest.release")

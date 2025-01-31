@@ -524,7 +524,7 @@ public class KotlinParser implements Parser {
         KOTLIN_1_8,
         KOTLIN_1_9,
         KOTLIN_2_0,
-        KOTLIN_2_1,
+        KOTLIN_2_1
     }
 
     private CompilerConfiguration compilerConfiguration() {

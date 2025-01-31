@@ -49,9 +49,22 @@ object FirSessionFactoryHelper {
         dependenciesConfigurator: DependencyListForCliModule.Builder.() -> Unit = {},
         sessionConfigurator: FirSessionConfigurator.() -> Unit = {},
     ): FirSession {
+        val librariesScope: AbstractProjectFileSearchScope = !javaSourcesScope
         val binaryModuleData = BinaryModuleData.initialize(moduleName, platform)
         val dependencyList = DependencyListForCliModule.build(binaryModuleData, init = dependenciesConfigurator)
         val sessionProvider = externalSessionProvider ?: FirProjectSessionProvider()
+        val packagePartProvider = projectEnvironment.getPackagePartProvider(librariesScope)
+        val librarySession = FirJvmSessionFactory.createLibrarySession(
+            moduleName,
+            sessionProvider,
+            dependencyList.moduleDataProvider,
+            projectEnvironment,
+            extensionRegistrars,
+            librariesScope,
+            packagePartProvider,
+            languageVersionSettings,
+            predefinedJavaComponents = null,
+        )
 
         val mainModuleData = FirModuleDataImpl(
             moduleName,
@@ -74,7 +87,10 @@ object FirSessionFactoryHelper {
             importTracker,
             predefinedJavaComponents = null,
             needRegisterJavaElementFinder,
-            init = sessionConfigurator
+            init = {
+//                registerComponent(FirBuiltinSyntheticFunctionInterfaceProvider::class, librarySession.symbolProvider)
+                sessionConfigurator()
+            },
         )
     }
 }
