@@ -917,7 +917,7 @@ public interface K extends J {
     @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
     @RequiredArgsConstructor
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    final class DestructuringDeclaration implements K, Statement {
+    final class DestructuringDeclaration implements K, Statement, TypedTree {
 
         @Nullable
         @NonFinal
@@ -945,6 +945,11 @@ public interface K extends J {
         JContainer<J.VariableDeclarations.NamedVariable> assignments;
 
         JContainer<Statement> destructAssignments;
+
+        @With
+        @Getter
+        @Nullable
+        JavaType type;
 
         @Deprecated
         public @Nullable List<J.VariableDeclarations.NamedVariable> getAssignments() {
@@ -1009,7 +1014,7 @@ public interface K extends J {
             }
 
             public DestructuringDeclaration withDestructAssignments(JContainer<Statement> assignments) {
-                return t.destructAssignments == assignments ? t : new DestructuringDeclaration(t.id, t.prefix, t.markers, t.initializer, null, assignments);
+                return t.destructAssignments == assignments ? t : new DestructuringDeclaration(t.id, t.prefix, t.markers, t.initializer, null, assignments, t.type);
             }
         }
 
