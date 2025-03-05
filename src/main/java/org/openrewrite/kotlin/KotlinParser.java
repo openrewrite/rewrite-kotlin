@@ -52,7 +52,6 @@ import org.jetbrains.kotlin.fir.pipeline.AnalyseKt;
 import org.jetbrains.kotlin.fir.pipeline.FirUtilsKt;
 import org.jetbrains.kotlin.fir.resolve.ScopeSession;
 import org.jetbrains.kotlin.fir.session.FirSessionConfigurator;
-import org.jetbrains.kotlin.fir.session.FirSessionFactoryHelper;
 import org.jetbrains.kotlin.fir.session.environment.AbstractProjectFileSearchScope;
 import org.jetbrains.kotlin.idea.KotlinFileType;
 import org.jetbrains.kotlin.idea.KotlinLanguage;
@@ -263,7 +262,7 @@ public class KotlinParser implements Parser {
         private boolean logCompilationWarningsAndErrors;
         private final List<NamedStyles> styles = new ArrayList<>();
         private String moduleName = "main";
-        private KotlinLanguageLevel languageLevel = KotlinLanguageLevel.KOTLIN_1_9;
+        private KotlinLanguageLevel languageLevel = KotlinLanguageLevel.KOTLIN_2_1;
         private boolean isKotlinScript = false;
 
         public Builder() {
@@ -431,7 +430,7 @@ public class KotlinParser implements Parser {
                 VirtualFileManager.getInstance().getFileSystem(StandardFileSystems.FILE_PROTOCOL),
                 providerFunction1);
 
-        AbstractProjectFileSearchScope sourceScope = projectEnvironment.getSearchScopeByPsiFiles(ktFiles, false);
+        AbstractProjectFileSearchScope sourceScope = projectEnvironment.getSearchScopeByPsiFiles(ktFiles);
         sourceScope.plus(projectEnvironment.getSearchScopeForProjectJavaSources());
 
         AbstractProjectFileSearchScope libraryScope = projectEnvironment.getSearchScopeForProjectLibraries();
@@ -461,12 +460,10 @@ public class KotlinParser implements Parser {
         FirSession firSession = FirSessionFactoryHelper.INSTANCE.createSessionWithDependencies(
                 Name.identifier(module.getModuleName()),
                 JvmPlatforms.INSTANCE.getUnspecifiedJvmPlatform(),
-                JvmPlatformAnalyzerServices.INSTANCE,
                 sessionProvider,
                 projectEnvironment,
                 languageVersionSettings,
                 sourceScope,
-                libraryScope,
                 compilerConfiguration.get(LOOKUP_TRACKER),
                 compilerConfiguration.get(ENUM_WHEN_TRACKER),
                 compilerConfiguration.get(IMPORT_TRACKER),
@@ -525,7 +522,9 @@ public class KotlinParser implements Parser {
         KOTLIN_1_6,
         KOTLIN_1_7,
         KOTLIN_1_8,
-        KOTLIN_1_9
+        KOTLIN_1_9,
+        KOTLIN_2_0,
+        KOTLIN_2_1
     }
 
     private CompilerConfiguration compilerConfiguration() {
@@ -571,6 +570,10 @@ public class KotlinParser implements Parser {
                 return LanguageVersion.KOTLIN_1_8;
             case KOTLIN_1_9:
                 return LanguageVersion.KOTLIN_1_9;
+            case KOTLIN_2_0:
+                return LanguageVersion.KOTLIN_2_0;
+            case KOTLIN_2_1:
+                return LanguageVersion.KOTLIN_2_1;
             default:
                 throw new IllegalArgumentException("Unknown language level: " + languageLevel);
         }
@@ -598,6 +601,10 @@ public class KotlinParser implements Parser {
                 return ApiVersion.KOTLIN_1_8;
             case KOTLIN_1_9:
                 return ApiVersion.KOTLIN_1_9;
+            case KOTLIN_2_0:
+                return ApiVersion.KOTLIN_2_0;
+            case KOTLIN_2_1:
+                return ApiVersion.KOTLIN_2_1;
             default:
                 throw new IllegalArgumentException("Unknown language level: " + languageLevel);
         }
